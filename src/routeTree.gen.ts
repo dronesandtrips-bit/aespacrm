@@ -9,38 +9,161 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
+import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
+import { Route as AppInboxRouteImport } from './routes/_app.inbox'
+import { Route as AppDisparosRouteImport } from './routes/_app.disparos'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppContatosRouteImport } from './routes/_app.contatos'
+import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppWhatsappRoute = AppWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPipelineRoute = AppPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInboxRoute = AppInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDisparosRoute = AppDisparosRouteImport.update({
+  id: '/disparos',
+  path: '/disparos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContatosRoute = AppContatosRouteImport.update({
+  id: '/contatos',
+  path: '/contatos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/contatos': typeof AppContatosRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/disparos': typeof AppDisparosRoute
+  '/inbox': typeof AppInboxRoute
+  '/pipeline': typeof AppPipelineRoute
+  '/whatsapp': typeof AppWhatsappRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/contatos': typeof AppContatosRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/disparos': typeof AppDisparosRoute
+  '/inbox': typeof AppInboxRoute
+  '/pipeline': typeof AppPipelineRoute
+  '/whatsapp': typeof AppWhatsappRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/contatos': typeof AppContatosRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/disparos': typeof AppDisparosRoute
+  '/_app/inbox': typeof AppInboxRoute
+  '/_app/pipeline': typeof AppPipelineRoute
+  '/_app/whatsapp': typeof AppWhatsappRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/configuracoes'
+    | '/contatos'
+    | '/dashboard'
+    | '/disparos'
+    | '/inbox'
+    | '/pipeline'
+    | '/whatsapp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/configuracoes'
+    | '/contatos'
+    | '/dashboard'
+    | '/disparos'
+    | '/inbox'
+    | '/pipeline'
+    | '/whatsapp'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/_app/configuracoes'
+    | '/_app/contatos'
+    | '/_app/dashboard'
+    | '/_app/disparos'
+    | '/_app/inbox'
+    | '/_app/pipeline'
+    | '/_app/whatsapp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +171,84 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/whatsapp': {
+      id: '/_app/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof AppWhatsappRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pipeline': {
+      id: '/_app/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof AppPipelineRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/inbox': {
+      id: '/_app/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AppInboxRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/disparos': {
+      id: '/_app/disparos'
+      path: '/disparos'
+      fullPath: '/disparos'
+      preLoaderRoute: typeof AppDisparosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/contatos': {
+      id: '/_app/contatos'
+      path: '/contatos'
+      fullPath: '/contatos'
+      preLoaderRoute: typeof AppContatosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/configuracoes': {
+      id: '/_app/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppContatosRoute: typeof AppContatosRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppDisparosRoute: typeof AppDisparosRoute
+  AppInboxRoute: typeof AppInboxRoute
+  AppPipelineRoute: typeof AppPipelineRoute
+  AppWhatsappRoute: typeof AppWhatsappRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppContatosRoute: AppContatosRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppDisparosRoute: AppDisparosRoute,
+  AppInboxRoute: AppInboxRoute,
+  AppPipelineRoute: AppPipelineRoute,
+  AppWhatsappRoute: AppWhatsappRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
