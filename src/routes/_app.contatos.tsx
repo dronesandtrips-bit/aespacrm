@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,35 +29,68 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Pencil, Trash2, Users } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Plus, Search, Pencil, Trash2, Users, Download, Upload } from "lucide-react";
 import { db, type Contact } from "@/lib/mock-data";
 import { toast } from "sonner";
-
-export const Route = createFileRoute("/_app/contatos")({
-  component: ContactsPage,
-});
+import Papa from "papaparse";
+import { z } from "zod";
+import { fallback, zodValidator } from "@tanstack/zod-adapter";
 
 const ALL = "__all__";
 const NONE = "__none__";
+const PAGE_SIZE = 50;
+
+const searchSchema = z.object({
+  page: fallback(z.number().int().min(1), 1).default(1),
+  q: fallback(z.string(), "").default(""),
+  cat: fallback(z.string(), ALL).default(ALL),
+});
+
+export const Route = createFileRoute("/_app/contatos")({
+  validateSearch: zodValidator(searchSchema),
+  component: ContactsPage,
+});
 
 function ContactsPage() {
+  const { page, q, cat } = Route.useSearch();
+  const navigate = useNavigate({ from: "/contatos" });
+
   const [contacts, setContacts] = useState<Contact[]>(() => db.listContacts());
   const [categories] = useState(() => db.listCategories());
-  const [search, setSearch] = useState("");
-  const [filterCat, setFilterCat] = useState<string>(ALL);
   const [editing, setEditing] = useState<Contact | null>(null);
   const [open, setOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
-  const filtered = contacts.filter((c) => {
-    const matchSearch =
-      !search ||
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.phone.includes(search);
-    const matchCat = filterCat === ALL || c.categoryId === filterCat;
-    return matchSearch && matchCat;
-  });
+  const filtered = useMemo(
+    () =>
+      contacts.filter((c) => {
+        const matchSearch =
+          !q ||
+          c.name.toLowerCase().includes(q.toLowerCase()) ||
+          c.phone.includes(q);
+        const matchCat = cat === ALL || c.categoryId === cat;
+        return matchSearch && matchCat;
+      }),
+    [contacts, q, cat],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
 
   const refresh = () => setContacts([...db.listContacts()]);
+  const goto = (next: Partial<{ page: number; q: string; cat: string }>) =>
+    navigate({ search: (prev) => ({ ...prev, ...next }) });
 
   const handleSave = (data: Omit<Contact, "id" | "createdAt">) => {
     if (editing) {
@@ -79,6 +112,26 @@ function ContactsPage() {
     toast.success("Contato removido");
   };
 
+  const handleExport = () => {
+    const rows = filtered.map((c) => ({
+      Nome: c.name,
+      Telefone: c.phone,
+      Email: c.email ?? "",
+      Categoria: categories.find((k) => k.id === c.categoryId)?.name ?? "",
+      Notas: c.notes ?? "",
+      "Criado em": new Date(c.createdAt).toLocaleString("pt-BR"),
+    }));
+    const csv = Papa.unparse(rows);
+    const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `contatos-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${rows.length} contatos exportados`);
+  };
+
   return (
     <div className="space-y-5 max-w-[1400px]">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -87,25 +140,33 @@ function ContactsPage() {
             {contacts.length} contatos no total · {filtered.length} filtrados
           </p>
         </div>
-        <Dialog
-          open={open}
-          onOpenChange={(v) => {
-            setOpen(v);
-            if (!v) setEditing(null);
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="size-4" /> Novo contato
-            </Button>
-          </DialogTrigger>
-          <ContactDialog
-            key={editing?.id ?? "new"}
-            initial={editing}
-            categories={categories}
-            onSubmit={handleSave}
-          />
-        </Dialog>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
+            <Download className="size-4" /> Exportar CSV
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
+            <Upload className="size-4" /> Importar CSV
+          </Button>
+          <Dialog
+            open={open}
+            onOpenChange={(v) => {
+              setOpen(v);
+              if (!v) setEditing(null);
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="size-4" /> Novo contato
+              </Button>
+            </DialogTrigger>
+            <ContactDialog
+              key={editing?.id ?? "new"}
+              initial={editing}
+              categories={categories}
+              onSubmit={handleSave}
+            />
+          </Dialog>
+        </div>
       </div>
 
       <Card className="p-4">
@@ -114,12 +175,12 @@ function ContactsPage() {
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome ou telefone..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={q}
+              onChange={(e) => goto({ q: e.target.value, page: 1 })}
               className="pl-9"
             />
           </div>
-          <Select value={filterCat} onValueChange={setFilterCat}>
+          <Select value={cat} onValueChange={(v) => goto({ cat: v, page: 1 })}>
             <SelectTrigger className="sm:w-56">
               <SelectValue placeholder="Categoria" />
             </SelectTrigger>
@@ -136,7 +197,7 @@ function ContactsPage() {
       </Card>
 
       <Card className="overflow-hidden">
-        {filtered.length === 0 ? (
+        {pageItems.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">
             <Users className="size-10 mx-auto mb-3 opacity-40" />
             <p className="text-sm">Nenhum contato encontrado</p>
@@ -153,15 +214,15 @@ function ContactsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((c) => {
-                const cat = categories.find((k) => k.id === c.categoryId);
+              {pageItems.map((c) => {
+                const catObj = categories.find((k) => k.id === c.categoryId);
                 return (
                   <TableRow key={c.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div
                           className="size-8 rounded-full grid place-items-center text-white text-xs font-semibold"
-                          style={{ backgroundColor: cat?.color ?? "#94a3b8" }}
+                          style={{ backgroundColor: catObj?.color ?? "#94a3b8" }}
                         >
                           {c.name[0]}
                         </div>
@@ -173,12 +234,12 @@ function ContactsPage() {
                       {c.email || "—"}
                     </TableCell>
                     <TableCell>
-                      {cat ? (
+                      {catObj ? (
                         <Badge
                           variant="outline"
-                          style={{ borderColor: cat.color, color: cat.color }}
+                          style={{ borderColor: catObj.color, color: catObj.color }}
                         >
-                          {cat.name}
+                          {catObj.name}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-sm">—</span>
@@ -210,7 +271,261 @@ function ContactsPage() {
           </Table>
         )}
       </Card>
+
+      {filtered.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            Mostrando {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} de{" "}
+            {filtered.length} contatos
+          </p>
+          <PaginationNav
+            page={safePage}
+            totalPages={totalPages}
+            onChange={(p) => goto({ page: p })}
+          />
+        </div>
+      )}
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={refresh}
+      />
     </div>
+  );
+}
+
+function PaginationNav({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (p: number) => void;
+}) {
+  const pages: (number | "…")[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (page > 3) pages.push("…");
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+    if (page < totalPages - 2) pages.push("…");
+    pages.push(totalPages);
+  }
+
+  return (
+    <Pagination className="mx-0 w-auto justify-end">
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            onClick={(e) => {
+              e.preventDefault();
+              if (page > 1) onChange(page - 1);
+            }}
+            className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+          />
+        </PaginationItem>
+        {pages.map((p, i) =>
+          p === "…" ? (
+            <PaginationItem key={`e${i}`}>
+              <PaginationEllipsis />
+            </PaginationItem>
+          ) : (
+            <PaginationItem key={p}>
+              <PaginationLink
+                isActive={p === page}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onChange(p);
+                }}
+                className="cursor-pointer"
+              >
+                {p}
+              </PaginationLink>
+            </PaginationItem>
+          ),
+        )}
+        <PaginationItem>
+          <PaginationNext
+            onClick={(e) => {
+              e.preventDefault();
+              if (page < totalPages) onChange(page + 1);
+            }}
+            className={
+              page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
+            }
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
+type ParsedRow = {
+  name: string;
+  phone: string;
+  email?: string;
+  notes?: string;
+  categoryName?: string;
+};
+
+function ImportDialog({
+  open,
+  onOpenChange,
+  onImported,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onImported: () => void;
+}) {
+  const [rows, setRows] = useState<ParsedRow[]>([]);
+  const [fileName, setFileName] = useState<string>("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const reset = () => {
+    setRows([]);
+    setFileName("");
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const handleFile = (file: File) => {
+    setFileName(file.name);
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (result) => {
+        const parsed: ParsedRow[] = result.data
+          .map((r) => {
+            // Aceita variações comuns de nomes de colunas
+            const get = (...keys: string[]) => {
+              for (const k of keys) {
+                const found = Object.keys(r).find(
+                  (rk) => rk.trim().toLowerCase() === k.toLowerCase(),
+                );
+                if (found && r[found]) return String(r[found]).trim();
+              }
+              return "";
+            };
+            return {
+              name: get("Nome", "name"),
+              phone: get("Telefone", "phone", "celular", "whatsapp"),
+              email: get("Email", "e-mail") || undefined,
+              notes: get("Notas", "notes", "observação") || undefined,
+              categoryName: get("Categoria", "category") || undefined,
+            };
+          })
+          .filter((r) => r.name && r.phone);
+        setRows(parsed);
+        if (parsed.length === 0) {
+          toast.error("Nenhuma linha válida encontrada (precisa ter Nome e Telefone)");
+        }
+      },
+      error: (err) => toast.error(`Erro ao ler CSV: ${err.message}`),
+    });
+  };
+
+  const confirm = () => {
+    const cats = db.listCategories();
+    const toImport = rows.map((r) => ({
+      name: r.name,
+      phone: r.phone,
+      email: r.email,
+      notes: r.notes,
+      categoryId: r.categoryName
+        ? cats.find((c) => c.name.toLowerCase() === r.categoryName!.toLowerCase())?.id
+        : undefined,
+    }));
+    const result = db.bulkImportContacts(toImport);
+    toast.success(
+      `✅ ${result.imported} importados${result.skipped > 0 ? ` · ⚠️ ${result.skipped} ignorados` : ""}`,
+    );
+    onImported();
+    reset();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) reset();
+        onOpenChange(v);
+      }}
+    >
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Importar contatos via CSV</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="text-xs text-muted-foreground border rounded-lg p-3 bg-muted/30">
+            <p className="font-semibold text-foreground mb-1">Formato esperado:</p>
+            <p>
+              Colunas: <code>Nome</code>, <code>Telefone</code>, <code>Email</code>,{" "}
+              <code>Categoria</code>, <code>Notas</code>
+            </p>
+            <p className="mt-1">
+              Telefones duplicados (já existentes) serão ignorados automaticamente.
+            </p>
+          </div>
+
+          <div>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleFile(f);
+              }}
+              className="block w-full text-sm file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
+            />
+            {fileName && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {fileName} · {rows.length} linhas válidas
+              </p>
+            )}
+          </div>
+
+          {rows.length > 0 && (
+            <div className="border rounded-lg overflow-hidden">
+              <p className="text-xs font-semibold p-2 bg-muted">
+                Pré-visualização (primeiras 5 linhas)
+              </p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Categoria</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.slice(0, 5).map((r, i) => (
+                    <TableRow key={i}>
+                      <TableCell>{r.name}</TableCell>
+                      <TableCell className="font-mono text-xs">{r.phone}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {r.categoryName ?? "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={confirm} disabled={rows.length === 0}>
+            Importar {rows.length > 0 ? `(${rows.length})` : ""}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

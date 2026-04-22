@@ -13,12 +13,27 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, User, LogOut } from "lucide-react";
-import { db, type Category } from "@/lib/mock-data";
+import { Plus, Pencil, Trash2, User, LogOut, GripVertical } from "lucide-react";
+import { db, type Category, type PipelineStage } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/_app/configuracoes")({
   component: SettingsPage,
@@ -185,29 +200,178 @@ function CategoryDialog({
 }
 
 function PipelineTab() {
-  const stages = db.listStages();
+  const [stages, setStages] = useState<PipelineStage[]>(() => db.listStages());
+  const [editing, setEditing] = useState<PipelineStage | null>(null);
+  const [open, setOpen] = useState(false);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const refresh = () => setStages([...db.listStages()]);
+
+  const save = (name: string, color: string) => {
+    if (!name.trim()) return toast.error("Nome obrigatório");
+    if (editing) {
+      db.updateStage(editing.id, { name: name.trim(), color });
+      toast.success("Etapa atualizada");
+    } else {
+      db.createStage(name.trim(), color);
+      toast.success("Etapa criada");
+    }
+    refresh();
+    setOpen(false);
+    setEditing(null);
+  };
+
+  const remove = (id: string) => {
+    if (!confirm("Remover esta etapa?")) return;
+    const result = db.deleteStage(id);
+    if (!result.ok) {
+      toast.error(result.reason ?? "Não foi possível remover");
+      return;
+    }
+    refresh();
+    toast.success("Etapa removida");
+  };
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = stages.findIndex((s) => s.id === active.id);
+    const newIndex = stages.findIndex((s) => s.id === over.id);
+    const next = arrayMove(stages, oldIndex, newIndex);
+    setStages(next);
+    db.reorderStages(next.map((s) => s.id));
+    toast.success("Ordem atualizada");
+  };
+
   return (
     <Card className="p-5">
-      <h3 className="font-semibold mb-1">Etapas do pipeline</h3>
-      <p className="text-xs text-muted-foreground mb-4">
-        Configure as etapas de venda. Edição em breve.
-      </p>
-      <div className="space-y-2">
-        {stages.map((s, i) => (
-          <div key={s.id} className="border rounded-lg p-3 flex items-center gap-3">
-            <span className="text-xs text-muted-foreground w-6">{i + 1}.</span>
-            <span
-              className="size-3 rounded-full"
-              style={{ backgroundColor: s.color }}
-            />
-            <span className="flex-1 font-medium text-sm">{s.name}</span>
-            <Button variant="ghost" size="icon" disabled>
-              <Pencil className="size-4" />
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="font-semibold">Etapas do pipeline</h3>
+          <p className="text-xs text-muted-foreground">
+            Arraste para reordenar · {stages.length} etapas
+          </p>
+        </div>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
+          <DialogTrigger asChild>
+            <Button className="gap-2">
+              <Plus className="size-4" /> Nova etapa
             </Button>
-          </div>
-        ))}
+          </DialogTrigger>
+          <StageDialog key={editing?.id ?? "new"} initial={editing} onSubmit={save} />
+        </Dialog>
       </div>
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={stages.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {stages.map((s) => (
+              <SortableStageRow
+                key={s.id}
+                stage={s}
+                onEdit={() => { setEditing(s); setOpen(true); }}
+                onDelete={() => remove(s.id)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </Card>
+  );
+}
+
+function SortableStageRow({
+  stage,
+  onEdit,
+  onDelete,
+}: {
+  stage: PipelineStage;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: stage.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="border rounded-lg p-3 flex items-center gap-3 bg-card"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+        aria-label="Arrastar"
+      >
+        <GripVertical className="size-4" />
+      </button>
+      <span
+        className="size-3 rounded-full shrink-0"
+        style={{ backgroundColor: stage.color }}
+      />
+      <span className="flex-1 font-medium text-sm truncate">{stage.name}</span>
+      <Button variant="ghost" size="icon" onClick={onEdit}>
+        <Pencil className="size-4" />
+      </Button>
+      <Button variant="ghost" size="icon" onClick={onDelete}>
+        <Trash2 className="size-4 text-destructive" />
+      </Button>
+    </div>
+  );
+}
+
+function StageDialog({
+  initial,
+  onSubmit,
+}: {
+  initial: PipelineStage | null;
+  onSubmit: (name: string, color: string) => void;
+}) {
+  const [name, setName] = useState(initial?.name ?? "");
+  const [color, setColor] = useState(initial?.color ?? COLORS[0]);
+  return (
+    <DialogContent className="max-w-sm">
+      <DialogHeader>
+        <DialogTitle>{initial ? "Editar etapa" : "Nova etapa"}</DialogTitle>
+      </DialogHeader>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit(name, color);
+        }}
+        className="space-y-4"
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor="sn">Nome</Label>
+          <Input id="sn" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Negociação" />
+        </div>
+        <div className="space-y-2">
+          <Label>Cor</Label>
+          <div className="flex flex-wrap gap-2">
+            {COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setColor(c)}
+                className={cn(
+                  "size-8 rounded-lg border-2 transition",
+                  color === c ? "border-foreground scale-110" : "border-transparent",
+                )}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button type="submit">Salvar</Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
   );
 }
 
