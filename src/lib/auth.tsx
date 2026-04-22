@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
 
 export type Profile = {
@@ -28,6 +28,8 @@ type AuthCtx = {
 };
 
 const Ctx = createContext<AuthCtx | null>(null);
+const CONFIG_ERROR =
+  "As variáveis de build do Supabase ainda não estão configuradas no preview. Adicione VITE_AESPACRM_SUPA_URL e VITE_AESPACRM_SUPA_ANON_KEY nas Build Secrets do workspace e recarregue.";
 
 function profileToUser(p: Profile | null, fallbackEmail: string, fallbackId: string): User {
   return {
@@ -63,15 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       return;
     }
-    // Defer profile fetch to avoid deadlocks inside onAuthStateChange callback
     const profile = await fetchProfile(s.user.id);
     setUser(profileToUser(profile, s.user.email ?? "", s.user.id));
   };
 
   useEffect(() => {
-    // 1. Set up listener FIRST
+    if (!isSupabaseConfigured) {
+      setLoading(false);
+      setUser(null);
+      setSession(null);
+      return;
+    }
+
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      // Defer any supabase calls to avoid deadlock
       setSession(s);
       if (s?.user) {
         setTimeout(() => {
@@ -84,27 +90,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // 2. THEN check existing session
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       hydrate(s).finally(() => setLoading(false));
     });
 
     return () => sub.subscription.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const ensureConfigured = () => {
+    if (!isSupabaseConfigured) {
+      throw new Error(CONFIG_ERROR);
+    }
+  };
+
   const login = async (email: string, password: string) => {
+    ensureConfigured();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    if (isSupabaseConfigured) {
+      await supabase.auth.signOut();
+    }
     setUser(null);
     setSession(null);
   };
 
   const requestPasswordReset = async (email: string) => {
+    ensureConfigured();
     const redirectTo =
       typeof window !== "undefined"
         ? `${window.location.origin}/reset-password`
@@ -114,12 +128,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updatePassword = async (newPassword: string) => {
+    ensureConfigured();
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
   };
 
   const refreshProfile = async () => {
-    if (!session?.user) return;
+    if (!isSupabaseConfigured || !session?.user) return;
     const p = await fetchProfile(session.user.id);
     setUser(profileToUser(p, session.user.email ?? "", session.user.id));
   };
