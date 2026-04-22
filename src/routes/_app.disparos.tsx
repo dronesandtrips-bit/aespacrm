@@ -1,20 +1,286 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { Construction } from "lucide-react";
-
-function Soon({ title }: { title: string }) {
-  return (
-    <Card className="p-12 text-center max-w-2xl mx-auto">
-      <Construction className="size-12 mx-auto text-primary mb-4" />
-      <h2 className="text-xl font-semibold mb-2">{title}</h2>
-      <p className="text-sm text-muted-foreground">
-        Esta seção será construída na próxima iteração. A fundação (auth, layout, dashboard
-        e contatos) já está pronta para você validar.
-      </p>
-    </Card>
-  );
-}
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+import { Separator } from "@/components/ui/separator";
+import {
+  Send,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  Users,
+  Clock,
+} from "lucide-react";
+import { db, type BulkSend, type Contact } from "@/lib/mock-data";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/disparos")({
-  component: () => <Soon title="Disparos em Massa" />,
+  component: DisparosPage,
 });
+
+function statusBadge(s: BulkSend["status"]) {
+  if (s === "completed")
+    return (
+      <Badge variant="outline" className="border-success text-success gap-1">
+        <CheckCircle2 className="size-3" /> Completo
+      </Badge>
+    );
+  if (s === "in_progress")
+    return (
+      <Badge variant="outline" className="border-accent text-accent gap-1">
+        <Loader2 className="size-3 animate-spin" /> Enviando
+      </Badge>
+    );
+  if (s === "error")
+    return (
+      <Badge variant="outline" className="border-destructive text-destructive gap-1">
+        <AlertCircle className="size-3" /> Erro
+      </Badge>
+    );
+  return <Badge variant="secondary">Pendente</Badge>;
+}
+
+function DisparosPage() {
+  const [contacts] = useState<Contact[]>(() => db.listContacts());
+  const [categories] = useState(() => db.listCategories());
+  const [history, setHistory] = useState<BulkSend[]>(() => db.listBulkSends());
+
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("Olá {nome}, tudo bem?");
+  const [interval, setInterval] = useState(3);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Simula progresso de envios em andamento
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      const list = db.listBulkSends();
+      let changed = false;
+      list.forEach((b) => {
+        if (b.status === "in_progress" && b.sentCount < b.totalContacts) {
+          db.updateBulkSend(b.id, {
+            sentCount: Math.min(b.totalContacts, b.sentCount + 1),
+            status:
+              b.sentCount + 1 >= b.totalContacts ? "completed" : "in_progress",
+          });
+          changed = true;
+        }
+      });
+      if (changed) setHistory(db.listBulkSends());
+    }, 1500);
+    return () => window.clearInterval(t);
+  }, []);
+
+  const toggle = (id: string) => {
+    setSelected((p) => {
+      const n = new Set(p);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+  const toggleAll = () => {
+    if (selected.size === contacts.length) setSelected(new Set());
+    else setSelected(new Set(contacts.map((c) => c.id)));
+  };
+  const selectByCategory = (catId: string) => {
+    const ids = contacts.filter((c) => c.categoryId === catId).map((c) => c.id);
+    setSelected((p) => {
+      const n = new Set(p);
+      ids.forEach((i) => n.add(i));
+      return n;
+    });
+  };
+
+  const previewMessage = useMemo(() => {
+    const sample = contacts.find((c) => selected.has(c.id)) || contacts[0];
+    return sample ? message.replaceAll("{nome}", sample.name.split(" ")[0]) : message;
+  }, [message, selected, contacts]);
+
+  const handleDispatch = () => {
+    if (!name.trim()) return toast.error("Dê um nome ao disparo");
+    if (!message.trim()) return toast.error("Escreva uma mensagem");
+    if (selected.size === 0) return toast.error("Selecione ao menos 1 contato");
+    db.createBulkSend({
+      name: name.trim(),
+      message: message.trim(),
+      intervalSeconds: interval,
+      totalContacts: selected.size,
+    });
+    toast.success(`Disparo iniciado para ${selected.size} contatos`);
+    setHistory(db.listBulkSends());
+    setName("");
+    setSelected(new Set());
+  };
+
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5 max-w-[1400px]">
+      {/* Form principal */}
+      <div className="space-y-5">
+        <Card className="p-5 space-y-4">
+          <div>
+            <h3 className="font-semibold">Configurar disparo</h3>
+            <p className="text-xs text-muted-foreground">
+              Use <code className="px-1 py-0.5 rounded bg-muted text-xs">{"{nome}"}</code> para personalizar
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="dn">Nome do disparo</Label>
+            <Input
+              id="dn"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Promoção de fim de ano"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="dm">Mensagem</Label>
+            <Textarea
+              id="dm"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">
+              Prévia: <span className="text-foreground italic">"{previewMessage}"</span>
+            </p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Intervalo entre envios</Label>
+              <Badge variant="secondary" className="gap-1">
+                <Clock className="size-3" /> {interval}s
+              </Badge>
+            </div>
+            <Slider
+              value={[interval]}
+              onValueChange={([v]) => setInterval(v)}
+              min={1}
+              max={60}
+              step={1}
+            />
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="font-semibold">Selecionar contatos</h3>
+              <p className="text-xs text-muted-foreground">
+                {selected.size} de {contacts.length} selecionados
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={toggleAll}>
+              {selected.size === contacts.length ? "Limpar" : "Selecionar todos"}
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-3">
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => selectByCategory(c.id)}
+                className="px-3 py-1 rounded-full text-xs font-medium border hover:bg-muted transition"
+                style={{ borderColor: c.color, color: c.color }}
+              >
+                + {c.name}
+              </button>
+            ))}
+          </div>
+
+          <Separator className="my-3" />
+
+          <div className="max-h-[320px] overflow-auto space-y-1">
+            {contacts.map((c) => {
+              const cat = categories.find((k) => k.id === c.categoryId);
+              const checked = selected.has(c.id);
+              return (
+                <label
+                  key={c.id}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
+                >
+                  <Checkbox checked={checked} onCheckedChange={() => toggle(c.id)} />
+                  <div
+                    className="size-8 rounded-full grid place-items-center text-white text-xs font-semibold"
+                    style={{ backgroundColor: cat?.color ?? "#94a3b8" }}
+                  >
+                    {c.name[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{c.name}</p>
+                    <p className="text-xs text-muted-foreground truncate font-mono">
+                      {c.phone}
+                    </p>
+                  </div>
+                  {cat && (
+                    <Badge
+                      variant="outline"
+                      style={{ borderColor: cat.color, color: cat.color }}
+                    >
+                      {cat.name}
+                    </Badge>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        </Card>
+
+        <div className="flex justify-end">
+          <Button size="lg" onClick={handleDispatch} className="gap-2">
+            <Send className="size-4" /> Disparar para {selected.size} contatos
+          </Button>
+        </div>
+      </div>
+
+      {/* Histórico */}
+      <Card className="p-5 h-fit xl:sticky xl:top-6">
+        <h3 className="font-semibold flex items-center gap-2">
+          <Users className="size-4 text-primary" /> Disparos recentes
+        </h3>
+        <p className="text-xs text-muted-foreground mb-4">Últimos 20</p>
+        <div className="space-y-3 max-h-[600px] overflow-auto">
+          {history.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Nenhum disparo ainda
+            </p>
+          )}
+          {history.slice(0, 20).map((b) => {
+            const pct = Math.round((b.sentCount / b.totalContacts) * 100);
+            return (
+              <div key={b.id} className="border rounded-lg p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{b.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(b.createdAt).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                  {statusBadge(b.status)}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {b.sentCount} / {b.totalContacts}
+                    </span>
+                    <span className="font-medium">{pct}%</span>
+                  </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
+  );
+}
