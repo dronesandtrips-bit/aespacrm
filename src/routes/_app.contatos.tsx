@@ -90,7 +90,7 @@ function ContactsPage() {
 
   const refresh = () => setContacts([...db.listContacts()]);
   const goto = (next: Partial<{ page: number; q: string; cat: string }>) =>
-    navigate({ search: (prev) => ({ ...prev, ...next }) });
+    navigate({ search: (prev: { page: number; q: string; cat: string }) => ({ ...prev, ...next }) });
 
   const handleSave = (data: Omit<Contact, "id" | "createdAt">) => {
     if (editing) {
