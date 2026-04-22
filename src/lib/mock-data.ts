@@ -189,6 +189,62 @@ export const db = {
     else s.pipeline.push({ contactId, stageId });
     save(s);
   },
+  createStage(name: string, color: string): PipelineStage {
+    const s = getStore();
+    const order = s.stages.length;
+    const stage: PipelineStage = { id: crypto.randomUUID(), name, color, order };
+    s.stages = [...s.stages, stage];
+    save(s);
+    return stage;
+  },
+  updateStage(id: string, patch: Partial<PipelineStage>) {
+    const s = getStore();
+    s.stages = s.stages.map((st) => (st.id === id ? { ...st, ...patch } : st));
+    save(s);
+  },
+  deleteStage(id: string): { ok: boolean; reason?: string } {
+    const s = getStore();
+    const inUse = s.pipeline.filter((p) => p.stageId === id).length;
+    if (inUse > 0) return { ok: false, reason: `Há ${inUse} contato(s) nesta etapa` };
+    s.stages = s.stages.filter((st) => st.id !== id);
+    save(s);
+    return { ok: true };
+  },
+  reorderStages(orderedIds: string[]) {
+    const s = getStore();
+    const map = new Map(orderedIds.map((id, i) => [id, i]));
+    s.stages = s.stages.map((st) => ({ ...st, order: map.get(st.id) ?? st.order }));
+    save(s);
+  },
+
+  // CSV bulk
+  bulkImportContacts(rows: Array<Omit<Contact, "id" | "createdAt">>): {
+    imported: number;
+    skipped: number;
+  } {
+    const s = getStore();
+    const existingPhones = new Set(s.contacts.map((c) => c.phone.replace(/\D/g, "")));
+    let imported = 0;
+    let skipped = 0;
+    const toAdd: Contact[] = [];
+    for (const row of rows) {
+      const normalized = row.phone.replace(/\D/g, "");
+      if (!normalized || existingPhones.has(normalized)) {
+        skipped++;
+        continue;
+      }
+      existingPhones.add(normalized);
+      toAdd.push({
+        ...row,
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+      });
+      imported++;
+    }
+    s.contacts = [...toAdd, ...s.contacts];
+    save(s);
+    return { imported, skipped };
+  },
 
   // Messages
   listMessages(contactId: string): ChatMessage[] {
