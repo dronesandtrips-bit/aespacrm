@@ -64,8 +64,8 @@ export function AppHeader({ onMenuClick }: Props) {
             <User className="size-4 mr-2" /> Perfil
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => {
-              logout();
+            onClick={async () => {
+              await logout();
               navigate({ to: "/login" });
             }}
           >

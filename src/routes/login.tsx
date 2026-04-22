@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,8 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("demo@zapcrm.com");
-  const [password, setPassword] = useState("demo1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -30,8 +30,13 @@ function LoginPage() {
       await login(email, password);
       toast.success("Login realizado com sucesso");
       navigate({ to: "/dashboard" });
-    } catch {
-      toast.error("Falha no login");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Falha no login";
+      toast.error(
+        /invalid login credentials/i.test(msg)
+          ? "Email ou senha inválidos"
+          : msg,
+      );
     } finally {
       setLoading(false);
     }
@@ -61,7 +66,7 @@ function LoginPage() {
             <li>✓ Inbox unificada com histórico completo</li>
           </ul>
         </div>
-        <div className="text-xs text-white/70">© 2026 ZapCRM · Demo</div>
+        <div className="text-xs text-white/70">© 2026 ZapCRM</div>
         <div className="absolute -bottom-32 -right-32 size-96 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute -top-20 -left-20 size-72 rounded-full bg-white/10 blur-3xl" />
       </div>
@@ -78,7 +83,7 @@ function LoginPage() {
             </div>
             <h1 className="text-2xl font-bold">Entrar na sua conta</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Use qualquer email para acessar a demo.
+              Acesse com seu email e senha.
             </p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,16 +92,26 @@ function LoginPage() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Senha</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Esqueci minha senha
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -107,7 +122,7 @@ function LoginPage() {
               Entrar
             </Button>
             <p className="text-xs text-center text-muted-foreground pt-2">
-              Backend mockado · conecte seu Supabase quando estiver pronto
+              Acesso restrito · contas criadas pelo administrador
             </p>
           </form>
         </Card>
