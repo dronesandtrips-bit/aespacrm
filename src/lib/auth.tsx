@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
-import type { Session } from "@supabase/supabase-js";
+import { getSupabaseClient } from "@/integrations/supabase/client";
+import type { Session, SupabaseClient } from "@supabase/supabase-js";
 
 export type Profile = {
   id: string;
@@ -29,7 +29,7 @@ type AuthCtx = {
 
 const Ctx = createContext<AuthCtx | null>(null);
 const CONFIG_ERROR =
-  "As variáveis de build do Supabase ainda não estão configuradas no preview. Adicione VITE_AESPACRM_SUPA_URL e VITE_AESPACRM_SUPA_ANON_KEY nas Build Secrets do workspace e recarregue.";
+  "As secrets públicas do Supabase não foram encontradas no projeto. Confirme AESPACRM_SUPA_URL e AESPACRM_SUPA_ANON_KEY em Cloud → Secrets.";
 
 function profileToUser(p: Profile | null, fallbackEmail: string, fallbackId: string): User {
   return {
@@ -40,8 +40,8 @@ function profileToUser(p: Profile | null, fallbackEmail: string, fallbackId: str
   };
 }
 
-async function fetchProfile(userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
+async function fetchProfile(client: SupabaseClient, userId: string): Promise<Profile | null> {
+  const { data, error } = await client
     .from("profiles")
     .select("id, email, display_name, avatar_url")
     .eq("id", userId)
@@ -54,88 +54,125 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   return (data as Profile | null) ?? null;
 }
 
+async function ensureClient() {
+  const client = await getSupabaseClient();
+  if (!client) {
+    throw new Error(CONFIG_ERROR);
+  }
+  return client;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const hydrate = async (s: Session | null) => {
+  const hydrate = async (client: SupabaseClient, s: Session | null) => {
     setSession(s);
     if (!s?.user) {
       setUser(null);
       return;
     }
-    const profile = await fetchProfile(s.user.id);
+    const profile = await fetchProfile(client, s.user.id);
     setUser(profileToUser(profile, s.user.email ?? "", s.user.id));
   };
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setLoading(false);
-      setUser(null);
-      setSession(null);
-      return;
-    }
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      if (s?.user) {
-        setTimeout(() => {
-          fetchProfile(s.user.id).then((p) => {
-            setUser(profileToUser(p, s.user.email ?? "", s.user.id));
-          });
-        }, 0);
-      } else {
+    const bootstrap = async () => {
+      try {
+        const client = await getSupabaseClient();
+        if (!active) return;
+
+        if (!client) {
+          setUser(null);
+          setSession(null);
+          setLoading(false);
+          return;
+        }
+
+        const { data: sub } = client.auth.onAuthStateChange((_event, s) => {
+          setSession(s);
+          if (s?.user) {
+            setTimeout(() => {
+              fetchProfile(client, s.user.id).then((p) => {
+                if (!active) return;
+                setUser(profileToUser(p, s.user.email ?? "", s.user.id));
+              });
+            }, 0);
+          } else {
+            setUser(null);
+          }
+        });
+
+        unsubscribe = () => sub.subscription.unsubscribe();
+
+        const {
+          data: { session: currentSession },
+        } = await client.auth.getSession();
+
+        if (!active) {
+          unsubscribe?.();
+          return;
+        }
+
+        await hydrate(client, currentSession);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn("[auth] bootstrap error:", error);
         setUser(null);
+        setSession(null);
+      } finally {
+        if (active) setLoading(false);
       }
-    });
+    };
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      hydrate(s).finally(() => setLoading(false));
-    });
+    bootstrap();
 
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
   }, []);
 
-  const ensureConfigured = () => {
-    if (!isSupabaseConfigured) {
-      throw new Error(CONFIG_ERROR);
-    }
-  };
-
   const login = async (email: string, password: string) => {
-    ensureConfigured();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const client = await ensureClient();
+    const { error } = await client.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };
 
   const logout = async () => {
-    if (isSupabaseConfigured) {
-      await supabase.auth.signOut();
+    const client = await getSupabaseClient();
+    if (client) {
+      await client.auth.signOut();
     }
     setUser(null);
     setSession(null);
   };
 
   const requestPasswordReset = async (email: string) => {
-    ensureConfigured();
+    const client = await ensureClient();
     const redirectTo =
       typeof window !== "undefined"
         ? `${window.location.origin}/reset-password`
         : undefined;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo });
     if (error) throw error;
   };
 
   const updatePassword = async (newPassword: string) => {
-    ensureConfigured();
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const client = await ensureClient();
+    const { error } = await client.auth.updateUser({ password: newPassword });
     if (error) throw error;
   };
 
   const refreshProfile = async () => {
-    if (!isSupabaseConfigured || !session?.user) return;
-    const p = await fetchProfile(session.user.id);
+    if (!session?.user) return;
+    const client = await getSupabaseClient();
+    if (!client) return;
+    const p = await fetchProfile(client, session.user.id);
     setUser(profileToUser(p, session.user.email ?? "", session.user.id));
   };
 

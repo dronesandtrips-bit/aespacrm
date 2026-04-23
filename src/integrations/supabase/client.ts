@@ -1,20 +1,32 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = import.meta.env.VITE_AESPACRM_SUPA_URL as string | undefined;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_AESPACRM_SUPA_ANON_KEY as string | undefined;
-const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+type PublicSupabaseConfig = {
+  url: string;
+  anonKey: string;
+};
 
-if (!isSupabaseConfigured) {
-  // eslint-disable-next-line no-console
-  console.warn(
-    "[supabase] VITE_AESPACRM_SUPA_URL ou VITE_AESPACRM_SUPA_ANON_KEY ausentes. O app vai abrir, mas o login só funciona depois que as variáveis de build forem configuradas.",
-  );
-}
+const BUILD_SUPABASE_URL = import.meta.env.VITE_AESPACRM_SUPA_URL as string | undefined;
+const BUILD_SUPABASE_ANON_KEY = import.meta.env.VITE_AESPACRM_SUPA_ANON_KEY as string | undefined;
+const hasBuildConfig = Boolean(BUILD_SUPABASE_URL && BUILD_SUPABASE_ANON_KEY);
 
-export const supabase = createClient(
-  isSupabaseConfigured ? SUPABASE_URL! : "https://placeholder.invalid",
-  isSupabaseConfigured ? SUPABASE_ANON_KEY! : "placeholder-anon-key",
-  {
+let supabase: SupabaseClient | null = hasBuildConfig
+  ? createClient(BUILD_SUPABASE_URL!, BUILD_SUPABASE_ANON_KEY!, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: typeof window !== "undefined" ? window.localStorage : undefined,
+      },
+      db: {
+        schema: "aespacrm",
+      },
+    })
+  : null;
+
+let configPromise: Promise<PublicSupabaseConfig | null> | null = null;
+
+function createBrowserClient(url: string, anonKey: string) {
+  return createClient(url, anonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -24,7 +36,62 @@ export const supabase = createClient(
     db: {
       schema: "aespacrm",
     },
-  },
-);
+  });
+}
 
-export { isSupabaseConfigured };
+async function fetchRuntimeConfig(): Promise<PublicSupabaseConfig | null> {
+  if (hasBuildConfig) {
+    return {
+      url: BUILD_SUPABASE_URL!,
+      anonKey: BUILD_SUPABASE_ANON_KEY!,
+    };
+  }
+
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  if (!configPromise) {
+    configPromise = fetch("/api/public/supabase-config", {
+      credentials: "same-origin",
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Não foi possível carregar a configuração do Supabase.");
+        }
+
+        const data = (await response.json()) as Partial<PublicSupabaseConfig>;
+        if (!data.url || !data.anonKey) {
+          throw new Error("Resposta inválida da configuração do Supabase.");
+        }
+
+        return {
+          url: data.url,
+          anonKey: data.anonKey,
+        };
+      })
+      .catch((error) => {
+        configPromise = null;
+        // eslint-disable-next-line no-console
+        console.warn("[supabase] runtime config error:", error);
+        return null;
+      });
+  }
+
+  return configPromise;
+}
+
+export async function getSupabaseClient() {
+  if (supabase) return supabase;
+
+  const config = await fetchRuntimeConfig();
+  if (!config) return null;
+
+  supabase = createBrowserClient(config.url, config.anonKey);
+  return supabase;
+}
+
+export function getSupabaseClientSync() {
+  return supabase;
+}
+
