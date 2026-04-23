@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
-import type { Session, SupabaseClient } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 
 export type Profile = {
   id: string;
@@ -27,6 +27,8 @@ type AuthCtx = {
   refreshProfile: () => Promise<void>;
 };
 
+type AuthSupabaseClient = NonNullable<Awaited<ReturnType<typeof getSupabaseClient>>>;
+
 const Ctx = createContext<AuthCtx | null>(null);
 const CONFIG_ERROR =
   "As secrets públicas do Supabase não foram encontradas no projeto. Confirme AESPACRM_SUPA_URL e AESPACRM_SUPA_ANON_KEY em Cloud → Secrets.";
@@ -40,7 +42,7 @@ function profileToUser(p: Profile | null, fallbackEmail: string, fallbackId: str
   };
 }
 
-async function fetchProfile(client: SupabaseClient, userId: string): Promise<Profile | null> {
+async function fetchProfile(client: AuthSupabaseClient, userId: string): Promise<Profile | null> {
   const { data, error } = await client
     .from("profiles")
     .select("id, email, display_name, avatar_url")
@@ -67,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const hydrate = async (client: SupabaseClient, s: Session | null) => {
+  const hydrate = async (client: AuthSupabaseClient, s: Session | null) => {
     setSession(s);
     if (!s?.user) {
       setUser(null);
