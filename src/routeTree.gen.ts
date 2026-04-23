@@ -21,7 +21,6 @@ import { Route as AppDisparosRouteImport } from './routes/_app.disparos'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppContatosRouteImport } from './routes/_app.contatos'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
-import { Route as ApiPublicSupabaseConfigRouteImport } from './routes/api.public.supabase-config'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -82,11 +81,6 @@ const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => AppRoute,
 } as any)
-const ApiPublicSupabaseConfigRoute = ApiPublicSupabaseConfigRouteImport.update({
-  id: '/api/public/supabase-config',
-  path: '/api/public/supabase-config',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -100,7 +94,6 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof AppInboxRoute
   '/pipeline': typeof AppPipelineRoute
   '/whatsapp': typeof AppWhatsappRoute
-  '/api/public/supabase-config': typeof ApiPublicSupabaseConfigRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -114,7 +107,6 @@ export interface FileRoutesByTo {
   '/inbox': typeof AppInboxRoute
   '/pipeline': typeof AppPipelineRoute
   '/whatsapp': typeof AppWhatsappRoute
-  '/api/public/supabase-config': typeof ApiPublicSupabaseConfigRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -130,7 +122,6 @@ export interface FileRoutesById {
   '/_app/inbox': typeof AppInboxRoute
   '/_app/pipeline': typeof AppPipelineRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
-  '/api/public/supabase-config': typeof ApiPublicSupabaseConfigRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -146,7 +137,6 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/pipeline'
     | '/whatsapp'
-    | '/api/public/supabase-config'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -160,7 +150,6 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/pipeline'
     | '/whatsapp'
-    | '/api/public/supabase-config'
   id:
     | '__root__'
     | '/'
@@ -175,7 +164,6 @@ export interface FileRouteTypes {
     | '/_app/inbox'
     | '/_app/pipeline'
     | '/_app/whatsapp'
-    | '/api/public/supabase-config'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -184,7 +172,6 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  ApiPublicSupabaseConfigRoute: typeof ApiPublicSupabaseConfigRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -273,13 +260,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesRouteImport
       parentRoute: typeof AppRoute
     }
-    '/api/public/supabase-config': {
-      id: '/api/public/supabase-config'
-      path: '/api/public/supabase-config'
-      fullPath: '/api/public/supabase-config'
-      preLoaderRoute: typeof ApiPublicSupabaseConfigRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -311,7 +291,6 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  ApiPublicSupabaseConfigRoute: ApiPublicSupabaseConfigRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
