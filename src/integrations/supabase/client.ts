@@ -1,26 +1,28 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
+import { createServerFn } from "@tanstack/react-start";
 
 type PublicSupabaseConfig = {
   url: string;
   anonKey: string;
 };
 
+const getRuntimeSupabaseConfig = createServerFn({ method: "GET" }).handler(async () => {
+  const url = process.env.AESPACRM_SUPA_URL;
+  const anonKey = process.env.AESPACRM_SUPA_ANON_KEY;
+
+  if (!url || !anonKey) {
+    return null;
+  }
+
+  return { url, anonKey } satisfies PublicSupabaseConfig;
+});
+
 const BUILD_SUPABASE_URL = import.meta.env.VITE_AESPACRM_SUPA_URL as string | undefined;
 const BUILD_SUPABASE_ANON_KEY = import.meta.env.VITE_AESPACRM_SUPA_ANON_KEY as string | undefined;
 const hasBuildConfig = Boolean(BUILD_SUPABASE_URL && BUILD_SUPABASE_ANON_KEY);
 
-let supabase: SupabaseClient | null = hasBuildConfig
-  ? createClient(BUILD_SUPABASE_URL!, BUILD_SUPABASE_ANON_KEY!, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-        storage: typeof window !== "undefined" ? window.localStorage : undefined,
-      },
-      db: {
-        schema: "aespacrm",
-      },
-    })
+let supabase: ReturnType<typeof createBrowserClient> | null = hasBuildConfig
+  ? createBrowserClient(BUILD_SUPABASE_URL!, BUILD_SUPABASE_ANON_KEY!)
   : null;
 
 let configPromise: Promise<PublicSupabaseConfig | null> | null = null;
@@ -52,30 +54,12 @@ async function fetchRuntimeConfig(): Promise<PublicSupabaseConfig | null> {
   }
 
   if (!configPromise) {
-    configPromise = fetch("/api/public/supabase-config", {
-      credentials: "same-origin",
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error("Não foi possível carregar a configuração do Supabase.");
-        }
-
-        const data = (await response.json()) as Partial<PublicSupabaseConfig>;
-        if (!data.url || !data.anonKey) {
-          throw new Error("Resposta inválida da configuração do Supabase.");
-        }
-
-        return {
-          url: data.url,
-          anonKey: data.anonKey,
-        };
-      })
-      .catch((error) => {
-        configPromise = null;
-        // eslint-disable-next-line no-console
-        console.warn("[supabase] runtime config error:", error);
-        return null;
-      });
+    configPromise = getRuntimeSupabaseConfig().catch((error) => {
+      configPromise = null;
+      // eslint-disable-next-line no-console
+      console.warn("[supabase] runtime config error:", error);
+      return null;
+    });
   }
 
   return configPromise;
