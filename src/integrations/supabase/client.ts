@@ -10,11 +10,18 @@ const getRuntimeSupabaseConfig = createServerFn({ method: "GET" }).handler(async
   const url = process.env.AESPACRM_SUPA_URL;
   const anonKey = process.env.AESPACRM_SUPA_ANON_KEY;
 
+  // eslint-disable-next-line no-console
+  console.log("[supabase-config] runtime check", {
+    hasUrl: Boolean(url),
+    hasAnonKey: Boolean(anonKey),
+    urlPreview: url ? url.slice(0, 30) : null,
+  });
+
   if (!url || !anonKey) {
-    return null;
+    return { ok: false as const, reason: "missing_secrets", hasUrl: Boolean(url), hasAnonKey: Boolean(anonKey) };
   }
 
-  return { url, anonKey } satisfies PublicSupabaseConfig;
+  return { ok: true as const, url, anonKey };
 });
 
 const BUILD_SUPABASE_URL = import.meta.env.VITE_AESPACRM_SUPA_URL as string | undefined;
@@ -35,31 +42,35 @@ function createBrowserClient(url: string, anonKey: string) {
       detectSessionInUrl: true,
       storage: typeof window !== "undefined" ? window.localStorage : undefined,
     },
-    db: {
-      schema: "aespacrm",
-    },
+    db: { schema: "aespacrm" },
   });
 }
 
 async function fetchRuntimeConfig(): Promise<PublicSupabaseConfig | null> {
   if (hasBuildConfig) {
-    return {
-      url: BUILD_SUPABASE_URL!,
-      anonKey: BUILD_SUPABASE_ANON_KEY!,
-    };
+    return { url: BUILD_SUPABASE_URL!, anonKey: BUILD_SUPABASE_ANON_KEY! };
   }
 
-  if (typeof window === "undefined") {
-    return null;
-  }
+  if (typeof window === "undefined") return null;
 
   if (!configPromise) {
-    configPromise = getRuntimeSupabaseConfig().catch((error) => {
-      configPromise = null;
-      // eslint-disable-next-line no-console
-      console.warn("[supabase] runtime config error:", error);
-      return null;
-    });
+    configPromise = (async () => {
+      try {
+        const res = await getRuntimeSupabaseConfig();
+        if (!res.ok) {
+          // eslint-disable-next-line no-console
+          console.warn("[supabase] runtime config not ok:", res);
+          configPromise = null;
+          return null;
+        }
+        return { url: res.url, anonKey: res.anonKey };
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn("[supabase] runtime config error:", error);
+        configPromise = null;
+        return null;
+      }
+    })();
   }
 
   return configPromise;
@@ -67,10 +78,8 @@ async function fetchRuntimeConfig(): Promise<PublicSupabaseConfig | null> {
 
 export async function getSupabaseClient() {
   if (supabase) return supabase;
-
   const config = await fetchRuntimeConfig();
   if (!config) return null;
-
   supabase = createBrowserClient(config.url, config.anonKey);
   return supabase;
 }
@@ -78,4 +87,3 @@ export async function getSupabaseClient() {
 export function getSupabaseClientSync() {
   return supabase;
 }
-
