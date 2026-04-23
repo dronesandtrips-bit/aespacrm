@@ -1,9 +1,28 @@
 import { createClient } from "@supabase/supabase-js";
+import { createServerFn } from "@tanstack/react-start";
 
 type PublicSupabaseConfig = {
   url: string;
   anonKey: string;
 };
+
+const getRuntimeSupabaseConfig = createServerFn({ method: "GET" }).handler(async () => {
+  const url = process.env.AESPACRM_SUPA_URL;
+  const anonKey = process.env.AESPACRM_SUPA_ANON_KEY;
+
+  // eslint-disable-next-line no-console
+  console.log("[supabase-config] runtime check", {
+    hasUrl: Boolean(url),
+    hasAnonKey: Boolean(anonKey),
+    urlPreview: url ? url.slice(0, 30) : null,
+  });
+
+  if (!url || !anonKey) {
+    return { ok: false as const, reason: "missing_secrets", hasUrl: Boolean(url), hasAnonKey: Boolean(anonKey) };
+  }
+
+  return { ok: true as const, url, anonKey };
+});
 
 const BUILD_SUPABASE_URL = import.meta.env.VITE_AESPACRM_SUPA_URL as string | undefined;
 const BUILD_SUPABASE_ANON_KEY = import.meta.env.VITE_AESPACRM_SUPA_ANON_KEY as string | undefined;
@@ -23,9 +42,7 @@ function createBrowserClient(url: string, anonKey: string) {
       detectSessionInUrl: true,
       storage: typeof window !== "undefined" ? window.localStorage : undefined,
     },
-    db: {
-      schema: "aespacrm",
-    },
+    db: { schema: "aespacrm" },
   });
 }
 
@@ -39,24 +56,14 @@ async function fetchRuntimeConfig(): Promise<PublicSupabaseConfig | null> {
   if (!configPromise) {
     configPromise = (async () => {
       try {
-        const res = await fetch("/api/public/supabase-config", {
-          headers: { Accept: "application/json" },
-        });
+        const res = await getRuntimeSupabaseConfig();
         if (!res.ok) {
-          const body = await res.text().catch(() => "");
           // eslint-disable-next-line no-console
-          console.warn("[supabase] runtime config HTTP", res.status, body);
+          console.warn("[supabase] runtime config not ok:", res);
           configPromise = null;
           return null;
         }
-        const data = (await res.json()) as Partial<PublicSupabaseConfig>;
-        if (!data.url || !data.anonKey) {
-          // eslint-disable-next-line no-console
-          console.warn("[supabase] runtime config payload incomplete", data);
-          configPromise = null;
-          return null;
-        }
-        return { url: data.url, anonKey: data.anonKey };
+        return { url: res.url, anonKey: res.anonKey };
       } catch (error) {
         // eslint-disable-next-line no-console
         console.warn("[supabase] runtime config error:", error);
