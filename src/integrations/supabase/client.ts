@@ -6,6 +6,21 @@ type PublicSupabaseConfig = {
   anonKey: string;
 };
 
+function normalizeSupabaseUrl(value: string) {
+  const trimmed = value.trim();
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+  try {
+    const url = new URL(withProtocol);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return null;
+  }
+}
+
 const getRuntimeSupabaseConfig = createServerFn({ method: "GET" }).handler(async () => {
   const url = process.env.AESPACRM_SUPA_URL;
   const anonKey = process.env.AESPACRM_SUPA_ANON_KEY;
@@ -26,10 +41,13 @@ const getRuntimeSupabaseConfig = createServerFn({ method: "GET" }).handler(async
 
 const BUILD_SUPABASE_URL = import.meta.env.VITE_AESPACRM_SUPA_URL as string | undefined;
 const BUILD_SUPABASE_ANON_KEY = import.meta.env.VITE_AESPACRM_SUPA_ANON_KEY as string | undefined;
-const hasBuildConfig = Boolean(BUILD_SUPABASE_URL && BUILD_SUPABASE_ANON_KEY);
+const NORMALIZED_BUILD_SUPABASE_URL = BUILD_SUPABASE_URL
+  ? normalizeSupabaseUrl(BUILD_SUPABASE_URL)
+  : null;
+const hasBuildConfig = Boolean(NORMALIZED_BUILD_SUPABASE_URL && BUILD_SUPABASE_ANON_KEY);
 
 let supabase: ReturnType<typeof createBrowserClient> | null = hasBuildConfig
-  ? createBrowserClient(BUILD_SUPABASE_URL!, BUILD_SUPABASE_ANON_KEY!)
+  ? createBrowserClient(NORMALIZED_BUILD_SUPABASE_URL!, BUILD_SUPABASE_ANON_KEY!)
   : null;
 
 let configPromise: Promise<PublicSupabaseConfig | null> | null = null;
@@ -48,7 +66,7 @@ function createBrowserClient(url: string, anonKey: string) {
 
 async function fetchRuntimeConfig(): Promise<PublicSupabaseConfig | null> {
   if (hasBuildConfig) {
-    return { url: BUILD_SUPABASE_URL!, anonKey: BUILD_SUPABASE_ANON_KEY! };
+    return { url: NORMALIZED_BUILD_SUPABASE_URL!, anonKey: BUILD_SUPABASE_ANON_KEY! };
   }
 
   if (typeof window === "undefined") return null;
@@ -63,7 +81,14 @@ async function fetchRuntimeConfig(): Promise<PublicSupabaseConfig | null> {
           configPromise = null;
           return null;
         }
-        return { url: res.url, anonKey: res.anonKey };
+        const normalizedUrl = normalizeSupabaseUrl(res.url);
+        if (!normalizedUrl) {
+          // eslint-disable-next-line no-console
+          console.warn("[supabase] invalid runtime url:", res.url);
+          configPromise = null;
+          return null;
+        }
+        return { url: normalizedUrl, anonKey: res.anonKey };
       } catch (error) {
         // eslint-disable-next-line no-console
         console.warn("[supabase] runtime config error:", error);
