@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, User, LogOut, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save } from "lucide-react";
 import { db, type Category, type PipelineStage } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth";
 import { useNavigate } from "@tanstack/react-router";
@@ -57,6 +57,7 @@ function SettingsPage() {
         <TabsList>
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          <TabsTrigger value="integracoes">Integrações</TabsTrigger>
           <TabsTrigger value="conta">Conta</TabsTrigger>
         </TabsList>
         <TabsContent value="categorias" className="mt-5">
@@ -64,6 +65,9 @@ function SettingsPage() {
         </TabsContent>
         <TabsContent value="pipeline" className="mt-5">
           <PipelineTab />
+        </TabsContent>
+        <TabsContent value="integracoes" className="mt-5">
+          <IntegrationsTab />
         </TabsContent>
         <TabsContent value="conta" className="mt-5">
           <AccountTab />
