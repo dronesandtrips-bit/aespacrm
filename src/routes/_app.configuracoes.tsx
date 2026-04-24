@@ -423,11 +423,16 @@ function AccountTab() {
 }
 
 const EXPLORAR_WEBHOOK_KEY = "wpp-crm-explorar-webhook";
+const EXPLORAR_API_KEY_KEY = "wpp-crm-explorar-webhook-apikey";
 
 function IntegrationsTab() {
   const [webhook, setWebhook] = useState<string>(() => {
     if (typeof window === "undefined") return "";
     return localStorage.getItem(EXPLORAR_WEBHOOK_KEY) ?? "";
+  });
+  const [apiKey, setApiKey] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem(EXPLORAR_API_KEY_KEY) ?? "";
   });
 
   const save = () => {
@@ -437,7 +442,8 @@ function IntegrationsTab() {
       return;
     }
     localStorage.setItem(EXPLORAR_WEBHOOK_KEY, v);
-    toast.success("Webhook salvo");
+    localStorage.setItem(EXPLORAR_API_KEY_KEY, apiKey.trim());
+    toast.success("Integração salva");
   };
 
   return (
@@ -458,7 +464,7 @@ function IntegrationsTab() {
         <Label htmlFor="webhook">Webhook URL</Label>
         <Input
           id="webhook"
-          placeholder="https://seu-n8n.com/webhook/extrair-leads"
+          placeholder="https://seu-n8n.com/webhook/zapcrm-extrair-leads"
           value={webhook}
           onChange={(e) => setWebhook(e.target.value)}
         />
@@ -466,6 +472,21 @@ function IntegrationsTab() {
           O endpoint receberá um POST com{" "}
           <code className="font-mono">{`{ niche, location }`}</code> e deve
           responder com uma lista de leads.
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="apikey">API Key (header X-API-Key)</Label>
+        <Input
+          id="apikey"
+          type="password"
+          placeholder="Cole aqui a chave do webhook"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Enviada no header <code className="font-mono">X-API-Key</code> para
+          autenticar a chamada no n8n.
         </p>
       </div>
 
