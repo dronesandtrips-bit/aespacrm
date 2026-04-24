@@ -22,6 +22,7 @@ export const Route = createFileRoute("/_app/explorar")({
 });
 
 const WEBHOOK_KEY = "wpp-crm-explorar-webhook";
+const WEBHOOK_API_KEY_KEY = "wpp-crm-explorar-webhook-apikey";
 
 type Lead = {
   name: string;
