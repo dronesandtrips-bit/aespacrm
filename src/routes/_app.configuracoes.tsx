@@ -421,3 +421,59 @@ function AccountTab() {
     </Card>
   );
 }
+
+const EXPLORAR_WEBHOOK_KEY = "wpp-crm-explorar-webhook";
+
+function IntegrationsTab() {
+  const [webhook, setWebhook] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem(EXPLORAR_WEBHOOK_KEY) ?? "";
+  });
+
+  const save = () => {
+    const v = webhook.trim();
+    if (v && !/^https?:\/\//i.test(v)) {
+      toast.error("URL inválida (use http:// ou https://)");
+      return;
+    }
+    localStorage.setItem(EXPLORAR_WEBHOOK_KEY, v);
+    toast.success("Webhook salvo");
+  };
+
+  return (
+    <Card className="p-5 space-y-5">
+      <div className="flex items-center gap-3">
+        <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
+          <Plug className="size-5" />
+        </div>
+        <div>
+          <h3 className="font-semibold">Extração de Leads (n8n)</h3>
+          <p className="text-xs text-muted-foreground">
+            URL do Webhook usada pelo módulo Explorar
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="webhook">Webhook URL</Label>
+        <Input
+          id="webhook"
+          placeholder="https://seu-n8n.com/webhook/extrair-leads"
+          value={webhook}
+          onChange={(e) => setWebhook(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          O endpoint receberá um POST com{" "}
+          <code className="font-mono">{`{ niche, location }`}</code> e deve
+          responder com uma lista de leads.
+        </p>
+      </div>
+
+      <div>
+        <Button onClick={save} className="gap-2">
+          <Save className="size-4" /> Salvar
+        </Button>
+      </div>
+    </Card>
+  );
+}
