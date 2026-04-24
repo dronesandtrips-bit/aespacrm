@@ -26,7 +26,7 @@ import {
   Mail,
 } from "lucide-react";
 import { toast } from "sonner";
-import { db } from "@/lib/mock-data";
+import { contactsDb } from "@/lib/db";
 
 export const Route = createFileRoute("/_app/explorar")({
   component: ExplorarPage,
@@ -214,24 +214,28 @@ function ExplorarPage() {
     }
   };
 
-  const addToCrm = (lead: Lead, index: number) => {
-    db.createContact({
-      name: lead.name,
-      phone: lead.phone ?? "",
-      notes: [
-        lead.address,
-        lead.website,
-        lead.email,
-        lead.username ? `@${lead.username}` : null,
-        lead.bio,
-        lead.source ? `Fonte: ${lead.source}` : null,
-      ]
-        .filter(Boolean)
-        .join(" · "),
-      categoryId: "c1",
-    });
-    setImported((prev) => new Set(prev).add(index));
-    toast.success(`${lead.name} importado para o CRM`);
+  const addToCrm = async (lead: Lead, index: number) => {
+    try {
+      await contactsDb.create({
+        name: lead.name,
+        phone: lead.phone ?? "",
+        notes: [
+          lead.address,
+          lead.website,
+          lead.email,
+          lead.username ? `@${lead.username}` : null,
+          lead.bio,
+          lead.source ? `Fonte: ${lead.source}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        categoryId: null,
+      });
+      setImported((prev) => new Set(prev).add(index));
+      toast.success(`${lead.name} importado para o CRM`);
+    } catch (e: any) {
+      toast.error(`Erro ao importar: ${e.message ?? e}`);
+    }
   };
 
   const SourceIcon =
