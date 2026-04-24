@@ -93,13 +93,31 @@ function ExplorarPage() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const list: unknown[] = Array.isArray(data)
-        ? data
-        : Array.isArray((data as { results?: unknown[] })?.results)
-          ? (data as { results: unknown[] }).results
-          : Array.isArray((data as { leads?: unknown[] })?.leads)
-            ? (data as { leads: unknown[] }).leads
-            : [];
+      // Extrai a lista lidando com vários formatos possíveis:
+      // - [lead, lead, ...]
+      // - { results: [...] } / { leads: [...] } / { data: [...] }
+      // - [{ results: [...] }]  (formato n8n "allIncomingItems")
+      const extract = (d: unknown): unknown[] => {
+        if (!d) return [];
+        if (Array.isArray(d)) {
+          // Pode ser array de leads OU array com 1 item contendo {results}
+          if (d.length > 0 && typeof d[0] === "object" && d[0] !== null) {
+            const first = d[0] as Record<string, unknown>;
+            if (Array.isArray(first.results)) return first.results;
+            if (Array.isArray(first.leads)) return first.leads;
+            if (Array.isArray(first.data)) return first.data;
+          }
+          return d;
+        }
+        if (typeof d === "object") {
+          const o = d as Record<string, unknown>;
+          if (Array.isArray(o.results)) return o.results;
+          if (Array.isArray(o.leads)) return o.leads;
+          if (Array.isArray(o.data)) return o.data;
+        }
+        return [];
+      };
+      const list = extract(data);
       const normalized = list.map(normalizeLead).filter((l): l is Lead => !!l);
       setResults(normalized);
       toast.success(`${normalized.length} oportunidade(s) encontrada(s)`);
