@@ -13,7 +13,7 @@ export function getSupabaseAdmin() {
       "AESPACRM_SUPA_URL e AESPACRM_SUPA_SERVICE_KEY são obrigatórios para endpoints server-side",
     );
   }
-  admin = createClient(url, serviceKey, {
+  admin = createClient<any, "aespacrm">(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
     db: { schema: "aespacrm" },
   });
