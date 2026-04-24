@@ -1,10 +1,10 @@
 // Cliente Supabase server-side (service role) para endpoints públicos
 // chamados pelo n8n. BYPASSA RLS — sempre filtre por user_id manualmente!
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
-let admin: SupabaseClient | null = null;
+let admin: ReturnType<typeof createClient> | null = null;
 
-export function getSupabaseAdmin(): SupabaseClient {
+export function getSupabaseAdmin() {
   if (admin) return admin;
   const url = process.env.AESPACRM_SUPA_URL;
   const serviceKey = process.env.AESPACRM_SUPA_SERVICE_KEY;
