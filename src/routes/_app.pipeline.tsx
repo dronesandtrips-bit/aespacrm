@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,17 +13,32 @@ import {
   DragOverlay,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { db, type Contact, type PipelineStage } from "@/lib/mock-data";
+import {
+  contactsDb,
+  categoriesDb,
+  pipelineDb,
+  type Contact,
+  type Category,
+  type PipelineStage,
+  type PipelinePlacement,
+} from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { GripVertical, Phone } from "lucide-react";
+import { GripVertical, Phone, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/pipeline")({
   component: PipelinePage,
 });
 
-function ContactCard({ contact, dragging }: { contact: Contact; dragging?: boolean }) {
-  const cat = db.listCategories().find((c) => c.id === contact.categoryId);
+function ContactCard({
+  contact,
+  category,
+  dragging,
+}: {
+  contact: Contact;
+  category?: Category;
+  dragging?: boolean;
+}) {
   return (
     <div
       className={cn(
@@ -40,23 +55,21 @@ function ContactCard({ contact, dragging }: { contact: Contact; dragging?: boole
           </p>
         </div>
       </div>
-      {cat && (
+      {category && (
         <Badge
           variant="outline"
           className="text-[10px]"
-          style={{ borderColor: cat.color, color: cat.color }}
+          style={{ borderColor: category.color, color: category.color }}
         >
-          {cat.name}
+          {category.name}
         </Badge>
       )}
     </div>
   );
 }
 
-function DraggableCard({ contact }: { contact: Contact }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: contact.id,
-  });
+function DraggableCard({ contact, category }: { contact: Contact; category?: Category }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: contact.id });
   return (
     <div
       ref={setNodeRef}
@@ -64,7 +77,7 @@ function DraggableCard({ contact }: { contact: Contact }) {
       {...listeners}
       style={{ opacity: isDragging ? 0.4 : 1 }}
     >
-      <ContactCard contact={contact} />
+      <ContactCard contact={contact} category={category} />
     </div>
   );
 }
@@ -72,9 +85,11 @@ function DraggableCard({ contact }: { contact: Contact }) {
 function StageColumn({
   stage,
   contacts,
+  categories,
 }: {
   stage: PipelineStage;
   contacts: Contact[];
+  categories: Category[];
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
   return (
@@ -87,15 +102,10 @@ function StageColumn({
     >
       <div className="p-3 border-b flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span
-            className="size-2.5 rounded-full"
-            style={{ backgroundColor: stage.color }}
-          />
+          <span className="size-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
           <h4 className="font-semibold text-sm">{stage.name}</h4>
         </div>
-        <Badge variant="secondary" className="text-xs">
-          {contacts.length}
-        </Badge>
+        <Badge variant="secondary" className="text-xs">{contacts.length}</Badge>
       </div>
       <div className="p-2 space-y-2 flex-1 overflow-auto max-h-[calc(100vh-300px)]">
         {contacts.length === 0 ? (
@@ -103,7 +113,13 @@ function StageColumn({
             Arraste contatos aqui
           </div>
         ) : (
-          contacts.map((c) => <DraggableCard key={c.id} contact={c} />)
+          contacts.map((c) => (
+            <DraggableCard
+              key={c.id}
+              contact={c}
+              category={categories.find((cat) => cat.id === c.categoryId)}
+            />
+          ))
         )}
       </div>
     </div>
@@ -111,11 +127,35 @@ function StageColumn({
 }
 
 function PipelinePage() {
-  const stages = useMemo(() => db.listStages(), []);
-  const allContacts = useMemo(() => db.listContacts(), []);
-  const [placement, setPlacement] = useState(() => db.listPipeline());
+  const [stages, setStages] = useState<PipelineStage[]>([]);
+  const [allContacts, setAllContacts] = useState<Contact[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [placement, setPlacement] = useState<PipelinePlacement[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const load = async () => {
+    try {
+      const [s, c, cats, p] = await Promise.all([
+        pipelineDb.listStages(),
+        contactsDb.list(),
+        categoriesDb.list(),
+        pipelineDb.listPlacements(),
+      ]);
+      setStages(s);
+      setAllContacts(c);
+      setCategories(cats);
+      setPlacement(p);
+    } catch (e: any) {
+      toast.error(`Erro ao carregar: ${e.message ?? e}`);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    load().finally(() => setLoading(false));
+  }, []);
 
   const grouped = stages.map((s) => ({
     stage: s,
@@ -125,32 +165,76 @@ function PipelinePage() {
       .filter((c): c is Contact => !!c),
   }));
 
+  // Contatos sem etapa (para mostrar e poder arrastar pra primeira coluna)
+  const placedIds = new Set(placement.map((p) => p.contactId));
+  const unplaced = allContacts.filter((c) => !placedIds.has(c.id));
+  if (unplaced.length > 0 && stages.length > 0) {
+    grouped[0] = {
+      stage: grouped[0].stage,
+      contacts: [...unplaced, ...grouped[0].contacts],
+    };
+  }
+
   const total = placement.length || 1;
 
   const handleStart = (e: DragStartEvent) => setActiveId(e.active.id as string);
-  const handleEnd = (e: DragEndEvent) => {
+  const handleEnd = async (e: DragEndEvent) => {
     setActiveId(null);
     const overId = e.over?.id as string | undefined;
     const contactId = e.active.id as string;
     if (!overId) return;
-    db.moveContactToStage(contactId, overId);
-    setPlacement([...db.listPipeline()]);
-    const stage = stages.find((s) => s.id === overId);
-    toast.success(`Movido para ${stage?.name}`);
+    // Optimistic update
+    const previous = placement;
+    const next = previous.find((p) => p.contactId === contactId)
+      ? previous.map((p) => (p.contactId === contactId ? { ...p, stageId: overId } : p))
+      : [...previous, { contactId, stageId: overId }];
+    setPlacement(next);
+    try {
+      await pipelineDb.moveContactToStage(contactId, overId);
+      const stage = stages.find((s) => s.id === overId);
+      toast.success(`Movido para ${stage?.name}`);
+    } catch (err: any) {
+      setPlacement(previous);
+      toast.error(`Erro: ${err.message ?? err}`);
+    }
   };
 
   const activeContact = activeId ? allContacts.find((c) => c.id === activeId) : null;
+
+  if (loading) {
+    return (
+      <div className="py-16 text-center text-muted-foreground">
+        <Loader2 className="size-6 mx-auto mb-2 animate-spin opacity-60" />
+        <p className="text-sm">Carregando pipeline...</p>
+      </div>
+    );
+  }
+
+  if (stages.length === 0) {
+    return (
+      <Card className="p-10 text-center text-sm text-muted-foreground max-w-2xl">
+        <p className="mb-2 font-medium text-foreground">Nenhuma etapa configurada</p>
+        <p>Vá em Configurações → Pipeline para criar suas etapas.</p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-5 max-w-[1400px]">
       <DndContext sensors={sensors} onDragStart={handleStart} onDragEnd={handleEnd}>
         <div className="flex gap-3 overflow-x-auto pb-2">
           {grouped.map(({ stage, contacts }) => (
-            <StageColumn key={stage.id} stage={stage} contacts={contacts} />
+            <StageColumn key={stage.id} stage={stage} contacts={contacts} categories={categories} />
           ))}
         </div>
         <DragOverlay>
-          {activeContact && <ContactCard contact={activeContact} dragging />}
+          {activeContact && (
+            <ContactCard
+              contact={activeContact}
+              category={categories.find((c) => c.id === activeContact.categoryId)}
+              dragging
+            />
+          )}
         </DragOverlay>
       </DndContext>
 
@@ -160,10 +244,7 @@ function PipelinePage() {
           return (
             <Card key={stage.id} className="p-4">
               <div className="flex items-center gap-2 mb-1">
-                <span
-                  className="size-2 rounded-full"
-                  style={{ backgroundColor: stage.color }}
-                />
+                <span className="size-2 rounded-full" style={{ backgroundColor: stage.color }} />
                 <p className="text-xs text-muted-foreground truncate">{stage.name}</p>
               </div>
               <p className="text-2xl font-bold">{contacts.length}</p>

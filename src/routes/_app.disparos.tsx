@@ -17,7 +17,14 @@ import {
   Users,
   Clock,
 } from "lucide-react";
-import { db, type BulkSend, type Contact } from "@/lib/mock-data";
+import {
+  contactsDb,
+  categoriesDb,
+  bulkSendsDb,
+  type BulkSend,
+  type Contact,
+  type Category,
+} from "@/lib/db";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/disparos")({
@@ -47,32 +54,44 @@ function statusBadge(s: BulkSend["status"]) {
 }
 
 function DisparosPage() {
-  const [contacts] = useState<Contact[]>(() => db.listContacts());
-  const [categories] = useState(() => db.listCategories());
-  const [history, setHistory] = useState<BulkSend[]>(() => db.listBulkSends());
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [history, setHistory] = useState<BulkSend[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState("");
   const [message, setMessage] = useState("Olá {nome}, tudo bem?");
   const [interval, setInterval] = useState(3);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [submitting, setSubmitting] = useState(false);
 
-  // Simula progresso de envios em andamento
+  const load = async () => {
+    try {
+      const [cs, cats, h] = await Promise.all([
+        contactsDb.list(),
+        categoriesDb.list(),
+        bulkSendsDb.list(),
+      ]);
+      setContacts(cs);
+      setCategories(cats);
+      setHistory(h);
+    } catch (e: any) {
+      toast.error(`Erro ao carregar: ${e.message ?? e}`);
+    }
+  };
+
   useEffect(() => {
-    const t = window.setInterval(() => {
-      const list = db.listBulkSends();
-      let changed = false;
-      list.forEach((b) => {
-        if (b.status === "in_progress" && b.sentCount < b.totalContacts) {
-          db.updateBulkSend(b.id, {
-            sentCount: Math.min(b.totalContacts, b.sentCount + 1),
-            status:
-              b.sentCount + 1 >= b.totalContacts ? "completed" : "in_progress",
-          });
-          changed = true;
-        }
-      });
-      if (changed) setHistory(db.listBulkSends());
-    }, 1500);
+    setLoading(true);
+    load().finally(() => setLoading(false));
+  }, []);
+
+  // Auto-refresh do histórico a cada 5s para refletir progresso do n8n
+  useEffect(() => {
+    const t = window.setInterval(async () => {
+      try {
+        setHistory(await bulkSendsDb.list());
+      } catch { /* silencioso */ }
+    }, 5000);
     return () => window.clearInterval(t);
   }, []);
 
@@ -101,20 +120,27 @@ function DisparosPage() {
     return sample ? message.replaceAll("{nome}", sample.name.split(" ")[0]) : message;
   }, [message, selected, contacts]);
 
-  const handleDispatch = () => {
+  const handleDispatch = async () => {
     if (!name.trim()) return toast.error("Dê um nome ao disparo");
     if (!message.trim()) return toast.error("Escreva uma mensagem");
     if (selected.size === 0) return toast.error("Selecione ao menos 1 contato");
-    db.createBulkSend({
-      name: name.trim(),
-      message: message.trim(),
-      intervalSeconds: interval,
-      totalContacts: selected.size,
-    });
-    toast.success(`Disparo iniciado para ${selected.size} contatos`);
-    setHistory(db.listBulkSends());
-    setName("");
-    setSelected(new Set());
+    setSubmitting(true);
+    try {
+      await bulkSendsDb.create({
+        name: name.trim(),
+        message: message.trim(),
+        intervalSeconds: interval,
+        totalContacts: selected.size,
+      });
+      toast.success(`Disparo registrado para ${selected.size} contatos`);
+      setHistory(await bulkSendsDb.list());
+      setName("");
+      setSelected(new Set());
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -139,12 +165,7 @@ function DisparosPage() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="dm">Mensagem</Label>
-            <Textarea
-              id="dm"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows={4}
-            />
+            <Textarea id="dm" value={message} onChange={(e) => setMessage(e.target.value)} rows={4} />
             <p className="text-xs text-muted-foreground">
               Prévia: <span className="text-foreground italic">"{previewMessage}"</span>
             </p>
@@ -156,13 +177,7 @@ function DisparosPage() {
                 <Clock className="size-3" /> {interval}s
               </Badge>
             </div>
-            <Slider
-              value={[interval]}
-              onValueChange={([v]) => setInterval(v)}
-              min={1}
-              max={60}
-              step={1}
-            />
+            <Slider value={[interval]} onValueChange={([v]) => setInterval(v)} min={1} max={60} step={1} />
           </div>
         </Card>
 
@@ -174,8 +189,8 @@ function DisparosPage() {
                 {selected.size} de {contacts.length} selecionados
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={toggleAll}>
-              {selected.size === contacts.length ? "Limpar" : "Selecionar todos"}
+            <Button variant="outline" size="sm" onClick={toggleAll} disabled={contacts.length === 0}>
+              {selected.size === contacts.length && contacts.length > 0 ? "Limpar" : "Selecionar todos"}
             </Button>
           </div>
 
@@ -194,45 +209,51 @@ function DisparosPage() {
 
           <Separator className="my-3" />
 
-          <div className="max-h-[320px] overflow-auto space-y-1">
-            {contacts.map((c) => {
-              const cat = categories.find((k) => k.id === c.categoryId);
-              const checked = selected.has(c.id);
-              return (
-                <label
-                  key={c.id}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
-                >
-                  <Checkbox checked={checked} onCheckedChange={() => toggle(c.id)} />
-                  <div
-                    className="size-8 rounded-full grid place-items-center text-white text-xs font-semibold"
-                    style={{ backgroundColor: cat?.color ?? "#94a3b8" }}
+          {loading ? (
+            <div className="py-10 text-center text-muted-foreground">
+              <Loader2 className="size-6 mx-auto animate-spin opacity-60" />
+            </div>
+          ) : contacts.length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              Nenhum contato. Importe ou crie contatos antes de disparar.
+            </div>
+          ) : (
+            <div className="max-h-[320px] overflow-auto space-y-1">
+              {contacts.map((c) => {
+                const cat = categories.find((k) => k.id === c.categoryId);
+                const checked = selected.has(c.id);
+                return (
+                  <label
+                    key={c.id}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
                   >
-                    {c.name[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{c.name}</p>
-                    <p className="text-xs text-muted-foreground truncate font-mono">
-                      {c.phone}
-                    </p>
-                  </div>
-                  {cat && (
-                    <Badge
-                      variant="outline"
-                      style={{ borderColor: cat.color, color: cat.color }}
+                    <Checkbox checked={checked} onCheckedChange={() => toggle(c.id)} />
+                    <div
+                      className="size-8 rounded-full grid place-items-center text-white text-xs font-semibold"
+                      style={{ backgroundColor: cat?.color ?? "#94a3b8" }}
                     >
-                      {cat.name}
-                    </Badge>
-                  )}
-                </label>
-              );
-            })}
-          </div>
+                      {c.name[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{c.name}</p>
+                      <p className="text-xs text-muted-foreground truncate font-mono">{c.phone}</p>
+                    </div>
+                    {cat && (
+                      <Badge variant="outline" style={{ borderColor: cat.color, color: cat.color }}>
+                        {cat.name}
+                      </Badge>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          )}
         </Card>
 
         <div className="flex justify-end">
-          <Button size="lg" onClick={handleDispatch} className="gap-2">
-            <Send className="size-4" /> Disparar para {selected.size} contatos
+          <Button size="lg" onClick={handleDispatch} className="gap-2" disabled={submitting}>
+            {submitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+            Disparar para {selected.size} contatos
           </Button>
         </div>
       </div>
@@ -242,15 +263,13 @@ function DisparosPage() {
         <h3 className="font-semibold flex items-center gap-2">
           <Users className="size-4 text-primary" /> Disparos recentes
         </h3>
-        <p className="text-xs text-muted-foreground mb-4">Últimos 20</p>
+        <p className="text-xs text-muted-foreground mb-4">Últimos 20 · atualiza a cada 5s</p>
         <div className="space-y-3 max-h-[600px] overflow-auto">
           {history.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-6">
-              Nenhum disparo ainda
-            </p>
+            <p className="text-sm text-muted-foreground text-center py-6">Nenhum disparo ainda</p>
           )}
           {history.slice(0, 20).map((b) => {
-            const pct = Math.round((b.sentCount / b.totalContacts) * 100);
+            const pct = b.totalContacts > 0 ? Math.round((b.sentCount / b.totalContacts) * 100) : 0;
             return (
               <div key={b.id} className="border rounded-lg p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
@@ -264,16 +283,11 @@ function DisparosPage() {
                 </div>
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">
-                      {b.sentCount} / {b.totalContacts}
-                    </span>
+                    <span className="text-muted-foreground">{b.sentCount} / {b.totalContacts}</span>
                     <span className="font-medium">{pct}%</span>
                   </div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
+                    <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               </div>
