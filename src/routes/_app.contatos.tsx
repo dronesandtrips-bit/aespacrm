@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,8 +38,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Plus, Search, Pencil, Trash2, Users, Download, Upload } from "lucide-react";
-import { db, type Contact } from "@/lib/mock-data";
+import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2 } from "lucide-react";
+import { contactsDb, categoriesDb, type Contact, type Category } from "@/lib/db";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import { z } from "zod";
@@ -64,11 +64,27 @@ function ContactsPage() {
   const { page, q, cat } = Route.useSearch();
   const navigate = useNavigate({ from: "/contatos" });
 
-  const [contacts, setContacts] = useState<Contact[]>(() => db.listContacts());
-  const [categories] = useState(() => db.listCategories());
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Contact | null>(null);
   const [open, setOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+
+  const refresh = async () => {
+    try {
+      const [cs, cats] = await Promise.all([contactsDb.list(), categoriesDb.list()]);
+      setContacts(cs);
+      setCategories(cats);
+    } catch (e: any) {
+      toast.error(`Erro ao carregar: ${e.message ?? e}`);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    refresh().finally(() => setLoading(false));
+  }, []);
 
   const filtered = useMemo(
     () =>
@@ -88,28 +104,35 @@ function ContactsPage() {
   const pageStart = (safePage - 1) * PAGE_SIZE;
   const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
 
-  const refresh = () => setContacts([...db.listContacts()]);
   const goto = (next: Partial<{ page: number; q: string; cat: string }>) =>
     navigate({ search: (prev: { page: number; q: string; cat: string }) => ({ ...prev, ...next }) });
 
-  const handleSave = (data: Omit<Contact, "id" | "createdAt">) => {
-    if (editing) {
-      db.updateContact(editing.id, data);
-      toast.success("Contato atualizado");
-    } else {
-      db.createContact(data);
-      toast.success("Contato criado");
+  const handleSave = async (data: Omit<Contact, "id" | "createdAt">) => {
+    try {
+      if (editing) {
+        await contactsDb.update(editing.id, data);
+        toast.success("Contato atualizado");
+      } else {
+        await contactsDb.create(data);
+        toast.success("Contato criado");
+      }
+      await refresh();
+      setOpen(false);
+      setEditing(null);
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
     }
-    refresh();
-    setOpen(false);
-    setEditing(null);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Remover este contato?")) return;
-    db.deleteContact(id);
-    refresh();
-    toast.success("Contato removido");
+    try {
+      await contactsDb.remove(id);
+      await refresh();
+      toast.success("Contato removido");
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    }
   };
 
   const handleExport = () => {
@@ -137,7 +160,7 @@ function ContactsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <p className="text-sm text-muted-foreground">
-            {contacts.length} contatos no total · {filtered.length} filtrados
+            {loading ? "Carregando..." : `${contacts.length} contatos no total · ${filtered.length} filtrados`}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -197,7 +220,12 @@ function ContactsPage() {
       </Card>
 
       <Card className="overflow-hidden">
-        {pageItems.length === 0 ? (
+        {loading ? (
+          <div className="py-16 text-center text-muted-foreground">
+            <Loader2 className="size-6 mx-auto mb-2 animate-spin opacity-60" />
+            <p className="text-sm">Carregando contatos...</p>
+          </div>
+        ) : pageItems.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">
             <Users className="size-10 mx-auto mb-3 opacity-40" />
             <p className="text-sm">Nenhum contato encontrado</p>
@@ -289,6 +317,7 @@ function ContactsPage() {
       <ImportDialog
         open={importOpen}
         onOpenChange={setImportOpen}
+        categories={categories}
         onImported={refresh}
       />
     </div>
@@ -374,14 +403,17 @@ type ParsedRow = {
 function ImportDialog({
   open,
   onOpenChange,
+  categories,
   onImported,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onImported: () => void;
+  categories: Category[];
+  onImported: () => void | Promise<void>;
 }) {
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState<string>("");
+  const [importing, setImporting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
@@ -398,7 +430,6 @@ function ImportDialog({
       complete: (result) => {
         const parsed: ParsedRow[] = result.data
           .map((r) => {
-            // Aceita variações comuns de nomes de colunas
             const get = (...keys: string[]) => {
               for (const k of keys) {
                 const found = Object.keys(r).find(
@@ -426,24 +457,30 @@ function ImportDialog({
     });
   };
 
-  const confirm = () => {
-    const cats = db.listCategories();
-    const toImport = rows.map((r) => ({
-      name: r.name,
-      phone: r.phone,
-      email: r.email,
-      notes: r.notes,
-      categoryId: r.categoryName
-        ? cats.find((c) => c.name.toLowerCase() === r.categoryName!.toLowerCase())?.id
-        : undefined,
-    }));
-    const result = db.bulkImportContacts(toImport);
-    toast.success(
-      `✅ ${result.imported} importados${result.skipped > 0 ? ` · ⚠️ ${result.skipped} ignorados` : ""}`,
-    );
-    onImported();
-    reset();
-    onOpenChange(false);
+  const confirm = async () => {
+    setImporting(true);
+    try {
+      const toImport = rows.map((r) => ({
+        name: r.name,
+        phone: r.phone,
+        email: r.email,
+        notes: r.notes,
+        categoryId: r.categoryName
+          ? categories.find((c) => c.name.toLowerCase() === r.categoryName!.toLowerCase())?.id
+          : undefined,
+      }));
+      const result = await contactsDb.bulkImport(toImport);
+      toast.success(
+        `✅ ${result.imported} importados${result.skipped > 0 ? ` · ⚠️ ${result.skipped} ignorados` : ""}`,
+      );
+      await onImported();
+      reset();
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error(`Erro ao importar: ${e.message ?? e}`);
+    } finally {
+      setImporting(false);
+    }
   };
 
   return (
@@ -517,10 +554,11 @@ function ImportDialog({
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={importing}>
             Cancelar
           </Button>
-          <Button onClick={confirm} disabled={rows.length === 0}>
+          <Button onClick={confirm} disabled={rows.length === 0 || importing}>
+            {importing ? <Loader2 className="size-4 animate-spin" /> : null}
             Importar {rows.length > 0 ? `(${rows.length})` : ""}
           </Button>
         </DialogFooter>
@@ -536,27 +574,33 @@ function ContactDialog({
 }: {
   initial: Contact | null;
   categories: { id: string; name: string; color: string }[];
-  onSubmit: (data: Omit<Contact, "id" | "createdAt">) => void;
+  onSubmit: (data: Omit<Contact, "id" | "createdAt">) => void | Promise<void>;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [categoryId, setCategoryId] = useState<string>(initial?.categoryId ?? NONE);
+  const [saving, setSaving] = useState(false);
 
-  const handle = (e: React.FormEvent) => {
+  const handle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) {
       toast.error("Nome e telefone são obrigatórios");
       return;
     }
-    onSubmit({
-      name: name.trim(),
-      phone: phone.trim(),
-      email: email.trim() || undefined,
-      notes: notes.trim() || undefined,
-      categoryId: categoryId === NONE ? undefined : categoryId,
-    });
+    setSaving(true);
+    try {
+      await onSubmit({
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim() || undefined,
+        notes: notes.trim() || undefined,
+        categoryId: categoryId === NONE ? undefined : categoryId,
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -581,7 +625,7 @@ function ContactDialog({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="e">Email</Label>
-          <Input id="e" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input id="e" type="email" value={email ?? ""} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Categoria</Label>
@@ -603,13 +647,16 @@ function ContactDialog({
           <Label htmlFor="nt">Notas</Label>
           <Textarea
             id="nt"
-            value={notes}
+            value={notes ?? ""}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
           />
         </div>
         <DialogFooter>
-          <Button type="submit">Salvar</Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+            Salvar
+          </Button>
         </DialogFooter>
       </form>
     </DialogContent>
