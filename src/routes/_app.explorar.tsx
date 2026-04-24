@@ -78,9 +78,17 @@ function ExplorarPage() {
     setImported(new Set());
 
     try {
+      const apiKey =
+        typeof window !== "undefined"
+          ? localStorage.getItem(WEBHOOK_API_KEY_KEY) ?? ""
+          : "";
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (apiKey) headers["X-API-Key"] = apiKey;
       const res = await fetch(webhookUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ niche: niche.trim(), location: location.trim() }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
