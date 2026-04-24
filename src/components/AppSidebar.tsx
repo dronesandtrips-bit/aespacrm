@@ -11,6 +11,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Search,
+  GitBranch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -22,6 +23,7 @@ const items = [
   { to: "/explorar", label: "Explorar", icon: Search },
   { to: "/contatos", label: "Contatos", icon: Users },
   { to: "/disparos", label: "Disparos", icon: Send },
+  { to: "/sequencias", label: "Sequências", icon: GitBranch },
   { to: "/inbox", label: "Inbox", icon: Inbox },
   { to: "/pipeline", label: "Pipeline", icon: Kanban },
   { to: "/whatsapp", label: "WhatsApp", icon: Smartphone },
