@@ -2,7 +2,7 @@
 // chamados pelo n8n. BYPASSA RLS — sempre filtre por user_id manualmente!
 import { createClient } from "@supabase/supabase-js";
 
-let admin: ReturnType<typeof createClient> | null = null;
+let admin: any = null;
 
 export function getSupabaseAdmin() {
   if (admin) return admin;
