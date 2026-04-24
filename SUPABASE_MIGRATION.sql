@@ -242,9 +242,8 @@ end $$;
 -- 9) GRANTS no schema (necessário para o anon key acessar via API)
 -- =====================================================================
 grant usage on schema aespacrm to anon, authenticated;
-grant all on all tables in sequence aespacrm to authenticated;
 grant select, insert, update, delete on all tables in schema aespacrm to authenticated;
-grant usage on all sequences in schema aespacrm to authenticated;
+grant usage, select on all sequences in schema aespacrm to authenticated;
 
 alter default privileges in schema aespacrm
   grant select, insert, update, delete on tables to authenticated;
