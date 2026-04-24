@@ -398,6 +398,217 @@ export const bulkSendsDb = {
   },
 };
 
-// ===================== Sequências (placeholders, Fase 3) =====================
-// Implementação completa virá na Fase 3 quando construirmos a UI.
-// As tabelas já existem no SQL.
+// ===================== Sequências =====================
+
+function rowToSeq(r: any): Sequence {
+  return {
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    isActive: r.is_active,
+    triggerType: r.trigger_type,
+    triggerValue: r.trigger_value,
+    windowStartHour: r.window_start_hour,
+    windowEndHour: r.window_end_hour,
+    windowDays: r.window_days ?? [1, 2, 3, 4, 5],
+    createdAt: r.created_at,
+  };
+}
+
+function rowToStep(r: any): SequenceStep {
+  return {
+    id: r.id,
+    sequenceId: r.sequence_id,
+    order: r.order,
+    message: r.message,
+    delayValue: r.delay_value,
+    delayUnit: r.delay_unit,
+  };
+}
+
+function rowToContactSeq(r: any): ContactSequence {
+  return {
+    id: r.id,
+    contactId: r.contact_id,
+    sequenceId: r.sequence_id,
+    currentStep: r.current_step,
+    status: r.status,
+    nextSendAt: r.next_send_at,
+    startedAt: r.started_at,
+    pausedAt: r.paused_at,
+    pauseReason: r.pause_reason,
+  };
+}
+
+export const sequencesDb = {
+  async list(): Promise<Sequence[]> {
+    const c = await client();
+    const { data, error } = await c
+      .from("crm_sequences")
+      .select(
+        "id,name,description,is_active,trigger_type,trigger_value,window_start_hour,window_end_hour,window_days,created_at",
+      )
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToSeq);
+  },
+
+  async create(input: {
+    name: string;
+    description?: string;
+    triggerType?: Sequence["triggerType"];
+    triggerValue?: string | null;
+  }): Promise<Sequence> {
+    const c = await client();
+    const user_id = await uid();
+    const { data, error } = await c
+      .from("crm_sequences")
+      .insert({
+        user_id,
+        name: input.name,
+        description: input.description ?? null,
+        trigger_type: input.triggerType ?? "manual",
+        trigger_value: input.triggerValue ?? null,
+        is_active: true,
+      })
+      .select(
+        "id,name,description,is_active,trigger_type,trigger_value,window_start_hour,window_end_hour,window_days,created_at",
+      )
+      .single();
+    if (error) throw error;
+    return rowToSeq(data);
+  },
+
+  async update(
+    id: string,
+    patch: Partial<{
+      name: string;
+      description: string | null;
+      isActive: boolean;
+      triggerType: Sequence["triggerType"];
+      triggerValue: string | null;
+      windowStartHour: number;
+      windowEndHour: number;
+      windowDays: number[];
+    }>,
+  ) {
+    const c = await client();
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.description !== undefined) dbPatch.description = patch.description;
+    if (patch.isActive !== undefined) dbPatch.is_active = patch.isActive;
+    if (patch.triggerType !== undefined) dbPatch.trigger_type = patch.triggerType;
+    if (patch.triggerValue !== undefined) dbPatch.trigger_value = patch.triggerValue;
+    if (patch.windowStartHour !== undefined) dbPatch.window_start_hour = patch.windowStartHour;
+    if (patch.windowEndHour !== undefined) dbPatch.window_end_hour = patch.windowEndHour;
+    if (patch.windowDays !== undefined) dbPatch.window_days = patch.windowDays;
+    const { error } = await c.from("crm_sequences").update(dbPatch).eq("id", id);
+    if (error) throw error;
+  },
+
+  async remove(id: string) {
+    const c = await client();
+    const { error } = await c.from("crm_sequences").delete().eq("id", id);
+    if (error) throw error;
+  },
+
+  async listSteps(sequenceId: string): Promise<SequenceStep[]> {
+    const c = await client();
+    const { data, error } = await c
+      .from("crm_sequence_steps")
+      .select('id,sequence_id,"order",message,delay_value,delay_unit')
+      .eq("sequence_id", sequenceId)
+      .order("order", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(rowToStep);
+  },
+
+  async saveSteps(
+    sequenceId: string,
+    steps: Array<{ message: string; delayValue: number; delayUnit: "hours" | "days" }>,
+  ) {
+    const c = await client();
+    const user_id = await uid();
+    // Estratégia simples: apaga e recria
+    const { error: delErr } = await c
+      .from("crm_sequence_steps")
+      .delete()
+      .eq("sequence_id", sequenceId);
+    if (delErr) throw delErr;
+    if (steps.length === 0) return;
+    const rows = steps.map((s, i) => ({
+      user_id,
+      sequence_id: sequenceId,
+      order: i,
+      message: s.message,
+      delay_value: s.delayValue,
+      delay_unit: s.delayUnit,
+    }));
+    const { error } = await c.from("crm_sequence_steps").insert(rows);
+    if (error) throw error;
+  },
+
+  async listContactSequences(): Promise<ContactSequence[]> {
+    const c = await client();
+    const { data, error } = await c
+      .from("crm_contact_sequences")
+      .select(
+        "id,contact_id,sequence_id,current_step,status,next_send_at,started_at,paused_at,pause_reason",
+      )
+      .order("started_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToContactSeq);
+  },
+
+  async enroll(sequenceId: string, contactIds: string[]): Promise<{ enrolled: number }> {
+    if (contactIds.length === 0) return { enrolled: 0 };
+    const c = await client();
+    const user_id = await uid();
+    // Pega primeiro step pra calcular next_send_at
+    const { data: steps } = await c
+      .from("crm_sequence_steps")
+      .select('"order",delay_value,delay_unit')
+      .eq("sequence_id", sequenceId)
+      .order("order", { ascending: true })
+      .limit(1);
+    const first = steps?.[0];
+    const ms = first
+      ? first.delay_value *
+        (first.delay_unit === "hours" ? 3600_000 : 86_400_000)
+      : 0;
+    const nextAt = new Date(Date.now() + ms).toISOString();
+
+    const rows = contactIds.map((cid) => ({
+      user_id,
+      contact_id: cid,
+      sequence_id: sequenceId,
+      current_step: 0,
+      status: "active" as const,
+      next_send_at: nextAt,
+    }));
+    const { error, count } = await c
+      .from("crm_contact_sequences")
+      .upsert(rows, { onConflict: "contact_id,sequence_id", ignoreDuplicates: true, count: "exact" });
+    if (error) throw error;
+    return { enrolled: count ?? rows.length };
+  },
+
+  async pauseContact(contactSequenceId: string, reason = "manual") {
+    const c = await client();
+    const { error } = await c
+      .from("crm_contact_sequences")
+      .update({ status: "paused", paused_at: new Date().toISOString(), pause_reason: reason })
+      .eq("id", contactSequenceId);
+    if (error) throw error;
+  },
+
+  async resumeContact(contactSequenceId: string) {
+    const c = await client();
+    const { error } = await c
+      .from("crm_contact_sequences")
+      .update({ status: "active", paused_at: null, pause_reason: null })
+      .eq("id", contactSequenceId);
+    if (error) throw error;
+  },
+};
+

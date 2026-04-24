@@ -15,6 +15,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
+import { Route as AppSequenciasRouteImport } from './routes/_app.sequencias'
 import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
 import { Route as AppInboxRouteImport } from './routes/_app.inbox'
 import { Route as AppExplorarRouteImport } from './routes/_app.explorar'
@@ -22,6 +23,9 @@ import { Route as AppDisparosRouteImport } from './routes/_app.disparos'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppContatosRouteImport } from './routes/_app.contatos'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
+import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.sequences.sent'
+import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.public.sequences.inbound'
+import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.sequences.due'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -50,6 +54,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppWhatsappRoute = AppWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSequenciasRoute = AppSequenciasRouteImport.update({
+  id: '/sequencias',
+  path: '/sequencias',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPipelineRoute = AppPipelineRouteImport.update({
@@ -87,6 +96,22 @@ const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicSequencesSentRoute = ApiPublicSequencesSentRouteImport.update({
+  id: '/api/public/sequences/sent',
+  path: '/api/public/sequences/sent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSequencesInboundRoute =
+  ApiPublicSequencesInboundRouteImport.update({
+    id: '/api/public/sequences/inbound',
+    path: '/api/public/sequences/inbound',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSequencesDueRoute = ApiPublicSequencesDueRouteImport.update({
+  id: '/api/public/sequences/due',
+  path: '/api/public/sequences/due',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -100,7 +125,11 @@ export interface FileRoutesByFullPath {
   '/explorar': typeof AppExplorarRoute
   '/inbox': typeof AppInboxRoute
   '/pipeline': typeof AppPipelineRoute
+  '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
+  '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
+  '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
+  '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -114,7 +143,11 @@ export interface FileRoutesByTo {
   '/explorar': typeof AppExplorarRoute
   '/inbox': typeof AppInboxRoute
   '/pipeline': typeof AppPipelineRoute
+  '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
+  '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
+  '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
+  '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -130,7 +163,11 @@ export interface FileRoutesById {
   '/_app/explorar': typeof AppExplorarRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/pipeline': typeof AppPipelineRoute
+  '/_app/sequencias': typeof AppSequenciasRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
+  '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
+  '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
+  '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -146,7 +183,11 @@ export interface FileRouteTypes {
     | '/explorar'
     | '/inbox'
     | '/pipeline'
+    | '/sequencias'
     | '/whatsapp'
+    | '/api/public/sequences/due'
+    | '/api/public/sequences/inbound'
+    | '/api/public/sequences/sent'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -160,7 +201,11 @@ export interface FileRouteTypes {
     | '/explorar'
     | '/inbox'
     | '/pipeline'
+    | '/sequencias'
     | '/whatsapp'
+    | '/api/public/sequences/due'
+    | '/api/public/sequences/inbound'
+    | '/api/public/sequences/sent'
   id:
     | '__root__'
     | '/'
@@ -175,7 +220,11 @@ export interface FileRouteTypes {
     | '/_app/explorar'
     | '/_app/inbox'
     | '/_app/pipeline'
+    | '/_app/sequencias'
     | '/_app/whatsapp'
+    | '/api/public/sequences/due'
+    | '/api/public/sequences/inbound'
+    | '/api/public/sequences/sent'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -184,6 +233,9 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicSequencesDueRoute: typeof ApiPublicSequencesDueRoute
+  ApiPublicSequencesInboundRoute: typeof ApiPublicSequencesInboundRoute
+  ApiPublicSequencesSentRoute: typeof ApiPublicSequencesSentRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -228,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/whatsapp'
       fullPath: '/whatsapp'
       preLoaderRoute: typeof AppWhatsappRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sequencias': {
+      id: '/_app/sequencias'
+      path: '/sequencias'
+      fullPath: '/sequencias'
+      preLoaderRoute: typeof AppSequenciasRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/pipeline': {
@@ -279,6 +338,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/sequences/sent': {
+      id: '/api/public/sequences/sent'
+      path: '/api/public/sequences/sent'
+      fullPath: '/api/public/sequences/sent'
+      preLoaderRoute: typeof ApiPublicSequencesSentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sequences/inbound': {
+      id: '/api/public/sequences/inbound'
+      path: '/api/public/sequences/inbound'
+      fullPath: '/api/public/sequences/inbound'
+      preLoaderRoute: typeof ApiPublicSequencesInboundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sequences/due': {
+      id: '/api/public/sequences/due'
+      path: '/api/public/sequences/due'
+      fullPath: '/api/public/sequences/due'
+      preLoaderRoute: typeof ApiPublicSequencesDueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -290,6 +370,7 @@ interface AppRouteChildren {
   AppExplorarRoute: typeof AppExplorarRoute
   AppInboxRoute: typeof AppInboxRoute
   AppPipelineRoute: typeof AppPipelineRoute
+  AppSequenciasRoute: typeof AppSequenciasRoute
   AppWhatsappRoute: typeof AppWhatsappRoute
 }
 
@@ -301,6 +382,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppExplorarRoute: AppExplorarRoute,
   AppInboxRoute: AppInboxRoute,
   AppPipelineRoute: AppPipelineRoute,
+  AppSequenciasRoute: AppSequenciasRoute,
   AppWhatsappRoute: AppWhatsappRoute,
 }
 
@@ -312,6 +394,9 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicSequencesDueRoute: ApiPublicSequencesDueRoute,
+  ApiPublicSequencesInboundRoute: ApiPublicSequencesInboundRoute,
+  ApiPublicSequencesSentRoute: ApiPublicSequencesSentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
