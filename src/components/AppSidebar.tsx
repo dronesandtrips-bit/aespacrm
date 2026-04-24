@@ -10,6 +10,7 @@ import {
   MessageCircle,
   ChevronsLeft,
   ChevronsRight,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -18,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 
 const items = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/explorar", label: "Explorar", icon: Search },
   { to: "/contatos", label: "Contatos", icon: Users },
   { to: "/disparos", label: "Disparos", icon: Send },
   { to: "/inbox", label: "Inbox", icon: Inbox },
