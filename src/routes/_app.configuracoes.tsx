@@ -278,6 +278,7 @@ function CategoryDialog({
 
 function PipelineTab() {
   const [stages, setStages] = useState<PipelineStage[]>([]);
+  const [sequences, setSequences] = useState<Sequence[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<PipelineStage | null>(null);
   const [open, setOpen] = useState(false);
@@ -285,7 +286,9 @@ function PipelineTab() {
 
   const refresh = async () => {
     try {
-      setStages(await pipelineDb.listStages());
+      const [st, sqs] = await Promise.all([pipelineDb.listStages(), sequencesDb.list()]);
+      setStages(st);
+      setSequences(sqs);
     } catch (e: any) {
       toast.error(`Erro ao carregar: ${e.message ?? e}`);
     }
@@ -296,14 +299,14 @@ function PipelineTab() {
     refresh().finally(() => setLoading(false));
   }, []);
 
-  const save = async (name: string, color: string) => {
+  const save = async (name: string, color: string, sequenceId: string | null) => {
     if (!name.trim()) return toast.error("Nome obrigatório");
     try {
       if (editing) {
-        await pipelineDb.updateStage(editing.id, { name: name.trim(), color });
+        await pipelineDb.updateStage(editing.id, { name: name.trim(), color, sequenceId });
         toast.success("Etapa atualizada");
       } else {
-        await pipelineDb.createStage(name.trim(), color);
+        await pipelineDb.createStage(name.trim(), color, sequenceId);
         toast.success("Etapa criada");
       }
       await refresh();
@@ -360,7 +363,7 @@ function PipelineTab() {
               <Plus className="size-4" /> Nova etapa
             </Button>
           </DialogTrigger>
-          <StageDialog key={editing?.id ?? "new"} initial={editing} onSubmit={save} />
+          <StageDialog key={editing?.id ?? "new"} initial={editing} sequences={sequences} onSubmit={save} />
         </Dialog>
       </div>
 
@@ -380,6 +383,7 @@ function PipelineTab() {
                 <SortableStageRow
                   key={s.id}
                   stage={s}
+                  sequenceName={sequences.find((sq) => sq.id === s.sequenceId)?.name ?? null}
                   onEdit={() => { setEditing(s); setOpen(true); }}
                   onDelete={() => remove(s.id)}
                 />
@@ -394,10 +398,12 @@ function PipelineTab() {
 
 function SortableStageRow({
   stage,
+  sequenceName,
   onEdit,
   onDelete,
 }: {
   stage: PipelineStage;
+  sequenceName: string | null;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -419,7 +425,12 @@ function SortableStageRow({
         <GripVertical className="size-4" />
       </button>
       <span className="size-3 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
-      <span className="flex-1 font-medium text-sm truncate">{stage.name}</span>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm truncate">{stage.name}</p>
+        {sequenceName && (
+          <p className="text-[11px] text-muted-foreground truncate">→ {sequenceName}</p>
+        )}
+      </div>
       <Button variant="ghost" size="icon" onClick={onEdit}>
         <Pencil className="size-4" />
       </Button>
@@ -432,19 +443,22 @@ function SortableStageRow({
 
 function StageDialog({
   initial,
+  sequences,
   onSubmit,
 }: {
   initial: PipelineStage | null;
-  onSubmit: (name: string, color: string) => void;
+  sequences: Sequence[];
+  onSubmit: (name: string, color: string, sequenceId: string | null) => void;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [color, setColor] = useState(initial?.color ?? COLORS[0]);
+  const [sequenceId, setSequenceId] = useState<string | null>(initial?.sequenceId ?? null);
   return (
     <DialogContent className="max-w-sm">
       <DialogHeader>
         <DialogTitle>{initial ? "Editar etapa" : "Nova etapa"}</DialogTitle>
       </DialogHeader>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit(name, color); }} className="space-y-4">
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(name, color, sequenceId); }} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="sn">Nome</Label>
           <Input id="sn" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Negociação" />
@@ -465,6 +479,13 @@ function StageDialog({
               />
             ))}
           </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Sequência automática</Label>
+          <SequenceSelect value={sequenceId} onChange={setSequenceId} sequences={sequences} />
+          <p className="text-[11px] text-muted-foreground">
+            Quando um contato for movido para esta etapa, será inscrito automaticamente.
+          </p>
         </div>
         <DialogFooter>
           <Button type="submit">Salvar</Button>
