@@ -230,15 +230,25 @@ export const contactsDb = {
 
 // ===================== Pipeline =====================
 
+function rowToStage(r: any): PipelineStage {
+  return {
+    id: r.id,
+    name: r.name,
+    color: r.color,
+    order: r.order,
+    sequenceId: r.sequence_id ?? null,
+  };
+}
+
 export const pipelineDb = {
   async listStages(): Promise<PipelineStage[]> {
     const c = await client();
     const { data, error } = await c
       .from("crm_pipeline_stages")
-      .select('id,name,color,"order"')
+      .select('id,name,color,"order",sequence_id')
       .order("order", { ascending: true });
     if (error) throw error;
-    return data ?? [];
+    return (data ?? []).map(rowToStage);
   },
   async listPlacements(): Promise<PipelinePlacement[]> {
     const c = await client();
@@ -248,7 +258,7 @@ export const pipelineDb = {
     if (error) throw error;
     return (data ?? []).map((r: any) => ({ contactId: r.contact_id, stageId: r.stage_id }));
   },
-  async createStage(name: string, color: string): Promise<PipelineStage> {
+  async createStage(name: string, color: string, sequenceId?: string | null): Promise<PipelineStage> {
     const c = await client();
     const user_id = await uid();
     // Calcula próximo order
@@ -260,15 +270,22 @@ export const pipelineDb = {
     const nextOrder = (existing && existing[0]?.order != null ? existing[0].order + 1 : 0);
     const { data, error } = await c
       .from("crm_pipeline_stages")
-      .insert({ user_id, name, color, order: nextOrder })
-      .select('id,name,color,"order"')
+      .insert({ user_id, name, color, order: nextOrder, sequence_id: sequenceId ?? null })
+      .select('id,name,color,"order",sequence_id')
       .single();
     if (error) throw error;
-    return data;
+    return rowToStage(data);
   },
-  async updateStage(id: string, patch: Partial<Pick<PipelineStage, "name" | "color">>) {
+  async updateStage(
+    id: string,
+    patch: Partial<Pick<PipelineStage, "name" | "color" | "sequenceId">>,
+  ) {
     const c = await client();
-    const { error } = await c.from("crm_pipeline_stages").update(patch).eq("id", id);
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.color !== undefined) dbPatch.color = patch.color;
+    if (patch.sequenceId !== undefined) dbPatch.sequence_id = patch.sequenceId;
+    const { error } = await c.from("crm_pipeline_stages").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
   async deleteStage(id: string): Promise<{ ok: boolean; reason?: string }> {
@@ -305,6 +322,16 @@ export const pipelineDb = {
         { onConflict: "contact_id" },
       );
     if (error) throw error;
+    // Gatilho automático: se a etapa tem sequência associada, inscreve.
+    const { data: stage } = await c
+      .from("crm_pipeline_stages")
+      .select("sequence_id")
+      .eq("id", stageId)
+      .maybeSingle();
+    const seqId = stage?.sequence_id;
+    if (seqId) {
+      await sequencesDb.enrollFromTrigger(contactId, seqId);
+    }
   },
 };
 
