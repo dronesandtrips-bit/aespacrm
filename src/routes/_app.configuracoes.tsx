@@ -13,8 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2 } from "lucide-react";
-import { categoriesDb, pipelineDb, sequencesDb, type Category, type PipelineStage, type Sequence } from "@/lib/db";
+import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2, Code2, Copy, ExternalLink } from "lucide-react";
+import { categoriesDb, pipelineDb, sequencesDb, widgetsDb, type Category, type PipelineStage, type Sequence, type CaptureWidget } from "@/lib/db";
 import {
   Select,
   SelectContent,
@@ -64,6 +64,7 @@ function SettingsPage() {
         <TabsList>
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          <TabsTrigger value="widgets">Widgets</TabsTrigger>
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
           <TabsTrigger value="conta">Conta</TabsTrigger>
         </TabsList>
@@ -72,6 +73,9 @@ function SettingsPage() {
         </TabsContent>
         <TabsContent value="pipeline" className="mt-5">
           <PipelineTab />
+        </TabsContent>
+        <TabsContent value="widgets" className="mt-5">
+          <WidgetsTab />
         </TabsContent>
         <TabsContent value="integracoes" className="mt-5">
           <IntegrationsTab />
