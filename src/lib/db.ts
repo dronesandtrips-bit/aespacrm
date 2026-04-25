@@ -6,7 +6,7 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
 
 // ===================== Tipos =====================
 
-export type Category = { id: string; name: string; color: string };
+export type Category = { id: string; name: string; color: string; sequenceId?: string | null };
 export type Contact = {
   id: string;
   name: string;
@@ -26,7 +26,7 @@ export type BulkSend = {
   status: "pending" | "in_progress" | "completed" | "error";
   createdAt: string;
 };
-export type PipelineStage = { id: string; name: string; color: string; order: number };
+export type PipelineStage = { id: string; name: string; color: string; order: number; sequenceId?: string | null };
 export type PipelinePlacement = { contactId: string; stageId: string };
 export type ChatMessage = {
   id: string;
@@ -88,30 +88,38 @@ async function uid(): Promise<string> {
 
 // ===================== Categorias =====================
 
+function rowToCategory(r: any): Category {
+  return { id: r.id, name: r.name, color: r.color, sequenceId: r.sequence_id ?? null };
+}
+
 export const categoriesDb = {
   async list(): Promise<Category[]> {
     const c = await client();
     const { data, error } = await c
       .from("crm_categories")
-      .select("id,name,color")
+      .select("id,name,color,sequence_id")
       .order("name", { ascending: true });
     if (error) throw error;
-    return data ?? [];
+    return (data ?? []).map(rowToCategory);
   },
-  async create(name: string, color: string): Promise<Category> {
+  async create(name: string, color: string, sequenceId?: string | null): Promise<Category> {
     const c = await client();
     const user_id = await uid();
     const { data, error } = await c
       .from("crm_categories")
-      .insert({ name, color, user_id })
-      .select("id,name,color")
+      .insert({ name, color, user_id, sequence_id: sequenceId ?? null })
+      .select("id,name,color,sequence_id")
       .single();
     if (error) throw error;
-    return data;
+    return rowToCategory(data);
   },
-  async update(id: string, patch: Partial<Pick<Category, "name" | "color">>) {
+  async update(id: string, patch: Partial<Pick<Category, "name" | "color" | "sequenceId">>) {
     const c = await client();
-    const { error } = await c.from("crm_categories").update(patch).eq("id", id);
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.color !== undefined) dbPatch.color = patch.color;
+    if (patch.sequenceId !== undefined) dbPatch.sequence_id = patch.sequenceId;
+    const { error } = await c.from("crm_categories").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
   async remove(id: string) {
@@ -133,6 +141,27 @@ function rowToContact(r: any): Contact {
     categoryId: r.category_id,
     createdAt: r.created_at,
   };
+}
+
+/**
+ * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
+ * Silencioso em caso de erro (não bloqueia a operação principal).
+ */
+async function maybeTriggerCategorySequence(contactId: string, categoryId: string) {
+  try {
+    const c = await client();
+    const { data } = await c
+      .from("crm_categories")
+      .select("sequence_id")
+      .eq("id", categoryId)
+      .maybeSingle();
+    const seqId = data?.sequence_id;
+    if (seqId) {
+      await sequencesDb.enrollFromTrigger(contactId, seqId);
+    }
+  } catch (err) {
+    console.error("[trigger:category] falhou", err);
+  }
 }
 
 export const contactsDb = {
@@ -161,7 +190,12 @@ export const contactsDb = {
       .select("id,name,phone,email,notes,category_id,created_at")
       .single();
     if (error) throw error;
-    return rowToContact(data);
+    const created = rowToContact(data);
+    // Gatilho automático por categoria
+    if (created.categoryId) {
+      await maybeTriggerCategorySequence(created.id, created.categoryId);
+    }
+    return created;
   },
   async update(id: string, patch: Partial<Omit<Contact, "id" | "createdAt">>) {
     const c = await client();
@@ -171,8 +205,25 @@ export const contactsDb = {
     if (patch.email !== undefined) dbPatch.email = patch.email || null;
     if (patch.notes !== undefined) dbPatch.notes = patch.notes || null;
     if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId || null;
+    // Para gatilho: precisamos saber se categoria mudou
+    let prevCategoryId: string | null = null;
+    if (patch.categoryId !== undefined) {
+      const { data: prev } = await c
+        .from("crm_contacts")
+        .select("category_id")
+        .eq("id", id)
+        .maybeSingle();
+      prevCategoryId = prev?.category_id ?? null;
+    }
     const { error } = await c.from("crm_contacts").update(dbPatch).eq("id", id);
     if (error) throw error;
+    if (
+      patch.categoryId !== undefined &&
+      patch.categoryId &&
+      patch.categoryId !== prevCategoryId
+    ) {
+      await maybeTriggerCategorySequence(id, patch.categoryId);
+    }
   },
   async remove(id: string) {
     const c = await client();
@@ -222,15 +273,25 @@ export const contactsDb = {
 
 // ===================== Pipeline =====================
 
+function rowToStage(r: any): PipelineStage {
+  return {
+    id: r.id,
+    name: r.name,
+    color: r.color,
+    order: r.order,
+    sequenceId: r.sequence_id ?? null,
+  };
+}
+
 export const pipelineDb = {
   async listStages(): Promise<PipelineStage[]> {
     const c = await client();
     const { data, error } = await c
       .from("crm_pipeline_stages")
-      .select('id,name,color,"order"')
+      .select('id,name,color,"order",sequence_id')
       .order("order", { ascending: true });
     if (error) throw error;
-    return data ?? [];
+    return (data ?? []).map(rowToStage);
   },
   async listPlacements(): Promise<PipelinePlacement[]> {
     const c = await client();
@@ -240,7 +301,7 @@ export const pipelineDb = {
     if (error) throw error;
     return (data ?? []).map((r: any) => ({ contactId: r.contact_id, stageId: r.stage_id }));
   },
-  async createStage(name: string, color: string): Promise<PipelineStage> {
+  async createStage(name: string, color: string, sequenceId?: string | null): Promise<PipelineStage> {
     const c = await client();
     const user_id = await uid();
     // Calcula próximo order
@@ -252,15 +313,22 @@ export const pipelineDb = {
     const nextOrder = (existing && existing[0]?.order != null ? existing[0].order + 1 : 0);
     const { data, error } = await c
       .from("crm_pipeline_stages")
-      .insert({ user_id, name, color, order: nextOrder })
-      .select('id,name,color,"order"')
+      .insert({ user_id, name, color, order: nextOrder, sequence_id: sequenceId ?? null })
+      .select('id,name,color,"order",sequence_id')
       .single();
     if (error) throw error;
-    return data;
+    return rowToStage(data);
   },
-  async updateStage(id: string, patch: Partial<Pick<PipelineStage, "name" | "color">>) {
+  async updateStage(
+    id: string,
+    patch: Partial<Pick<PipelineStage, "name" | "color" | "sequenceId">>,
+  ) {
     const c = await client();
-    const { error } = await c.from("crm_pipeline_stages").update(patch).eq("id", id);
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.color !== undefined) dbPatch.color = patch.color;
+    if (patch.sequenceId !== undefined) dbPatch.sequence_id = patch.sequenceId;
+    const { error } = await c.from("crm_pipeline_stages").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
   async deleteStage(id: string): Promise<{ ok: boolean; reason?: string }> {
@@ -297,6 +365,16 @@ export const pipelineDb = {
         { onConflict: "contact_id" },
       );
     if (error) throw error;
+    // Gatilho automático: se a etapa tem sequência associada, inscreve.
+    const { data: stage } = await c
+      .from("crm_pipeline_stages")
+      .select("sequence_id")
+      .eq("id", stageId)
+      .maybeSingle();
+    const seqId = stage?.sequence_id;
+    if (seqId) {
+      await sequencesDb.enrollFromTrigger(contactId, seqId);
+    }
   },
 };
 
@@ -610,5 +688,61 @@ export const sequencesDb = {
       .eq("id", contactSequenceId);
     if (error) throw error;
   },
+
+  /**
+   * Pausa todas as sequências ativas de um contato (exceto a indicada).
+   * Usada antes de inscrever em uma nova sequência via gatilho automático.
+   */
+  async pauseAllActiveForContact(contactId: string, exceptSequenceId?: string, reason = "auto_replaced") {
+    const c = await client();
+    let q = c
+      .from("crm_contact_sequences")
+      .update({ status: "paused", paused_at: new Date().toISOString(), pause_reason: reason })
+      .eq("contact_id", contactId)
+      .eq("status", "active");
+    if (exceptSequenceId) q = q.neq("sequence_id", exceptSequenceId);
+    const { error } = await q;
+    if (error) throw error;
+  },
+
+  /**
+   * Inscreve um contato em uma sequência via gatilho automático.
+   * Política: pausa qualquer sequência ativa anterior antes de iniciar a nova.
+   * Se o contato já estiver ativo NESTA sequência, não faz nada.
+   */
+  async enrollFromTrigger(contactId: string, sequenceId: string): Promise<{ enrolled: boolean }> {
+    const c = await client();
+    // Verifica se já está ativo nessa sequência
+    const { data: existing } = await c
+      .from("crm_contact_sequences")
+      .select("id,status")
+      .eq("contact_id", contactId)
+      .eq("sequence_id", sequenceId)
+      .maybeSingle();
+    if (existing && existing.status === "active") {
+      return { enrolled: false };
+    }
+    // Pausa as outras ativas
+    await sequencesDb.pauseAllActiveForContact(contactId, sequenceId, "auto_replaced");
+    // Se existe registro pausado/cancelado, reativa; senão cria novo
+    if (existing) {
+      const { error } = await c
+        .from("crm_contact_sequences")
+        .update({
+          status: "active",
+          current_step: 0,
+          paused_at: null,
+          pause_reason: null,
+          started_at: new Date().toISOString(),
+          next_send_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+      if (error) throw error;
+      return { enrolled: true };
+    }
+    const r = await sequencesDb.enroll(sequenceId, [contactId]);
+    return { enrolled: r.enrolled > 0 };
+  },
 };
+
 
