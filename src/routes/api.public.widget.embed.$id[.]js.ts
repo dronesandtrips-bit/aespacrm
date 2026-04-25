@@ -7,7 +7,8 @@ export const Route = createFileRoute("/api/public/widget/embed/$id.js")({
   server: {
     handlers: {
       GET: async ({ params, request }) => {
-        const id = params.id.replace(/[^a-zA-Z0-9-]/g, "");
+        const rawId = (params as Record<string, string>)["id.js"] ?? (params as any).id ?? "";
+        const id = String(rawId).replace(/[^a-zA-Z0-9-]/g, "");
         const url = new URL(request.url);
         const base = `${url.protocol}//${url.host}`;
         const formUrl = `${base}/widget/form/${id}`;
