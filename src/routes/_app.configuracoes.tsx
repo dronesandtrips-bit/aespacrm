@@ -84,15 +84,49 @@ function SettingsPage() {
   );
 }
 
+const NO_SEQ = "__none__";
+
+function SequenceSelect({
+  value,
+  onChange,
+  sequences,
+}: {
+  value: string | null | undefined;
+  onChange: (v: string | null) => void;
+  sequences: Sequence[];
+}) {
+  return (
+    <Select
+      value={value ?? NO_SEQ}
+      onValueChange={(v) => onChange(v === NO_SEQ ? null : v)}
+    >
+      <SelectTrigger>
+        <SelectValue placeholder="Nenhuma" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NO_SEQ}>Nenhuma (sem gatilho automático)</SelectItem>
+        {sequences.map((s) => (
+          <SelectItem key={s.id} value={s.id}>
+            {s.name} {s.isActive ? "" : "(pausada)"}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function CategoriesTab() {
   const [list, setList] = useState<Category[]>([]);
+  const [sequences, setSequences] = useState<Sequence[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Category | null>(null);
   const [open, setOpen] = useState(false);
 
   const refresh = async () => {
     try {
-      setList(await categoriesDb.list());
+      const [cs, sqs] = await Promise.all([categoriesDb.list(), sequencesDb.list()]);
+      setList(cs);
+      setSequences(sqs);
     } catch (e: any) {
       toast.error(`Erro ao carregar: ${e.message ?? e}`);
     }
@@ -103,14 +137,14 @@ function CategoriesTab() {
     refresh().finally(() => setLoading(false));
   }, []);
 
-  const save = async (name: string, color: string) => {
+  const save = async (name: string, color: string, sequenceId: string | null) => {
     if (!name.trim()) return toast.error("Nome obrigatório");
     try {
       if (editing) {
-        await categoriesDb.update(editing.id, { name: name.trim(), color });
+        await categoriesDb.update(editing.id, { name: name.trim(), color, sequenceId });
         toast.success("Categoria atualizada");
       } else {
-        await categoriesDb.create(name.trim(), color);
+        await categoriesDb.create(name.trim(), color, sequenceId);
         toast.success("Categoria criada");
       }
       await refresh();
@@ -145,7 +179,7 @@ function CategoriesTab() {
               <Plus className="size-4" /> Nova categoria
             </Button>
           </DialogTrigger>
-          <CategoryDialog key={editing?.id ?? "new"} initial={editing} onSubmit={save} />
+          <CategoryDialog key={editing?.id ?? "new"} initial={editing} sequences={sequences} onSubmit={save} />
         </Dialog>
       </div>
 
@@ -159,24 +193,29 @@ function CategoriesTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {list.map((c) => (
-            <div key={c.id} className="border rounded-lg p-3 flex items-center gap-3">
-              <div
-                className="size-10 rounded-lg shrink-0"
-                style={{ backgroundColor: c.color }}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{c.name}</p>
-                <p className="text-xs text-muted-foreground font-mono">{c.color}</p>
+          {list.map((c) => {
+            const seq = sequences.find((s) => s.id === c.sequenceId);
+            return (
+              <div key={c.id} className="border rounded-lg p-3 flex items-center gap-3">
+                <div
+                  className="size-10 rounded-lg shrink-0"
+                  style={{ backgroundColor: c.color }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{c.name}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {seq ? `→ ${seq.name}` : "sem sequência"}
+                  </p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => { setEditing(c); setOpen(true); }}>
+                  <Pencil className="size-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => remove(c.id)}>
+                  <Trash2 className="size-4 text-destructive" />
+                </Button>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => { setEditing(c); setOpen(true); }}>
-                <Pencil className="size-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => remove(c.id)}>
-                <Trash2 className="size-4 text-destructive" />
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Card>
@@ -185,19 +224,22 @@ function CategoriesTab() {
 
 function CategoryDialog({
   initial,
+  sequences,
   onSubmit,
 }: {
   initial: Category | null;
-  onSubmit: (name: string, color: string) => void;
+  sequences: Sequence[];
+  onSubmit: (name: string, color: string, sequenceId: string | null) => void;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [color, setColor] = useState(initial?.color ?? COLORS[0]);
+  const [sequenceId, setSequenceId] = useState<string | null>(initial?.sequenceId ?? null);
   return (
     <DialogContent className="max-w-sm">
       <DialogHeader>
         <DialogTitle>{initial ? "Editar categoria" : "Nova categoria"}</DialogTitle>
       </DialogHeader>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit(name, color); }} className="space-y-4">
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(name, color, sequenceId); }} className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="cn">Nome</Label>
           <Input id="cn" value={name} onChange={(e) => setName(e.target.value)} />
@@ -218,6 +260,13 @@ function CategoryDialog({
               />
             ))}
           </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Sequência automática</Label>
+          <SequenceSelect value={sequenceId} onChange={setSequenceId} sequences={sequences} />
+          <p className="text-[11px] text-muted-foreground">
+            Quando um contato receber esta categoria, será inscrito automaticamente.
+          </p>
         </div>
         <DialogFooter>
           <Button type="submit">Salvar</Button>
