@@ -335,6 +335,12 @@ function ContactsPage() {
         categories={categories}
         onImported={refresh}
       />
+
+      <EnrollDialog
+        contact={enrollContact}
+        sequences={sequences}
+        onClose={() => setEnrollContact(null)}
+      />
     </div>
   );
 }
