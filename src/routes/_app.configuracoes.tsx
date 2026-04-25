@@ -14,7 +14,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2 } from "lucide-react";
-import { categoriesDb, pipelineDb, type Category, type PipelineStage } from "@/lib/db";
+import { categoriesDb, pipelineDb, sequencesDb, type Category, type PipelineStage, type Sequence } from "@/lib/db";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
