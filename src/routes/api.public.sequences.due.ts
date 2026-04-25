@@ -14,12 +14,14 @@ function applyVars(template: string, vars: Record<string, string>) {
   return template.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 }
 
+// Janela em horário de Brasília (UTC-3, sem DST desde 2019)
 function inWindow(seq: any, now = new Date()) {
-  const dow = now.getUTCDay(); // simplificado: UTC. Ajuste de TZ pode vir depois.
-  const hour = now.getUTCHours();
+  const brt = new Date(now.getTime() - 3 * 3600_000);
+  const dow = brt.getUTCDay(); // 0=Dom ... 6=Sáb
+  const hour = brt.getUTCHours();
   const days = (seq.window_days ?? [1, 2, 3, 4, 5]) as number[];
   if (!days.includes(dow)) return false;
-  return hour >= seq.window_start_hour && hour < seq.window_end_hour;
+  return hour >= (seq.window_start_hour ?? 9) && hour < (seq.window_end_hour ?? 18);
 }
 
 export const Route = createFileRoute("/api/public/sequences/due")({
