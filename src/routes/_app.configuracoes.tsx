@@ -13,8 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2 } from "lucide-react";
-import { categoriesDb, pipelineDb, sequencesDb, type Category, type PipelineStage, type Sequence } from "@/lib/db";
+import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2, Code2, Copy, ExternalLink } from "lucide-react";
+import { categoriesDb, pipelineDb, sequencesDb, widgetsDb, type Category, type PipelineStage, type Sequence, type CaptureWidget } from "@/lib/db";
 import {
   Select,
   SelectContent,
@@ -64,6 +64,7 @@ function SettingsPage() {
         <TabsList>
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          <TabsTrigger value="widgets">Widgets</TabsTrigger>
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
           <TabsTrigger value="conta">Conta</TabsTrigger>
         </TabsList>
@@ -72,6 +73,9 @@ function SettingsPage() {
         </TabsContent>
         <TabsContent value="pipeline" className="mt-5">
           <PipelineTab />
+        </TabsContent>
+        <TabsContent value="widgets" className="mt-5">
+          <WidgetsTab />
         </TabsContent>
         <TabsContent value="integracoes" className="mt-5">
           <IntegrationsTab />
@@ -608,5 +612,379 @@ function IntegrationsTab() {
         </Button>
       </div>
     </Card>
+  );
+}
+
+// =====================================================================
+// Widgets de Captura
+// =====================================================================
+function WidgetsTab() {
+  const [widgets, setWidgets] = useState<CaptureWidget[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [stages, setStages] = useState<PipelineStage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<CaptureWidget | null>(null);
+
+  async function reload() {
+    setLoading(true);
+    try {
+      const [w, c, s] = await Promise.all([
+        widgetsDb.list(),
+        categoriesDb.list(),
+        pipelineDb.listStages(),
+      ]);
+      setWidgets(w);
+      setCategories(c);
+      setStages(s);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao carregar widgets");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    reload();
+  }, []);
+
+  async function handleDelete(id: string) {
+    if (!confirm("Excluir este widget? O código embedado parará de funcionar.")) return;
+    try {
+      await widgetsDb.remove(id);
+      toast.success("Widget excluído");
+      reload();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao excluir");
+    }
+  }
+
+  async function handleToggle(w: CaptureWidget) {
+    try {
+      await widgetsDb.update(w.id, { isActive: !w.isActive });
+      reload();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    }
+  }
+
+  return (
+    <Card className="p-5 space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="font-semibold flex items-center gap-2">
+            <Code2 className="size-4" /> Widgets de Captura
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Gere um formulário embedável. Cada lead capturado cai direto no Pipeline.
+          </p>
+        </div>
+        <Button
+          onClick={() => {
+            setEditing(null);
+            setOpen(true);
+          }}
+          className="gap-2"
+        >
+          <Plus className="size-4" /> Novo widget
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-muted-foreground text-sm py-6">
+          <Loader2 className="size-4 animate-spin" /> Carregando…
+        </div>
+      ) : widgets.length === 0 ? (
+        <div className="text-sm text-muted-foreground border rounded-lg p-6 text-center">
+          Nenhum widget criado. Clique em <strong>Novo widget</strong> para começar.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {widgets.map((w) => (
+            <WidgetRow
+              key={w.id}
+              widget={w}
+              categories={categories}
+              stages={stages}
+              onEdit={() => {
+                setEditing(w);
+                setOpen(true);
+              }}
+              onDelete={() => handleDelete(w.id)}
+              onToggle={() => handleToggle(w)}
+            />
+          ))}
+        </div>
+      )}
+
+      <WidgetDialog
+        open={open}
+        onOpenChange={setOpen}
+        widget={editing}
+        categories={categories}
+        stages={stages}
+        onSaved={() => {
+          setOpen(false);
+          reload();
+        }}
+      />
+    </Card>
+  );
+}
+
+function WidgetRow({
+  widget,
+  categories,
+  stages,
+  onEdit,
+  onDelete,
+  onToggle,
+}: {
+  widget: CaptureWidget;
+  categories: Category[];
+  stages: PipelineStage[];
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggle: () => void;
+}) {
+  const cat = categories.find((c) => c.id === widget.categoryId);
+  const stage = stages.find((s) => s.id === widget.stageId);
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const embed = `<script src="${origin}/api/public/widget/embed/${widget.id}.js" async></script>`;
+  const formUrl = `${origin}/widget/form/${widget.id}`;
+
+  function copy(text: string, label: string) {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copiado`);
+  }
+
+  return (
+    <div className="border rounded-lg p-4 space-y-3">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium">{widget.name}</span>
+            {!widget.isActive && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                inativo
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {widget.submissionsCount} envios
+            </span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-1">
+            {cat && <span>Categoria: <strong>{cat.name}</strong></span>}
+            {stage && <span>Etapa: <strong>{stage.name}</strong></span>}
+            {!cat && !stage && <span>Sem destino configurado</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="sm" onClick={onToggle}>
+            {widget.isActive ? "Desativar" : "Ativar"}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onEdit} title="Editar">
+            <Pencil className="size-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onDelete} title="Excluir">
+            <Trash2 className="size-4 text-destructive" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <div>
+          <Label className="text-xs">Cole no seu site (script)</Label>
+          <div className="flex gap-2 mt-1">
+            <Input readOnly value={embed} className="font-mono text-xs" />
+            <Button variant="outline" size="icon" onClick={() => copy(embed, "Script")}>
+              <Copy className="size-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href={formUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+          >
+            <ExternalLink className="size-3" /> Pré-visualizar formulário
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WidgetDialog({
+  open,
+  onOpenChange,
+  widget,
+  categories,
+  stages,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  widget: CaptureWidget | null;
+  categories: Category[];
+  stages: PipelineStage[];
+  onSaved: () => void;
+}) {
+  const NONE = "__none__";
+  const [name, setName] = useState("");
+  const [title, setTitle] = useState("Fale com a gente");
+  const [subtitle, setSubtitle] = useState("Preencha e retornaremos em breve.");
+  const [buttonText, setButtonText] = useState("Enviar");
+  const [primaryColor, setPrimaryColor] = useState("#10B981");
+  const [successMessage, setSuccessMessage] = useState(
+    "Recebemos sua mensagem! Entraremos em contato em breve.",
+  );
+  const [categoryId, setCategoryId] = useState<string>(NONE);
+  const [stageId, setStageId] = useState<string>(NONE);
+  const [sourceTag, setSourceTag] = useState("site");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    if (widget) {
+      setName(widget.name);
+      setTitle(widget.title);
+      setSubtitle(widget.subtitle ?? "");
+      setButtonText(widget.buttonText);
+      setPrimaryColor(widget.primaryColor);
+      setSuccessMessage(widget.successMessage);
+      setCategoryId(widget.categoryId ?? NONE);
+      setStageId(widget.stageId ?? NONE);
+      setSourceTag(widget.sourceTag ?? "site");
+    } else {
+      setName("");
+      setTitle("Fale com a gente");
+      setSubtitle("Preencha e retornaremos em breve.");
+      setButtonText("Enviar");
+      setPrimaryColor("#10B981");
+      setSuccessMessage("Recebemos sua mensagem! Entraremos em contato em breve.");
+      setCategoryId(NONE);
+      setStageId(NONE);
+      setSourceTag("site");
+    }
+  }, [open, widget]);
+
+  async function handleSave() {
+    if (!name.trim()) {
+      toast.error("Dê um nome ao widget");
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        name: name.trim(),
+        title,
+        subtitle: subtitle || null,
+        buttonText,
+        primaryColor,
+        successMessage,
+        categoryId: categoryId === NONE ? null : categoryId,
+        stageId: stageId === NONE ? null : stageId,
+        sourceTag: sourceTag.trim() || null,
+      };
+      if (widget) {
+        await widgetsDb.update(widget.id, payload);
+        toast.success("Widget atualizado");
+      } else {
+        await widgetsDb.create(payload);
+        toast.success("Widget criado");
+      }
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{widget ? "Editar widget" : "Novo widget"}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Nome interno *</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Site institucional" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Categoria do contato</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Nenhuma</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Etapa do pipeline</Label>
+              <Select value={stageId} onValueChange={setStageId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Nenhuma</SelectItem>
+                  {stages.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label>Origem (tag)</Label>
+            <Input value={sourceTag} onChange={(e) => setSourceTag(e.target.value)} placeholder="site, landing-promo, etc" />
+          </div>
+
+          <div className="border-t pt-3 space-y-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase">Aparência do form</p>
+            <div>
+              <Label>Título</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <div>
+              <Label>Subtítulo</Label>
+              <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Texto do botão</Label>
+                <Input value={buttonText} onChange={(e) => setButtonText(e.target.value)} />
+              </div>
+              <div>
+                <Label>Cor primária</Label>
+                <div className="flex gap-2">
+                  <Input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-16 p-1 h-9" />
+                  <Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="font-mono text-xs" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label>Mensagem de sucesso</Label>
+              <Input value={successMessage} onChange={(e) => setSuccessMessage(e.target.value)} />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving} className="gap-2">
+            {saving && <Loader2 className="size-4 animate-spin" />}
+            {widget ? "Salvar" : "Criar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -23,9 +23,13 @@ import { Route as AppDisparosRouteImport } from './routes/_app.disparos'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppContatosRouteImport } from './routes/_app.contatos'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
+import { Route as WidgetFormIdRouteImport } from './routes/widget.form.$id'
+import { Route as ApiPublicWidgetSubmitRouteImport } from './routes/api.public.widget.submit'
 import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.sequences.sent'
 import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.public.sequences.inbound'
 import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.sequences.due'
+import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
+import { Route as ApiPublicWidgetConfigIdRouteImport } from './routes/api.public.widget.config.$id'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -96,6 +100,16 @@ const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => AppRoute,
 } as any)
+const WidgetFormIdRoute = WidgetFormIdRouteImport.update({
+  id: '/widget/form/$id',
+  path: '/widget/form/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWidgetSubmitRoute = ApiPublicWidgetSubmitRouteImport.update({
+  id: '/api/public/widget/submit',
+  path: '/api/public/widget/submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSequencesSentRoute = ApiPublicSequencesSentRouteImport.update({
   id: '/api/public/sequences/sent',
   path: '/api/public/sequences/sent',
@@ -110,6 +124,17 @@ const ApiPublicSequencesInboundRoute =
 const ApiPublicSequencesDueRoute = ApiPublicSequencesDueRouteImport.update({
   id: '/api/public/sequences/due',
   path: '/api/public/sequences/due',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWidgetEmbedIdDotjsRoute =
+  ApiPublicWidgetEmbedIdDotjsRouteImport.update({
+    id: '/api/public/widget/embed/$id.js',
+    path: '/api/public/widget/embed/$id.js',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWidgetConfigIdRoute = ApiPublicWidgetConfigIdRouteImport.update({
+  id: '/api/public/widget/config/$id',
+  path: '/api/public/widget/config/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -127,9 +152,13 @@ export interface FileRoutesByFullPath {
   '/pipeline': typeof AppPipelineRoute
   '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
+  '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
+  '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
+  '/api/public/widget/config/$id': typeof ApiPublicWidgetConfigIdRoute
+  '/api/public/widget/embed/$id.js': typeof ApiPublicWidgetEmbedIdDotjsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -145,9 +174,13 @@ export interface FileRoutesByTo {
   '/pipeline': typeof AppPipelineRoute
   '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
+  '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
+  '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
+  '/api/public/widget/config/$id': typeof ApiPublicWidgetConfigIdRoute
+  '/api/public/widget/embed/$id.js': typeof ApiPublicWidgetEmbedIdDotjsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -165,9 +198,13 @@ export interface FileRoutesById {
   '/_app/pipeline': typeof AppPipelineRoute
   '/_app/sequencias': typeof AppSequenciasRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
+  '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
+  '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
+  '/api/public/widget/config/$id': typeof ApiPublicWidgetConfigIdRoute
+  '/api/public/widget/embed/$id.js': typeof ApiPublicWidgetEmbedIdDotjsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -185,9 +222,13 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/sequencias'
     | '/whatsapp'
+    | '/widget/form/$id'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
+    | '/api/public/widget/submit'
+    | '/api/public/widget/config/$id'
+    | '/api/public/widget/embed/$id.js'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -203,9 +244,13 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/sequencias'
     | '/whatsapp'
+    | '/widget/form/$id'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
+    | '/api/public/widget/submit'
+    | '/api/public/widget/config/$id'
+    | '/api/public/widget/embed/$id.js'
   id:
     | '__root__'
     | '/'
@@ -222,9 +267,13 @@ export interface FileRouteTypes {
     | '/_app/pipeline'
     | '/_app/sequencias'
     | '/_app/whatsapp'
+    | '/widget/form/$id'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
+    | '/api/public/widget/submit'
+    | '/api/public/widget/config/$id'
+    | '/api/public/widget/embed/$id.js'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -233,9 +282,13 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  WidgetFormIdRoute: typeof WidgetFormIdRoute
   ApiPublicSequencesDueRoute: typeof ApiPublicSequencesDueRoute
   ApiPublicSequencesInboundRoute: typeof ApiPublicSequencesInboundRoute
   ApiPublicSequencesSentRoute: typeof ApiPublicSequencesSentRoute
+  ApiPublicWidgetSubmitRoute: typeof ApiPublicWidgetSubmitRoute
+  ApiPublicWidgetConfigIdRoute: typeof ApiPublicWidgetConfigIdRoute
+  ApiPublicWidgetEmbedIdDotjsRoute: typeof ApiPublicWidgetEmbedIdDotjsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -338,6 +391,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/widget/form/$id': {
+      id: '/widget/form/$id'
+      path: '/widget/form/$id'
+      fullPath: '/widget/form/$id'
+      preLoaderRoute: typeof WidgetFormIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/widget/submit': {
+      id: '/api/public/widget/submit'
+      path: '/api/public/widget/submit'
+      fullPath: '/api/public/widget/submit'
+      preLoaderRoute: typeof ApiPublicWidgetSubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/sequences/sent': {
       id: '/api/public/sequences/sent'
       path: '/api/public/sequences/sent'
@@ -357,6 +424,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/sequences/due'
       fullPath: '/api/public/sequences/due'
       preLoaderRoute: typeof ApiPublicSequencesDueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/widget/embed/$id.js': {
+      id: '/api/public/widget/embed/$id.js'
+      path: '/api/public/widget/embed/$id.js'
+      fullPath: '/api/public/widget/embed/$id.js'
+      preLoaderRoute: typeof ApiPublicWidgetEmbedIdDotjsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/widget/config/$id': {
+      id: '/api/public/widget/config/$id'
+      path: '/api/public/widget/config/$id'
+      fullPath: '/api/public/widget/config/$id'
+      preLoaderRoute: typeof ApiPublicWidgetConfigIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -394,9 +475,13 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  WidgetFormIdRoute: WidgetFormIdRoute,
   ApiPublicSequencesDueRoute: ApiPublicSequencesDueRoute,
   ApiPublicSequencesInboundRoute: ApiPublicSequencesInboundRoute,
   ApiPublicSequencesSentRoute: ApiPublicSequencesSentRoute,
+  ApiPublicWidgetSubmitRoute: ApiPublicWidgetSubmitRoute,
+  ApiPublicWidgetConfigIdRoute: ApiPublicWidgetConfigIdRoute,
+  ApiPublicWidgetEmbedIdDotjsRoute: ApiPublicWidgetEmbedIdDotjsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
