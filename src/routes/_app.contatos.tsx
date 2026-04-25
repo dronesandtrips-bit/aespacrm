@@ -284,6 +284,14 @@ function ContactsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        title="Adicionar a uma sequência"
+                        onClick={() => setEnrollContact(c)}
+                      >
+                        <GitBranch className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => {
                           setEditing(c);
                           setOpen(true);
