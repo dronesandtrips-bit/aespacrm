@@ -143,6 +143,27 @@ function rowToContact(r: any): Contact {
   };
 }
 
+/**
+ * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
+ * Silencioso em caso de erro (não bloqueia a operação principal).
+ */
+async function maybeTriggerCategorySequence(contactId: string, categoryId: string) {
+  try {
+    const c = await client();
+    const { data } = await c
+      .from("crm_categories")
+      .select("sequence_id")
+      .eq("id", categoryId)
+      .maybeSingle();
+    const seqId = data?.sequence_id;
+    if (seqId) {
+      await sequencesDb.enrollFromTrigger(contactId, seqId);
+    }
+  } catch (err) {
+    console.error("[trigger:category] falhou", err);
+  }
+}
+
 export const contactsDb = {
   async list(): Promise<Contact[]> {
     const c = await client();
