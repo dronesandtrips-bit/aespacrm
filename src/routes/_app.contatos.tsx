@@ -66,16 +66,23 @@ function ContactsPage() {
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [sequences, setSequences] = useState<Sequence[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Contact | null>(null);
   const [open, setOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
 
   const refresh = async () => {
     try {
-      const [cs, cats] = await Promise.all([contactsDb.list(), categoriesDb.list()]);
+      const [cs, cats, sqs] = await Promise.all([
+        contactsDb.list(),
+        categoriesDb.list(),
+        sequencesDb.list(),
+      ]);
       setContacts(cs);
       setCategories(cats);
+      setSequences(sqs);
     } catch (e: any) {
       toast.error(`Erro ao carregar: ${e.message ?? e}`);
     }
