@@ -745,18 +745,91 @@ export const sequencesDb = {
   },
 };
 
-export type CaptureWidget = {
-  id: string;
-  name: string;
-  categoryId: string | null;
-  stageId: string | null;
-  title: string;
-  subtitle: string | null;
-  buttonText: string;
-  primaryColor: string;
-  successMessage: string;
-  sourceTag: string | null;
-  isActive: boolean;
-  submissionsCount: number;
-  createdAt: string;
+function rowToWidget(r: any): CaptureWidget {
+  return {
+    id: r.id,
+    name: r.name,
+    categoryId: r.category_id ?? null,
+    stageId: r.stage_id ?? null,
+    title: r.title,
+    subtitle: r.subtitle ?? null,
+    buttonText: r.button_text,
+    primaryColor: r.primary_color,
+    successMessage: r.success_message,
+    sourceTag: r.source_tag ?? null,
+    isActive: r.is_active,
+    submissionsCount: r.submissions_count ?? 0,
+    createdAt: r.created_at,
+  };
+}
+
+export const widgetsDb = {
+  async list(): Promise<CaptureWidget[]> {
+    const c = await client();
+    const { data, error } = await c
+      .from("crm_capture_widgets")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(rowToWidget);
+  },
+  async create(input: {
+    name: string;
+    categoryId?: string | null;
+    stageId?: string | null;
+    title?: string;
+    subtitle?: string | null;
+    buttonText?: string;
+    primaryColor?: string;
+    successMessage?: string;
+    sourceTag?: string | null;
+  }): Promise<CaptureWidget> {
+    const c = await client();
+    const user_id = await uid();
+    const { data, error } = await c
+      .from("crm_capture_widgets")
+      .insert({
+        user_id,
+        name: input.name,
+        category_id: input.categoryId || null,
+        stage_id: input.stageId || null,
+        title: input.title ?? "Fale com a gente",
+        subtitle: input.subtitle ?? "Preencha e retornaremos em breve.",
+        button_text: input.buttonText ?? "Enviar",
+        primary_color: input.primaryColor ?? "#10B981",
+        success_message:
+          input.successMessage ??
+          "Recebemos sua mensagem! Entraremos em contato em breve.",
+        source_tag: input.sourceTag ?? "site",
+      })
+      .select("*")
+      .single();
+    if (error) throw error;
+    return rowToWidget(data);
+  },
+  async update(
+    id: string,
+    patch: Partial<Omit<CaptureWidget, "id" | "createdAt" | "submissionsCount">>,
+  ) {
+    const c = await client();
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId || null;
+    if (patch.stageId !== undefined) dbPatch.stage_id = patch.stageId || null;
+    if (patch.title !== undefined) dbPatch.title = patch.title;
+    if (patch.subtitle !== undefined) dbPatch.subtitle = patch.subtitle;
+    if (patch.buttonText !== undefined) dbPatch.button_text = patch.buttonText;
+    if (patch.primaryColor !== undefined) dbPatch.primary_color = patch.primaryColor;
+    if (patch.successMessage !== undefined) dbPatch.success_message = patch.successMessage;
+    if (patch.sourceTag !== undefined) dbPatch.source_tag = patch.sourceTag;
+    if (patch.isActive !== undefined) dbPatch.is_active = patch.isActive;
+    const { error } = await c.from("crm_capture_widgets").update(dbPatch).eq("id", id);
+    if (error) throw error;
+  },
+  async remove(id: string) {
+    const c = await client();
+    const { error } = await c.from("crm_capture_widgets").delete().eq("id", id);
+    if (error) throw error;
+  },
 };
+
