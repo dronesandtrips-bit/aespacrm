@@ -6,7 +6,7 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
 
 // ===================== Tipos =====================
 
-export type Category = { id: string; name: string; color: string };
+export type Category = { id: string; name: string; color: string; sequenceId?: string | null };
 export type Contact = {
   id: string;
   name: string;
@@ -26,7 +26,7 @@ export type BulkSend = {
   status: "pending" | "in_progress" | "completed" | "error";
   createdAt: string;
 };
-export type PipelineStage = { id: string; name: string; color: string; order: number };
+export type PipelineStage = { id: string; name: string; color: string; order: number; sequenceId?: string | null };
 export type PipelinePlacement = { contactId: string; stageId: string };
 export type ChatMessage = {
   id: string;
