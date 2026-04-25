@@ -38,8 +38,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2 } from "lucide-react";
-import { contactsDb, categoriesDb, type Contact, type Category } from "@/lib/db";
+import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch } from "lucide-react";
+import { contactsDb, categoriesDb, sequencesDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import { z } from "zod";
