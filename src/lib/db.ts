@@ -169,7 +169,12 @@ export const contactsDb = {
       .select("id,name,phone,email,notes,category_id,created_at")
       .single();
     if (error) throw error;
-    return rowToContact(data);
+    const created = rowToContact(data);
+    // Gatilho automático por categoria
+    if (created.categoryId) {
+      await maybeTriggerCategorySequence(created.id, created.categoryId);
+    }
+    return created;
   },
   async update(id: string, patch: Partial<Omit<Contact, "id" | "createdAt">>) {
     const c = await client();
@@ -179,8 +184,25 @@ export const contactsDb = {
     if (patch.email !== undefined) dbPatch.email = patch.email || null;
     if (patch.notes !== undefined) dbPatch.notes = patch.notes || null;
     if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId || null;
+    // Para gatilho: precisamos saber se categoria mudou
+    let prevCategoryId: string | null = null;
+    if (patch.categoryId !== undefined) {
+      const { data: prev } = await c
+        .from("crm_contacts")
+        .select("category_id")
+        .eq("id", id)
+        .maybeSingle();
+      prevCategoryId = prev?.category_id ?? null;
+    }
     const { error } = await c.from("crm_contacts").update(dbPatch).eq("id", id);
     if (error) throw error;
+    if (
+      patch.categoryId !== undefined &&
+      patch.categoryId &&
+      patch.categoryId !== prevCategoryId
+    ) {
+      await maybeTriggerCategorySequence(id, patch.categoryId);
+    }
   },
   async remove(id: string) {
     const c = await client();
