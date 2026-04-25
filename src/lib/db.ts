@@ -745,6 +745,22 @@ export const sequencesDb = {
   },
 };
 
+export type CaptureWidget = {
+  id: string;
+  name: string;
+  categoryId: string | null;
+  stageId: string | null;
+  title: string;
+  subtitle: string | null;
+  buttonText: string;
+  primaryColor: string;
+  successMessage: string;
+  sourceTag: string | null;
+  isActive: boolean;
+  submissionsCount: number;
+  createdAt: string;
+};
+
 function rowToWidget(r: any): CaptureWidget {
   return {
     id: r.id,
