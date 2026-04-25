@@ -160,7 +160,7 @@ export function AppSidebar({ inSheet = false, onNavigate }: Props) {
             </Button>
           )}
           {!isCollapsed && (
-            <span className="text-[11px] text-muted-foreground">v1.0 · Modo demo</span>
+            <span className="text-[11px] text-muted-foreground">ZapCRM © 2026</span>
           )}
         </div>
 
