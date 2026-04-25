@@ -88,30 +88,38 @@ async function uid(): Promise<string> {
 
 // ===================== Categorias =====================
 
+function rowToCategory(r: any): Category {
+  return { id: r.id, name: r.name, color: r.color, sequenceId: r.sequence_id ?? null };
+}
+
 export const categoriesDb = {
   async list(): Promise<Category[]> {
     const c = await client();
     const { data, error } = await c
       .from("crm_categories")
-      .select("id,name,color")
+      .select("id,name,color,sequence_id")
       .order("name", { ascending: true });
     if (error) throw error;
-    return data ?? [];
+    return (data ?? []).map(rowToCategory);
   },
-  async create(name: string, color: string): Promise<Category> {
+  async create(name: string, color: string, sequenceId?: string | null): Promise<Category> {
     const c = await client();
     const user_id = await uid();
     const { data, error } = await c
       .from("crm_categories")
-      .insert({ name, color, user_id })
-      .select("id,name,color")
+      .insert({ name, color, user_id, sequence_id: sequenceId ?? null })
+      .select("id,name,color,sequence_id")
       .single();
     if (error) throw error;
-    return data;
+    return rowToCategory(data);
   },
-  async update(id: string, patch: Partial<Pick<Category, "name" | "color">>) {
+  async update(id: string, patch: Partial<Pick<Category, "name" | "color" | "sequenceId">>) {
     const c = await client();
-    const { error } = await c.from("crm_categories").update(patch).eq("id", id);
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.color !== undefined) dbPatch.color = patch.color;
+    if (patch.sequenceId !== undefined) dbPatch.sequence_id = patch.sequenceId;
+    const { error } = await c.from("crm_categories").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
   async remove(id: string) {
