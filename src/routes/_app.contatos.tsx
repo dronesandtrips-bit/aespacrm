@@ -683,3 +683,79 @@ function ContactDialog({
     </DialogContent>
   );
 }
+
+function EnrollDialog({
+  contact,
+  sequences,
+  onClose,
+}: {
+  contact: Contact | null;
+  sequences: Sequence[];
+  onClose: () => void;
+}) {
+  const [sequenceId, setSequenceId] = useState<string>("");
+  const [enrolling, setEnrolling] = useState(false);
+
+  if (!contact) return null;
+
+  const activeSeqs = sequences.filter((s) => s.isActive);
+
+  const submit = async () => {
+    if (!sequenceId) return;
+    setEnrolling(true);
+    try {
+      const r = await sequencesDb.enrollFromTrigger(contact.id, sequenceId);
+      if (r.enrolled) {
+        toast.success(`${contact.name} foi inscrito na sequência`);
+      } else {
+        toast.info("Contato já está ativo nessa sequência");
+      }
+      setSequenceId("");
+      onClose();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) { setSequenceId(""); onClose(); } }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Adicionar a uma sequência</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Inscrever <span className="font-medium text-foreground">{contact.name}</span> em:
+          </p>
+          {activeSeqs.length === 0 ? (
+            <p className="text-sm text-muted-foreground border rounded p-3 bg-muted/30">
+              Nenhuma sequência ativa. Crie uma em Sequências.
+            </p>
+          ) : (
+            <Select value={sequenceId} onValueChange={setSequenceId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Escolha uma sequência" />
+              </SelectTrigger>
+              <SelectContent>
+                {activeSeqs.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            Se o contato já estiver em outra sequência, ela será pausada.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={submit} disabled={!sequenceId || enrolling}>
+            {enrolling && <Loader2 className="size-4 mr-1 animate-spin" />} Inscrever
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
