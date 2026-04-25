@@ -645,5 +645,61 @@ export const sequencesDb = {
       .eq("id", contactSequenceId);
     if (error) throw error;
   },
+
+  /**
+   * Pausa todas as sequências ativas de um contato (exceto a indicada).
+   * Usada antes de inscrever em uma nova sequência via gatilho automático.
+   */
+  async pauseAllActiveForContact(contactId: string, exceptSequenceId?: string, reason = "auto_replaced") {
+    const c = await client();
+    let q = c
+      .from("crm_contact_sequences")
+      .update({ status: "paused", paused_at: new Date().toISOString(), pause_reason: reason })
+      .eq("contact_id", contactId)
+      .eq("status", "active");
+    if (exceptSequenceId) q = q.neq("sequence_id", exceptSequenceId);
+    const { error } = await q;
+    if (error) throw error;
+  },
+
+  /**
+   * Inscreve um contato em uma sequência via gatilho automático.
+   * Política: pausa qualquer sequência ativa anterior antes de iniciar a nova.
+   * Se o contato já estiver ativo NESTA sequência, não faz nada.
+   */
+  async enrollFromTrigger(contactId: string, sequenceId: string): Promise<{ enrolled: boolean }> {
+    const c = await client();
+    // Verifica se já está ativo nessa sequência
+    const { data: existing } = await c
+      .from("crm_contact_sequences")
+      .select("id,status")
+      .eq("contact_id", contactId)
+      .eq("sequence_id", sequenceId)
+      .maybeSingle();
+    if (existing && existing.status === "active") {
+      return { enrolled: false };
+    }
+    // Pausa as outras ativas
+    await sequencesDb.pauseAllActiveForContact(contactId, sequenceId, "auto_replaced");
+    // Se existe registro pausado/cancelado, reativa; senão cria novo
+    if (existing) {
+      const { error } = await c
+        .from("crm_contact_sequences")
+        .update({
+          status: "active",
+          current_step: 0,
+          paused_at: null,
+          pause_reason: null,
+          started_at: new Date().toISOString(),
+          next_send_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id);
+      if (error) throw error;
+      return { enrolled: true };
+    }
+    const r = await sequencesDb.enroll(sequenceId, [contactId]);
+    return { enrolled: r.enrolled > 0 };
+  },
 };
+
 
