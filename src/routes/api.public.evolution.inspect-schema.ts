@@ -1,6 +1,4 @@
-// GET /api/public/evolution/inspect-schema
-// Endpoint TEMPORÁRIO para inspecionar o schema aespacrm e checar tabelas.
-// Remover após Etapa 3.
+// GET /api/public/evolution/inspect-schema (TEMPORÁRIO)
 import { createFileRoute } from "@tanstack/react-router";
 import { getSupabaseAdmin, jsonResponse } from "@/integrations/supabase/server";
 
@@ -10,29 +8,17 @@ export const Route = createFileRoute("/api/public/evolution/inspect-schema")({
       GET: async () => {
         try {
           const sb = getSupabaseAdmin();
-          // Lista tabelas do schema aespacrm
-          const { data: tables, error: e1 } = await sb
-            .schema("information_schema" as any)
-            .from("tables")
-            .select("table_name")
-            .eq("table_schema", "aespacrm");
-          if (e1) return jsonResponse({ ok: false, step: "tables", error: e1.message }, 500);
-
-          // Colunas de crm_mensagens (se existir)
-          const { data: cols, error: e2 } = await sb
-            .schema("information_schema" as any)
-            .from("columns")
-            .select("column_name,data_type,is_nullable")
-            .eq("table_schema", "aespacrm")
-            .eq("table_name", "crm_mensagens");
-          if (e2) return jsonResponse({ ok: false, step: "columns", error: e2.message }, 500);
-
-          return jsonResponse({
-            ok: true,
-            tables: (tables ?? []).map((t: any) => t.table_name).sort(),
-            crm_mensagens_exists: (cols ?? []).length > 0,
-            crm_mensagens_columns: cols ?? [],
-          });
+          const tables = ["crm_mensagens", "crm_messages", "crm_conversas", "crm_chats", "crm_contatos", "crm_leads", "crm_disparos_log"];
+          const results: Record<string, any> = {};
+          for (const t of tables) {
+            const { data, error } = await sb.from(t).select("*").limit(1);
+            if (error) {
+              results[t] = { exists: false, error: error.message, code: (error as any).code };
+            } else {
+              results[t] = { exists: true, sample_columns: data && data[0] ? Object.keys(data[0]) : [], row_count_sample: data?.length ?? 0 };
+            }
+          }
+          return jsonResponse({ ok: true, schema: "aespacrm", tables: results });
         } catch (err: any) {
           return jsonResponse({ ok: false, error: err?.message ?? String(err) }, 500);
         }
