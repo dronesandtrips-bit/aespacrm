@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import {
   Shield,
   Wifi,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,80 +20,99 @@ export const Route = createFileRoute("/_app/whatsapp")({
   component: WhatsAppPage,
 });
 
-// SVG QR fake (decorativo)
-function FakeQR() {
-  // gera matriz pseudo-aleatória estável
-  const cells: boolean[][] = Array.from({ length: 25 }, (_, r) =>
-    Array.from({ length: 25 }, (_, c) => ((r * 31 + c * 17 + 7) % 5) < 2),
-  );
-  return (
-    <div className="bg-white p-4 rounded-xl shadow-inner inline-block">
-      <svg viewBox="0 0 25 25" className="size-56">
-        {cells.map((row, r) =>
-          row.map((on, c) =>
-            on ? <rect key={`${r}-${c}`} x={c} y={r} width="1" height="1" fill="#0f172a" /> : null,
-          ),
-        )}
-        {/* Quadradinhos de canto */}
-        {[
-          [0, 0],
-          [18, 0],
-          [0, 18],
-        ].map(([x, y], i) => (
-          <g key={i}>
-            <rect x={x} y={y} width="7" height="7" fill="#0f172a" />
-            <rect x={x + 1} y={y + 1} width="5" height="5" fill="#fff" />
-            <rect x={x + 2} y={y + 2} width="3" height="3" fill="#0f172a" />
-          </g>
-        ))}
-      </svg>
-    </div>
-  );
-}
+type StatusResp = {
+  ok: boolean;
+  found?: boolean;
+  state?: "open" | "connecting" | "close" | "unknown";
+  number?: string | null;
+  profileName?: string | null;
+  profilePicUrl?: string | null;
+  counts?: { messages: number | null; contacts: number | null; chats: number | null };
+  reason?: string;
+};
+
+type QrResp = {
+  ok: boolean;
+  base64?: string | null;
+  code?: string | null;
+  pairingCode?: string | null;
+  reason?: string;
+};
 
 function WhatsAppPage() {
-  const [connected, setConnected] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [qrKey, setQrKey] = useState(0);
+  const [status, setStatus] = useState<StatusResp | null>(null);
+  const [qr, setQr] = useState<QrResp | null>(null);
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [loadingQr, setLoadingQr] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Conta regressiva fake (renova QR a cada 30s)
+  const fetchStatus = useCallback(async () => {
+    try {
+      const r = await fetch("/api/public/evolution/status");
+      const j: StatusResp = await r.json();
+      setStatus(j);
+      if (!j.ok) setError(j.reason ?? "Erro ao consultar status");
+      else setError(null);
+    } catch (e: any) {
+      setError(e?.message ?? "Falha de rede");
+    } finally {
+      setLoadingStatus(false);
+    }
+  }, []);
+
+  const fetchQr = useCallback(async () => {
+    setLoadingQr(true);
+    try {
+      const r = await fetch("/api/public/evolution/qr");
+      const j: QrResp = await r.json();
+      setQr(j);
+      if (!j.ok) toast.error("Não foi possível gerar o QR");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao buscar QR");
+    } finally {
+      setLoadingQr(false);
+    }
+  }, []);
+
+  // Status polling: 5s
   useEffect(() => {
-    if (connected) return;
-    const t = window.setInterval(() => setQrKey((k) => k + 1), 30000);
+    fetchStatus();
+    const t = window.setInterval(fetchStatus, 5000);
     return () => window.clearInterval(t);
-  }, [connected]);
+  }, [fetchStatus]);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setQrKey((k) => k + 1);
-      setRefreshing(false);
-      toast.success("Novo QR Code gerado");
-    }, 800);
-  };
+  // Quando desconectado, busca QR e renova a cada 30s
+  useEffect(() => {
+    if (status?.state && status.state !== "open") {
+      if (!qr) fetchQr();
+      const t = window.setInterval(fetchQr, 30000);
+      return () => window.clearInterval(t);
+    }
+    if (status?.state === "open") setQr(null);
+  }, [status?.state, qr, fetchQr]);
 
-  const handleSimulateConnect = () => {
-    setConnected(true);
-    toast.success("WhatsApp conectado!");
-  };
-
-  const handleDisconnect = () => {
-    setConnected(false);
-    toast("WhatsApp desconectado");
-  };
+  const connected = status?.state === "open";
+  const connecting = status?.state === "connecting";
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5 max-w-[1300px]">
-      {/* QR / Status */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-semibold flex items-center gap-2">
             <Smartphone className="size-5 text-primary" />
             Status da conexão
           </h3>
-          {connected ? (
+          {loadingStatus ? (
+            <Badge variant="outline" className="gap-1">
+              <Loader2 className="size-3 animate-spin" /> Verificando
+            </Badge>
+          ) : connected ? (
             <Badge className="bg-success text-primary-foreground gap-1">
               <CheckCircle2 className="size-3" /> Conectado
+            </Badge>
+          ) : connecting ? (
+            <Badge variant="outline" className="border-warning text-warning gap-1">
+              <Loader2 className="size-3 animate-spin" /> Conectando
             </Badge>
           ) : (
             <Badge variant="outline" className="border-destructive text-destructive gap-1">
@@ -101,52 +121,68 @@ function WhatsAppPage() {
           )}
         </div>
         <p className="text-xs text-muted-foreground mb-6">
-          {connected
-            ? "Sua sessão está ativa e pronta para enviar mensagens"
-            : "Escaneie o QR Code com seu WhatsApp para conectar"}
+          Instância: <span className="font-mono">roboaespa</span>
+          {error ? <span className="ml-2 text-destructive">· {error}</span> : null}
         </p>
 
         {connected ? (
           <div className="text-center py-8 space-y-3">
-            <div className="size-20 mx-auto rounded-full bg-success/10 grid place-items-center">
-              <Wifi className="size-10 text-success" />
-            </div>
+            {status?.profilePicUrl ? (
+              <img
+                src={status.profilePicUrl}
+                alt={status.profileName ?? "perfil"}
+                className="size-20 mx-auto rounded-full object-cover ring-2 ring-success/30"
+              />
+            ) : (
+              <div className="size-20 mx-auto rounded-full bg-success/10 grid place-items-center">
+                <Wifi className="size-10 text-success" />
+              </div>
+            )}
             <div>
-              <p className="font-semibold">+55 11 99999-0000</p>
-              <p className="text-xs text-muted-foreground">
-                Última conexão: agora mesmo
+              <p className="font-semibold">{status?.profileName ?? "Conectado"}</p>
+              <p className="text-sm text-muted-foreground">
+                {status?.number ? `+${status.number}` : "—"}
               </p>
             </div>
-            <Button variant="outline" onClick={handleDisconnect}>
-              Desconectar
-            </Button>
+            {status?.counts ? (
+              <div className="flex gap-6 justify-center text-xs text-muted-foreground pt-2">
+                <div><b className="text-foreground">{status.counts.messages?.toLocaleString() ?? "—"}</b> mensagens</div>
+                <div><b className="text-foreground">{status.counts.contacts?.toLocaleString() ?? "—"}</b> contatos</div>
+                <div><b className="text-foreground">{status.counts.chats?.toLocaleString() ?? "—"}</b> conversas</div>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="text-center space-y-4">
-            <div key={qrKey} className="animate-in fade-in duration-300">
-              <FakeQR />
-            </div>
+            {loadingQr && !qr ? (
+              <div className="size-56 mx-auto grid place-items-center bg-muted rounded-xl">
+                <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : qr?.base64 ? (
+              <div className="bg-white p-4 rounded-xl shadow-inner inline-block">
+                <img src={qr.base64} alt="QR Code WhatsApp" className="size-56" />
+              </div>
+            ) : (
+              <div className="size-56 mx-auto grid place-items-center bg-muted rounded-xl text-muted-foreground text-xs gap-2 flex-col p-4">
+                <AlertCircle className="size-6" />
+                <span>QR indisponível</span>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
-              Este QR expira em 30 segundos
+              {qr?.pairingCode
+                ? <>Código de pareamento: <span className="font-mono font-semibold">{qr.pairingCode}</span></>
+                : "Este QR expira em ~30 segundos"}
             </p>
             <div className="flex gap-2 justify-center">
-              <Button variant="outline" onClick={handleRefresh} disabled={refreshing} className="gap-2">
-                {refreshing ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-4" />
-                )}
+              <Button variant="outline" onClick={fetchQr} disabled={loadingQr} className="gap-2">
+                {loadingQr ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
                 Gerar novo QR
-              </Button>
-              <Button onClick={handleSimulateConnect} className="gap-2">
-                <CheckCircle2 className="size-4" /> Simular conexão
               </Button>
             </div>
           </div>
         )}
       </Card>
 
-      {/* Guia + Segurança */}
       <div className="space-y-5">
         <Card className="p-5">
           <h4 className="font-semibold mb-3">Como conectar</h4>
