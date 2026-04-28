@@ -25,6 +25,7 @@ import {
   type Contact,
   type Category,
 } from "@/lib/db";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/disparos")({
@@ -126,13 +127,45 @@ function DisparosPage() {
     if (selected.size === 0) return toast.error("Selecione ao menos 1 contato");
     setSubmitting(true);
     try {
-      await bulkSendsDb.create({
+      // 1. Cria registro do disparo
+      const bulk = await bulkSendsDb.create({
         name: name.trim(),
         message: message.trim(),
         intervalSeconds: interval,
         totalContacts: selected.size,
       });
-      toast.success(`Disparo registrado para ${selected.size} contatos`);
+
+      // 2. Dispara worker em background (com JWT do usuário)
+      const c = await getSupabaseClient();
+      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("sessão expirada — faça login novamente");
+
+      const res = await fetch("/api/public/evolution/bulk-dispatch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          bulkId: bulk.id,
+          contactIds: Array.from(selected),
+          message: message.trim(),
+          intervalSeconds: interval,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        // Marca como erro pra UI refletir
+        await bulkSendsDb.update(bulk.id, { status: "error" });
+        throw new Error(
+          typeof data.error === "string" ? data.error : "falha ao iniciar disparo",
+        );
+      }
+
+      toast.success(
+        `🚀 Disparo iniciado para ${selected.size} contatos (${interval}s entre envios)`,
+      );
       setHistory(await bulkSendsDb.list());
       setName("");
       setSelected(new Set());
