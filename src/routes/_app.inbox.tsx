@@ -188,11 +188,15 @@ function InboxPage() {
         },
         body: JSON.stringify({ contactId: activeId, text: draft.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
+      const rawBody = await res.text();
+      let data: any = null;
+      try { data = JSON.parse(rawBody); } catch {}
+      if (!res.ok || !data?.ok) {
         const errMsg =
-          typeof data.error === "string" ? data.error : JSON.stringify(data.error);
-        const detail = data.detail ? ` (${data.detail})` : "";
+          (data && (typeof data.error === "string" ? data.error : data.error && JSON.stringify(data.error))) ||
+          rawBody ||
+          `HTTP ${res.status}`;
+        const detail = data?.detail ? ` (${data.detail})` : "";
         throw new Error(`${errMsg}${detail}`);
       }
       const msg: ChatMessage = data.message;
