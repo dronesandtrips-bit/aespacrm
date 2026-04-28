@@ -1,8 +1,8 @@
 // GET /api/public/evolution/qr
-// Solicita um QR code novo para a instância `roboaespa` (endpoint connect).
+// Solicita um QR code novo para a instância `zapcrm` (endpoint connect).
 import { createFileRoute } from "@tanstack/react-router";
 
-const INSTANCE = "roboaespa";
+const INSTANCE = "zapcrm";
 
 export const Route = createFileRoute("/api/public/evolution/qr")({
   server: {
@@ -14,13 +14,36 @@ export const Route = createFileRoute("/api/public/evolution/qr")({
           return Response.json({ ok: false, reason: "missing_secrets" }, { status: 500 });
         }
         try {
-          const res = await fetch(`${url}/instance/connect/${INSTANCE}`, {
+          let res = await fetch(`${url}/instance/connect/${INSTANCE}`, {
             method: "GET",
             headers: { apikey: apiKey, "Content-Type": "application/json" },
           });
-          const text = await res.text();
+          let text = await res.text();
           let body: any = text;
           try { body = JSON.parse(text); } catch {}
+
+          // Se a instância ainda não existe, cria e tenta de novo (idempotente)
+          if (!res.ok && (res.status === 404 || /not.?found|does not exist/i.test(text))) {
+            await fetch(`${url}/instance/create`, {
+              method: "POST",
+              headers: { apikey: apiKey, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                instanceName: INSTANCE,
+                integration: "WHATSAPP-BAILEYS",
+                qrcode: true,
+                rejectCall: true,
+                groupsIgnore: true,
+                alwaysOnline: true,
+              }),
+            });
+            res = await fetch(`${url}/instance/connect/${INSTANCE}`, {
+              method: "GET",
+              headers: { apikey: apiKey, "Content-Type": "application/json" },
+            });
+            text = await res.text();
+            try { body = JSON.parse(text); } catch { body = text; }
+          }
+
           if (!res.ok) {
             return Response.json({ ok: false, status: res.status, body }, { status: 502 });
           }

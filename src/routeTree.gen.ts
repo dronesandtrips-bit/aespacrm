@@ -31,6 +31,7 @@ import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.s
 import { Route as ApiPublicEvolutionTestRouteImport } from './routes/api.public.evolution.test'
 import { Route as ApiPublicEvolutionStatusRouteImport } from './routes/api.public.evolution.status'
 import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.evolution.qr'
+import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
 import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
 import { Route as ApiPublicWidgetConfigIdRouteImport } from './routes/api.public.widget.config.$id'
 
@@ -145,6 +146,12 @@ const ApiPublicEvolutionQrRoute = ApiPublicEvolutionQrRouteImport.update({
   path: '/api/public/evolution/qr',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEvolutionCreateRoute =
+  ApiPublicEvolutionCreateRouteImport.update({
+    id: '/api/public/evolution/create',
+    path: '/api/public/evolution/create',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWidgetEmbedIdDotjsRoute =
   ApiPublicWidgetEmbedIdDotjsRouteImport.update({
     id: '/api/public/widget/embed/$id.js',
@@ -172,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
@@ -197,6 +205,7 @@ export interface FileRoutesByTo {
   '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
@@ -224,6 +233,7 @@ export interface FileRoutesById {
   '/_app/sequencias': typeof AppSequenciasRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/sequencias'
     | '/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/sequencias'
     | '/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
@@ -302,6 +314,7 @@ export interface FileRouteTypes {
     | '/_app/sequencias'
     | '/_app/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
@@ -320,6 +333,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
+  ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
   ApiPublicEvolutionQrRoute: typeof ApiPublicEvolutionQrRoute
   ApiPublicEvolutionStatusRoute: typeof ApiPublicEvolutionStatusRoute
   ApiPublicEvolutionTestRoute: typeof ApiPublicEvolutionTestRoute
@@ -487,6 +501,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionQrRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution/create': {
+      id: '/api/public/evolution/create'
+      path: '/api/public/evolution/create'
+      fullPath: '/api/public/evolution/create'
+      preLoaderRoute: typeof ApiPublicEvolutionCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/widget/embed/$id.js': {
       id: '/api/public/widget/embed/$id.js'
       path: '/api/public/widget/embed/$id.js'
@@ -537,6 +558,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
+  ApiPublicEvolutionCreateRoute: ApiPublicEvolutionCreateRoute,
   ApiPublicEvolutionQrRoute: ApiPublicEvolutionQrRoute,
   ApiPublicEvolutionStatusRoute: ApiPublicEvolutionStatusRoute,
   ApiPublicEvolutionTestRoute: ApiPublicEvolutionTestRoute,
