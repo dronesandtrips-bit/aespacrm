@@ -9,6 +9,12 @@ import { getSupabaseAdmin, jsonResponse } from "@/integrations/supabase/server";
 
 const INSTANCE = "zapcrm";
 
+function normalizeUrl(value: string) {
+  const trimmed = value.trim();
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  return withProtocol.replace(/\/+$/, "");
+}
+
 const Schema = z.object({
   contactId: z.string().uuid(),
   text: z.string().trim().min(1).max(4096),
@@ -18,9 +24,10 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
+        try {
+        const apiUrl = process.env.EVOLUTION_API_URL ? normalizeUrl(process.env.EVOLUTION_API_URL) : "";
         const apiKey = process.env.EVOLUTION_API_KEY?.trim();
-        const supaUrl = process.env.AESPACRM_SUPA_URL?.trim().replace(/\/+$/, "");
+        const supaUrl = process.env.AESPACRM_SUPA_URL ? normalizeUrl(process.env.AESPACRM_SUPA_URL) : "";
         const anonKey = process.env.AESPACRM_SUPA_ANON_KEY?.trim();
         if (!apiUrl || !apiKey || !supaUrl || !anonKey) {
           return jsonResponse({ ok: false, error: "config faltando no servidor" }, 500);
@@ -134,6 +141,16 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
           },
           evolution: { messageId, status: evData?.status ?? null },
         });
+        } catch (err: any) {
+          console.error("[send-and-log] unhandled", {
+            name: err?.name ?? null,
+            message: err?.message ?? String(err),
+          });
+          return jsonResponse(
+            { ok: false, error: "falha interna ao enviar", detail: err?.message ?? String(err) },
+            500,
+          );
+        }
       },
     },
   },
