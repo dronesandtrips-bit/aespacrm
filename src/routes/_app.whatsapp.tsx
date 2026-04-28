@@ -13,8 +13,14 @@ import {
   Wifi,
   Loader2,
   AlertCircle,
+  Send,
+  Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/_app/whatsapp")({
   component: WhatsAppPage,
@@ -219,7 +225,168 @@ function WhatsAppPage() {
             </div>
           </div>
         </Card>
+
+        <SendTestCard disabled={!connected} />
       </div>
     </div>
+  );
+}
+
+function SendTestCard({ disabled }: { disabled: boolean }) {
+  const [number, setNumber] = useState("");
+  const [text, setText] = useState("");
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [caption, setCaption] = useState("");
+  const [mediatype, setMediatype] = useState<"image" | "video" | "document">("image");
+  const [sending, setSending] = useState(false);
+
+  const cleanNumber = number.replace(/\D/g, "");
+
+  async function sendText() {
+    if (!cleanNumber || !text.trim()) {
+      toast.error("Informe número e texto");
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await fetch("/api/public/evolution/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ number: cleanNumber, text: text.trim() }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data?.error?.message || data?.error || `HTTP ${res.status}`);
+      toast.success("Mensagem enviada!");
+      setText("");
+    } catch (e: any) {
+      toast.error("Falha ao enviar", { description: String(e?.message ?? e) });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function sendMedia() {
+    if (!cleanNumber || !mediaUrl.trim()) {
+      toast.error("Informe número e URL da mídia");
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await fetch("/api/public/evolution/send-media", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          number: cleanNumber,
+          mediatype,
+          media: mediaUrl.trim(),
+          caption: caption.trim() || undefined,
+          fileName: mediatype === "document" ? mediaUrl.split("/").pop() : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data?.error?.message || data?.error || `HTTP ${res.status}`);
+      toast.success("Mídia enviada!");
+      setMediaUrl("");
+      setCaption("");
+    } catch (e: any) {
+      toast.error("Falha ao enviar mídia", { description: String(e?.message ?? e) });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <h4 className="font-semibold mb-1 flex items-center gap-2">
+        <Send className="size-4 text-primary" /> Teste de envio
+      </h4>
+      <p className="text-xs text-muted-foreground mb-4">
+        {disabled
+          ? "Conecte o WhatsApp acima para liberar os testes."
+          : "Envie uma mensagem de teste pela instância zapcrm."}
+      </p>
+
+      <div className="space-y-3">
+        <div>
+          <Label className="text-xs">Número (com DDI, só dígitos)</Label>
+          <Input
+            placeholder="5511999999999"
+            value={number}
+            onChange={(e) => setNumber(e.target.value)}
+            disabled={disabled || sending}
+            inputMode="numeric"
+            maxLength={20}
+          />
+        </div>
+
+        <Tabs defaultValue="text">
+          <TabsList className="grid grid-cols-2 w-full">
+            <TabsTrigger value="text" className="gap-1">
+              <Send className="size-3" /> Texto
+            </TabsTrigger>
+            <TabsTrigger value="media" className="gap-1">
+              <ImageIcon className="size-3" /> Mídia
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="text" className="space-y-3 pt-3">
+            <Textarea
+              placeholder="Mensagem de teste..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              disabled={disabled || sending}
+              rows={3}
+              maxLength={4096}
+            />
+            <Button
+              onClick={sendText}
+              disabled={disabled || sending || !cleanNumber || !text.trim()}
+              className="w-full gap-2"
+            >
+              {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              Enviar texto
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="media" className="space-y-3 pt-3">
+            <div className="grid grid-cols-3 gap-1">
+              {(["image", "video", "document"] as const).map((t) => (
+                <Button
+                  key={t}
+                  variant={mediatype === t ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setMediatype(t)}
+                  disabled={disabled || sending}
+                  className="text-xs capitalize"
+                >
+                  {t === "image" ? "Imagem" : t === "video" ? "Vídeo" : "Documento"}
+                </Button>
+              ))}
+            </div>
+            <Input
+              placeholder="https://exemplo.com/arquivo.jpg"
+              value={mediaUrl}
+              onChange={(e) => setMediaUrl(e.target.value)}
+              disabled={disabled || sending}
+            />
+            <Input
+              placeholder="Legenda (opcional)"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              disabled={disabled || sending}
+              maxLength={1024}
+            />
+            <Button
+              onClick={sendMedia}
+              disabled={disabled || sending || !cleanNumber || !mediaUrl.trim()}
+              className="w-full gap-2"
+            >
+              {sending ? <Loader2 className="size-4 animate-spin" /> : <ImageIcon className="size-4" />}
+              Enviar mídia
+            </Button>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </Card>
   );
 }
