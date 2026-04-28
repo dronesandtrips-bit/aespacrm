@@ -28,12 +28,14 @@ import { Route as ApiPublicWidgetSubmitRouteImport } from './routes/api.public.w
 import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.sequences.sent'
 import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.public.sequences.inbound'
 import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.sequences.due'
+import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api.public.evolution.webhook'
 import { Route as ApiPublicEvolutionTestRouteImport } from './routes/api.public.evolution.test'
 import { Route as ApiPublicEvolutionStatusRouteImport } from './routes/api.public.evolution.status'
 import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.public.evolution.send-media'
 import { Route as ApiPublicEvolutionSendRouteImport } from './routes/api.public.evolution.send'
 import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.evolution.qr'
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
+import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
 import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
 import { Route as ApiPublicWidgetConfigIdRouteImport } from './routes/api.public.widget.config.$id'
 
@@ -132,6 +134,12 @@ const ApiPublicSequencesDueRoute = ApiPublicSequencesDueRouteImport.update({
   path: '/api/public/sequences/due',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEvolutionWebhookRoute =
+  ApiPublicEvolutionWebhookRouteImport.update({
+    id: '/api/public/evolution/webhook',
+    path: '/api/public/evolution/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEvolutionTestRoute = ApiPublicEvolutionTestRouteImport.update({
   id: '/api/public/evolution/test',
   path: '/api/public/evolution/test',
@@ -165,6 +173,12 @@ const ApiPublicEvolutionCreateRoute =
     path: '/api/public/evolution/create',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicEvolutionConfigureWebhookRoute =
+  ApiPublicEvolutionConfigureWebhookRouteImport.update({
+    id: '/api/public/evolution/configure-webhook',
+    path: '/api/public/evolution/configure-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWidgetEmbedIdDotjsRoute =
   ApiPublicWidgetEmbedIdDotjsRouteImport.update({
     id: '/api/public/widget/embed/$id.js',
@@ -192,12 +206,14 @@ export interface FileRoutesByFullPath {
   '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
+  '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
@@ -220,12 +236,14 @@ export interface FileRoutesByTo {
   '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
+  '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
@@ -250,12 +268,14 @@ export interface FileRoutesById {
   '/_app/sequencias': typeof AppSequenciasRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
+  '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
@@ -280,12 +300,14 @@ export interface FileRouteTypes {
     | '/sequencias'
     | '/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
+    | '/api/public/evolution/webhook'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
@@ -308,12 +330,14 @@ export interface FileRouteTypes {
     | '/sequencias'
     | '/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
+    | '/api/public/evolution/webhook'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
@@ -337,12 +361,14 @@ export interface FileRouteTypes {
     | '/_app/sequencias'
     | '/_app/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
+    | '/api/public/evolution/webhook'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
@@ -358,12 +384,14 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
+  ApiPublicEvolutionConfigureWebhookRoute: typeof ApiPublicEvolutionConfigureWebhookRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
   ApiPublicEvolutionQrRoute: typeof ApiPublicEvolutionQrRoute
   ApiPublicEvolutionSendRoute: typeof ApiPublicEvolutionSendRoute
   ApiPublicEvolutionSendMediaRoute: typeof ApiPublicEvolutionSendMediaRoute
   ApiPublicEvolutionStatusRoute: typeof ApiPublicEvolutionStatusRoute
   ApiPublicEvolutionTestRoute: typeof ApiPublicEvolutionTestRoute
+  ApiPublicEvolutionWebhookRoute: typeof ApiPublicEvolutionWebhookRoute
   ApiPublicSequencesDueRoute: typeof ApiPublicSequencesDueRoute
   ApiPublicSequencesInboundRoute: typeof ApiPublicSequencesInboundRoute
   ApiPublicSequencesSentRoute: typeof ApiPublicSequencesSentRoute
@@ -507,6 +535,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSequencesDueRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution/webhook': {
+      id: '/api/public/evolution/webhook'
+      path: '/api/public/evolution/webhook'
+      fullPath: '/api/public/evolution/webhook'
+      preLoaderRoute: typeof ApiPublicEvolutionWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/test': {
       id: '/api/public/evolution/test'
       path: '/api/public/evolution/test'
@@ -547,6 +582,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/evolution/create'
       fullPath: '/api/public/evolution/create'
       preLoaderRoute: typeof ApiPublicEvolutionCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/configure-webhook': {
+      id: '/api/public/evolution/configure-webhook'
+      path: '/api/public/evolution/configure-webhook'
+      fullPath: '/api/public/evolution/configure-webhook'
+      preLoaderRoute: typeof ApiPublicEvolutionConfigureWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/widget/embed/$id.js': {
@@ -599,12 +641,15 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
+  ApiPublicEvolutionConfigureWebhookRoute:
+    ApiPublicEvolutionConfigureWebhookRoute,
   ApiPublicEvolutionCreateRoute: ApiPublicEvolutionCreateRoute,
   ApiPublicEvolutionQrRoute: ApiPublicEvolutionQrRoute,
   ApiPublicEvolutionSendRoute: ApiPublicEvolutionSendRoute,
   ApiPublicEvolutionSendMediaRoute: ApiPublicEvolutionSendMediaRoute,
   ApiPublicEvolutionStatusRoute: ApiPublicEvolutionStatusRoute,
   ApiPublicEvolutionTestRoute: ApiPublicEvolutionTestRoute,
+  ApiPublicEvolutionWebhookRoute: ApiPublicEvolutionWebhookRoute,
   ApiPublicSequencesDueRoute: ApiPublicSequencesDueRoute,
   ApiPublicSequencesInboundRoute: ApiPublicSequencesInboundRoute,
   ApiPublicSequencesSentRoute: ApiPublicSequencesSentRoute,
