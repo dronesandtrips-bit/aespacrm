@@ -33,7 +33,6 @@ import { Route as ApiPublicEvolutionStatusRouteImport } from './routes/api.publi
 import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.public.evolution.send-media'
 import { Route as ApiPublicEvolutionSendRouteImport } from './routes/api.public.evolution.send'
 import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.evolution.qr'
-import { Route as ApiPublicEvolutionInspectSchemaRouteImport } from './routes/api.public.evolution.inspect-schema'
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
 import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
 import { Route as ApiPublicWidgetConfigIdRouteImport } from './routes/api.public.widget.config.$id'
@@ -160,12 +159,6 @@ const ApiPublicEvolutionQrRoute = ApiPublicEvolutionQrRouteImport.update({
   path: '/api/public/evolution/qr',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicEvolutionInspectSchemaRoute =
-  ApiPublicEvolutionInspectSchemaRouteImport.update({
-    id: '/api/public/evolution/inspect-schema',
-    path: '/api/public/evolution/inspect-schema',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicEvolutionCreateRoute =
   ApiPublicEvolutionCreateRouteImport.update({
     id: '/api/public/evolution/create',
@@ -200,7 +193,6 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
-  '/api/public/evolution/inspect-schema': typeof ApiPublicEvolutionInspectSchemaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
@@ -229,7 +221,6 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
-  '/api/public/evolution/inspect-schema': typeof ApiPublicEvolutionInspectSchemaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
@@ -260,7 +251,6 @@ export interface FileRoutesById {
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
-  '/api/public/evolution/inspect-schema': typeof ApiPublicEvolutionInspectSchemaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
@@ -291,7 +281,6 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/widget/form/$id'
     | '/api/public/evolution/create'
-    | '/api/public/evolution/inspect-schema'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-media'
@@ -320,7 +309,6 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/widget/form/$id'
     | '/api/public/evolution/create'
-    | '/api/public/evolution/inspect-schema'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-media'
@@ -350,7 +338,6 @@ export interface FileRouteTypes {
     | '/_app/whatsapp'
     | '/widget/form/$id'
     | '/api/public/evolution/create'
-    | '/api/public/evolution/inspect-schema'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-media'
@@ -372,7 +359,6 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
-  ApiPublicEvolutionInspectSchemaRoute: typeof ApiPublicEvolutionInspectSchemaRoute
   ApiPublicEvolutionQrRoute: typeof ApiPublicEvolutionQrRoute
   ApiPublicEvolutionSendRoute: typeof ApiPublicEvolutionSendRoute
   ApiPublicEvolutionSendMediaRoute: typeof ApiPublicEvolutionSendMediaRoute
@@ -556,13 +542,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionQrRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/evolution/inspect-schema': {
-      id: '/api/public/evolution/inspect-schema'
-      path: '/api/public/evolution/inspect-schema'
-      fullPath: '/api/public/evolution/inspect-schema'
-      preLoaderRoute: typeof ApiPublicEvolutionInspectSchemaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/evolution/create': {
       id: '/api/public/evolution/create'
       path: '/api/public/evolution/create'
@@ -621,7 +600,6 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
   ApiPublicEvolutionCreateRoute: ApiPublicEvolutionCreateRoute,
-  ApiPublicEvolutionInspectSchemaRoute: ApiPublicEvolutionInspectSchemaRoute,
   ApiPublicEvolutionQrRoute: ApiPublicEvolutionQrRoute,
   ApiPublicEvolutionSendRoute: ApiPublicEvolutionSendRoute,
   ApiPublicEvolutionSendMediaRoute: ApiPublicEvolutionSendMediaRoute,
