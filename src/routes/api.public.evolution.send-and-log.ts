@@ -81,6 +81,7 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
             contact_id: contact.id,
             body: parsed.text,
             from_me: true,
+            at: new Date().toISOString(),
             type: "text",
             status: "failed",
             raw: { error: evData },
