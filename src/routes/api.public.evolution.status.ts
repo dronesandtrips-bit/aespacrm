@@ -1,8 +1,8 @@
 // GET /api/public/evolution/status
-// Retorna o status da instância `roboaespa` na Evolution API.
+// Retorna o status da instância `zapcrm` na Evolution API.
 import { createFileRoute } from "@tanstack/react-router";
 
-const INSTANCE = "roboaespa";
+const INSTANCE = "zapcrm";
 
 export const Route = createFileRoute("/api/public/evolution/status")({
   server: {

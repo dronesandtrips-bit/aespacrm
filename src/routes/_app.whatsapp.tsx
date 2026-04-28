@@ -121,7 +121,7 @@ function WhatsAppPage() {
           )}
         </div>
         <p className="text-xs text-muted-foreground mb-6">
-          Instância: <span className="font-mono">roboaespa</span>
+          Instância: <span className="font-mono">zapcrm</span>
           {error ? <span className="ml-2 text-destructive">· {error}</span> : null}
         </p>
 

@@ -1,8 +1,8 @@
 // GET /api/public/evolution/qr
-// Solicita um QR code novo para a instância `roboaespa` (endpoint connect).
+// Solicita um QR code novo para a instância `zapcrm` (endpoint connect).
 import { createFileRoute } from "@tanstack/react-router";
 
-const INSTANCE = "roboaespa";
+const INSTANCE = "zapcrm";
 
 export const Route = createFileRoute("/api/public/evolution/qr")({
   server: {
