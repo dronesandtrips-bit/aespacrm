@@ -102,32 +102,45 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
         const messageId: string | null = evData?.key?.id ?? null;
         const remoteJid: string | null = evData?.key?.remoteJid ?? `${contact.phone_norm}@s.whatsapp.net`;
 
-        // Grava (upsert por message_id pra evitar duplicar quando o webhook MESSAGES_UPSERT chegar)
-        const { data: inserted, error: insErr } = await sbAdmin
+        // Insert simples. O índice único de message_id é parcial (where message_id is not null)
+        // e o Postgres não aceita esse índice em ON CONFLICT, então tratamos duplicata como sucesso.
+        let inserted: any = null;
+        const insertRes = await sbAdmin
           .from("crm_messages")
-          .upsert(
-            {
-              user_id: userId,
-              contact_id: contact.id,
-              body: parsed.text,
-              from_me: true,
-              at: new Date().toISOString(),
-              type: "text",
-              message_id: messageId,
-              remote_jid: remoteJid,
-              status: evData?.status?.toString().toLowerCase() ?? "sent",
-              raw: evData,
-            },
-            { onConflict: "user_id,message_id", ignoreDuplicates: false },
-          )
+          .insert({
+            user_id: userId,
+            contact_id: contact.id,
+            body: parsed.text,
+            from_me: true,
+            at: new Date().toISOString(),
+            type: "text",
+            message_id: messageId,
+            remote_jid: remoteJid,
+            status: evData?.status?.toString().toLowerCase() ?? "sent",
+            raw: evData,
+          })
           .select("id, contact_id, body, from_me, at")
           .single();
 
-        if (insErr) {
-          return jsonResponse(
-            { ok: false, error: "falha ao gravar mensagem", detail: insErr.message },
-            500,
-          );
+        if (insertRes.error) {
+          // 23505 = unique_violation (webhook já gravou antes). Busca a linha existente.
+          if (insertRes.error.code === "23505" && messageId) {
+            const { data: existing } = await sbAdmin
+              .from("crm_messages")
+              .select("id, contact_id, body, from_me, at")
+              .eq("user_id", userId)
+              .eq("message_id", messageId)
+              .maybeSingle();
+            inserted = existing;
+          }
+          if (!inserted) {
+            return jsonResponse(
+              { ok: false, error: "falha ao gravar mensagem", detail: insertRes.error.message },
+              500,
+            );
+          }
+        } else {
+          inserted = insertRes.data;
         }
 
         return jsonResponse({
