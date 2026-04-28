@@ -175,8 +175,27 @@ function InboxPage() {
     if (!draft.trim() || !activeId) return;
     setSending(true);
     try {
-      const msg = await messagesDb.send(activeId, draft.trim());
-      setMessages((prev) => [...prev, msg]);
+      const c = await getSupabaseClient();
+      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("sessão expirada — faça login novamente");
+
+      const res = await fetch("/api/public/evolution/send-and-log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ contactId: activeId, text: draft.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(
+          typeof data.error === "string" ? data.error : "falha ao enviar pelo WhatsApp",
+        );
+      }
+      const msg: ChatMessage = data.message;
+      setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
       setLastByContact((prev) => ({ ...prev, [activeId]: msg }));
       setDraft("");
     } catch (e: any) {

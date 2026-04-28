@@ -32,10 +32,12 @@ import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api.publ
 import { Route as ApiPublicEvolutionTestRouteImport } from './routes/api.public.evolution.test'
 import { Route as ApiPublicEvolutionStatusRouteImport } from './routes/api.public.evolution.status'
 import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.public.evolution.send-media'
+import { Route as ApiPublicEvolutionSendAndLogRouteImport } from './routes/api.public.evolution.send-and-log'
 import { Route as ApiPublicEvolutionSendRouteImport } from './routes/api.public.evolution.send'
 import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.evolution.qr'
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
 import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
+import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api.public.evolution.bulk-dispatch'
 import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
 import { Route as ApiPublicWidgetConfigIdRouteImport } from './routes/api.public.widget.config.$id'
 
@@ -157,6 +159,12 @@ const ApiPublicEvolutionSendMediaRoute =
     path: '/api/public/evolution/send-media',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicEvolutionSendAndLogRoute =
+  ApiPublicEvolutionSendAndLogRouteImport.update({
+    id: '/api/public/evolution/send-and-log',
+    path: '/api/public/evolution/send-and-log',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEvolutionSendRoute = ApiPublicEvolutionSendRouteImport.update({
   id: '/api/public/evolution/send',
   path: '/api/public/evolution/send',
@@ -177,6 +185,12 @@ const ApiPublicEvolutionConfigureWebhookRoute =
   ApiPublicEvolutionConfigureWebhookRouteImport.update({
     id: '/api/public/evolution/configure-webhook',
     path: '/api/public/evolution/configure-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionBulkDispatchRoute =
+  ApiPublicEvolutionBulkDispatchRouteImport.update({
+    id: '/api/public/evolution/bulk-dispatch',
+    path: '/api/public/evolution/bulk-dispatch',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWidgetEmbedIdDotjsRoute =
@@ -206,10 +220,12 @@ export interface FileRoutesByFullPath {
   '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
+  '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
@@ -236,10 +252,12 @@ export interface FileRoutesByTo {
   '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
+  '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
@@ -268,10 +286,12 @@ export interface FileRoutesById {
   '/_app/sequencias': typeof AppSequenciasRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
+  '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
@@ -300,10 +320,12 @@ export interface FileRouteTypes {
     | '/sequencias'
     | '/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
+    | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
@@ -330,10 +352,12 @@ export interface FileRouteTypes {
     | '/sequencias'
     | '/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
+    | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
@@ -361,10 +385,12 @@ export interface FileRouteTypes {
     | '/_app/sequencias'
     | '/_app/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
+    | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
@@ -384,10 +410,12 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
+  ApiPublicEvolutionBulkDispatchRoute: typeof ApiPublicEvolutionBulkDispatchRoute
   ApiPublicEvolutionConfigureWebhookRoute: typeof ApiPublicEvolutionConfigureWebhookRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
   ApiPublicEvolutionQrRoute: typeof ApiPublicEvolutionQrRoute
   ApiPublicEvolutionSendRoute: typeof ApiPublicEvolutionSendRoute
+  ApiPublicEvolutionSendAndLogRoute: typeof ApiPublicEvolutionSendAndLogRoute
   ApiPublicEvolutionSendMediaRoute: typeof ApiPublicEvolutionSendMediaRoute
   ApiPublicEvolutionStatusRoute: typeof ApiPublicEvolutionStatusRoute
   ApiPublicEvolutionTestRoute: typeof ApiPublicEvolutionTestRoute
@@ -563,6 +591,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionSendMediaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution/send-and-log': {
+      id: '/api/public/evolution/send-and-log'
+      path: '/api/public/evolution/send-and-log'
+      fullPath: '/api/public/evolution/send-and-log'
+      preLoaderRoute: typeof ApiPublicEvolutionSendAndLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/send': {
       id: '/api/public/evolution/send'
       path: '/api/public/evolution/send'
@@ -589,6 +624,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/evolution/configure-webhook'
       fullPath: '/api/public/evolution/configure-webhook'
       preLoaderRoute: typeof ApiPublicEvolutionConfigureWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/bulk-dispatch': {
+      id: '/api/public/evolution/bulk-dispatch'
+      path: '/api/public/evolution/bulk-dispatch'
+      fullPath: '/api/public/evolution/bulk-dispatch'
+      preLoaderRoute: typeof ApiPublicEvolutionBulkDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/widget/embed/$id.js': {
@@ -641,11 +683,13 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
+  ApiPublicEvolutionBulkDispatchRoute: ApiPublicEvolutionBulkDispatchRoute,
   ApiPublicEvolutionConfigureWebhookRoute:
     ApiPublicEvolutionConfigureWebhookRoute,
   ApiPublicEvolutionCreateRoute: ApiPublicEvolutionCreateRoute,
   ApiPublicEvolutionQrRoute: ApiPublicEvolutionQrRoute,
   ApiPublicEvolutionSendRoute: ApiPublicEvolutionSendRoute,
+  ApiPublicEvolutionSendAndLogRoute: ApiPublicEvolutionSendAndLogRoute,
   ApiPublicEvolutionSendMediaRoute: ApiPublicEvolutionSendMediaRoute,
   ApiPublicEvolutionStatusRoute: ApiPublicEvolutionStatusRoute,
   ApiPublicEvolutionTestRoute: ApiPublicEvolutionTestRoute,
