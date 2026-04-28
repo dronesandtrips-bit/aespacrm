@@ -30,6 +30,8 @@ import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.publ
 import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.sequences.due'
 import { Route as ApiPublicEvolutionTestRouteImport } from './routes/api.public.evolution.test'
 import { Route as ApiPublicEvolutionStatusRouteImport } from './routes/api.public.evolution.status'
+import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.public.evolution.send-media'
+import { Route as ApiPublicEvolutionSendRouteImport } from './routes/api.public.evolution.send'
 import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.evolution.qr'
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
 import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
@@ -141,6 +143,17 @@ const ApiPublicEvolutionStatusRoute =
     path: '/api/public/evolution/status',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicEvolutionSendMediaRoute =
+  ApiPublicEvolutionSendMediaRouteImport.update({
+    id: '/api/public/evolution/send-media',
+    path: '/api/public/evolution/send-media',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionSendRoute = ApiPublicEvolutionSendRouteImport.update({
+  id: '/api/public/evolution/send',
+  path: '/api/public/evolution/send',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEvolutionQrRoute = ApiPublicEvolutionQrRouteImport.update({
   id: '/api/public/evolution/qr',
   path: '/api/public/evolution/qr',
@@ -181,6 +194,8 @@ export interface FileRoutesByFullPath {
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
+  '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
+  '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
@@ -207,6 +222,8 @@ export interface FileRoutesByTo {
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
+  '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
+  '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
@@ -235,6 +252,8 @@ export interface FileRoutesById {
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
+  '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
+  '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
@@ -263,6 +282,8 @@ export interface FileRouteTypes {
     | '/widget/form/$id'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
+    | '/api/public/evolution/send'
+    | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
     | '/api/public/sequences/due'
@@ -289,6 +310,8 @@ export interface FileRouteTypes {
     | '/widget/form/$id'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
+    | '/api/public/evolution/send'
+    | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
     | '/api/public/sequences/due'
@@ -316,6 +339,8 @@ export interface FileRouteTypes {
     | '/widget/form/$id'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
+    | '/api/public/evolution/send'
+    | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/test'
     | '/api/public/sequences/due'
@@ -335,6 +360,8 @@ export interface RootRouteChildren {
   WidgetFormIdRoute: typeof WidgetFormIdRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
   ApiPublicEvolutionQrRoute: typeof ApiPublicEvolutionQrRoute
+  ApiPublicEvolutionSendRoute: typeof ApiPublicEvolutionSendRoute
+  ApiPublicEvolutionSendMediaRoute: typeof ApiPublicEvolutionSendMediaRoute
   ApiPublicEvolutionStatusRoute: typeof ApiPublicEvolutionStatusRoute
   ApiPublicEvolutionTestRoute: typeof ApiPublicEvolutionTestRoute
   ApiPublicSequencesDueRoute: typeof ApiPublicSequencesDueRoute
@@ -494,6 +521,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution/send-media': {
+      id: '/api/public/evolution/send-media'
+      path: '/api/public/evolution/send-media'
+      fullPath: '/api/public/evolution/send-media'
+      preLoaderRoute: typeof ApiPublicEvolutionSendMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/send': {
+      id: '/api/public/evolution/send'
+      path: '/api/public/evolution/send'
+      fullPath: '/api/public/evolution/send'
+      preLoaderRoute: typeof ApiPublicEvolutionSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/qr': {
       id: '/api/public/evolution/qr'
       path: '/api/public/evolution/qr'
@@ -560,6 +601,8 @@ const rootRouteChildren: RootRouteChildren = {
   WidgetFormIdRoute: WidgetFormIdRoute,
   ApiPublicEvolutionCreateRoute: ApiPublicEvolutionCreateRoute,
   ApiPublicEvolutionQrRoute: ApiPublicEvolutionQrRoute,
+  ApiPublicEvolutionSendRoute: ApiPublicEvolutionSendRoute,
+  ApiPublicEvolutionSendMediaRoute: ApiPublicEvolutionSendMediaRoute,
   ApiPublicEvolutionStatusRoute: ApiPublicEvolutionStatusRoute,
   ApiPublicEvolutionTestRoute: ApiPublicEvolutionTestRoute,
   ApiPublicSequencesDueRoute: ApiPublicSequencesDueRoute,
