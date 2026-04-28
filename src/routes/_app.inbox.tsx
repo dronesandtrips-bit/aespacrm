@@ -190,9 +190,10 @@ function InboxPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        throw new Error(
-          typeof data.error === "string" ? data.error : "falha ao enviar pelo WhatsApp",
-        );
+        const errMsg =
+          typeof data.error === "string" ? data.error : JSON.stringify(data.error);
+        const detail = data.detail ? ` (${data.detail})` : "";
+        throw new Error(`${errMsg}${detail}`);
       }
       const msg: ChatMessage = data.message;
       setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
