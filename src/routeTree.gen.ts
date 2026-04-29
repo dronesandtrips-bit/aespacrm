@@ -15,6 +15,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
+import { Route as AppTemplatesRouteImport } from './routes/_app.templates'
 import { Route as AppSequenciasDashboardRouteImport } from './routes/_app.sequencias-dashboard'
 import { Route as AppSequenciasRouteImport } from './routes/_app.sequencias'
 import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
@@ -70,6 +71,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppWhatsappRoute = AppWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTemplatesRoute = AppTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSequenciasDashboardRoute = AppSequenciasDashboardRouteImport.update({
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/pipeline': typeof AppPipelineRoute
   '/sequencias': typeof AppSequenciasRoute
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
+  '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
@@ -266,6 +273,7 @@ export interface FileRoutesByTo {
   '/pipeline': typeof AppPipelineRoute
   '/sequencias': typeof AppSequenciasRoute
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
+  '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
@@ -302,6 +310,7 @@ export interface FileRoutesById {
   '/_app/pipeline': typeof AppPipelineRoute
   '/_app/sequencias': typeof AppSequenciasRoute
   '/_app/sequencias-dashboard': typeof AppSequenciasDashboardRoute
+  '/_app/templates': typeof AppTemplatesRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
@@ -338,6 +347,7 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/sequencias'
     | '/sequencias-dashboard'
+    | '/templates'
     | '/whatsapp'
     | '/widget/form/$id'
     | '/api/public/evolution/bulk-dispatch'
@@ -372,6 +382,7 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/sequencias'
     | '/sequencias-dashboard'
+    | '/templates'
     | '/whatsapp'
     | '/widget/form/$id'
     | '/api/public/evolution/bulk-dispatch'
@@ -407,6 +418,7 @@ export interface FileRouteTypes {
     | '/_app/pipeline'
     | '/_app/sequencias'
     | '/_app/sequencias-dashboard'
+    | '/_app/templates'
     | '/_app/whatsapp'
     | '/widget/form/$id'
     | '/api/public/evolution/bulk-dispatch'
@@ -494,6 +506,13 @@ declare module '@tanstack/react-router' {
       path: '/whatsapp'
       fullPath: '/whatsapp'
       preLoaderRoute: typeof AppWhatsappRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/templates': {
+      id: '/_app/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof AppTemplatesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/sequencias-dashboard': {
@@ -699,6 +718,7 @@ interface AppRouteChildren {
   AppPipelineRoute: typeof AppPipelineRoute
   AppSequenciasRoute: typeof AppSequenciasRoute
   AppSequenciasDashboardRoute: typeof AppSequenciasDashboardRoute
+  AppTemplatesRoute: typeof AppTemplatesRoute
   AppWhatsappRoute: typeof AppWhatsappRoute
 }
 
@@ -713,6 +733,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPipelineRoute: AppPipelineRoute,
   AppSequenciasRoute: AppSequenciasRoute,
   AppSequenciasDashboardRoute: AppSequenciasDashboardRoute,
+  AppTemplatesRoute: AppTemplatesRoute,
   AppWhatsappRoute: AppWhatsappRoute,
 }
 
