@@ -451,6 +451,110 @@ function SequenceEditorDialog({
               </Button>
             )}
 
+            <Card className="p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium flex items-center gap-2">
+                  <CalendarClock className="size-3.5" /> Janela de envio
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  Horário de Brasília (UTC-3)
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">De</Label>
+                  <Select
+                    value={String(startHour)}
+                    onValueChange={(v) => setStartHour(Number(v))}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }, (_, h) => (
+                        <SelectItem key={h} value={String(h)}>
+                          {String(h).padStart(2, "0")}:00
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Até</Label>
+                  <Select
+                    value={String(endHour)}
+                    onValueChange={(v) => setEndHour(Number(v))}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }, (_, h) => h + 1).map((h) => (
+                        <SelectItem key={h} value={String(h)}>
+                          {String(h).padStart(2, "0")}:00
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs">Dias da semana</Label>
+                <div className="flex gap-1 mt-1">
+                  {DAY_LABELS.map((label, d) => {
+                    const active = days.includes(d);
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => toggleDay(d)}
+                        className={
+                          "size-8 rounded-md text-xs font-medium transition-colors border " +
+                          (active
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background hover:bg-muted border-input text-muted-foreground")
+                        }
+                        title={DAY_FULL[d]}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-1 mt-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    onClick={() => applyPreset("weekdays")}
+                  >
+                    Seg–Sex
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    onClick={() => applyPreset("all")}
+                  >
+                    Todos
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-[11px]"
+                    onClick={() => applyPreset("weekend")}
+                  >
+                    Fim de semana
+                  </Button>
+                </div>
+              </div>
+
+              {windowDirty && (
+                <Button size="sm" onClick={saveWindow} disabled={savingWindow}>
+                  {savingWindow && <Loader2 className="size-4 mr-1 animate-spin" />}
+                  Salvar janela
+                </Button>
+              )}
+            </Card>
+
             <Card className="p-3 space-y-2 bg-muted/30">
               <div className="text-sm font-medium flex items-center gap-2">
                 <Users className="size-3.5" /> Inscrever contato
