@@ -46,7 +46,18 @@ export type Sequence = {
   windowStartHour: number;
   windowEndHour: number;
   windowDays: number[];
+  stopOnStageIds: string[];
+  autoResumeAfterDays: number;
   createdAt: string;
+};
+
+export type MessageTemplate = {
+  id: string;
+  name: string;
+  content: string;
+  category: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type SequenceStep = {
@@ -375,6 +386,24 @@ export const pipelineDb = {
     if (seqId) {
       await sequencesDb.enrollFromTrigger(contactId, seqId);
     }
+    // Auto-stop: pausa sequências ativas que tenham essa etapa em stop_on_stage_ids.
+    const { data: stopSeqs } = await c
+      .from("crm_sequences")
+      .select("id")
+      .contains("stop_on_stage_ids", [stageId]);
+    const ids = (stopSeqs ?? []).map((s: any) => s.id);
+    if (ids.length > 0) {
+      await c
+        .from("crm_contact_sequences")
+        .update({
+          status: "paused",
+          paused_at: new Date().toISOString(),
+          pause_reason: "pipeline_stage",
+        })
+        .eq("contact_id", contactId)
+        .eq("status", "active")
+        .in("sequence_id", ids);
+    }
   },
 };
 
@@ -489,9 +518,14 @@ function rowToSeq(r: any): Sequence {
     windowStartHour: r.window_start_hour,
     windowEndHour: r.window_end_hour,
     windowDays: r.window_days ?? [1, 2, 3, 4, 5],
+    stopOnStageIds: r.stop_on_stage_ids ?? [],
+    autoResumeAfterDays: r.auto_resume_after_days ?? 0,
     createdAt: r.created_at,
   };
 }
+
+const SEQ_COLS =
+  "id,name,description,is_active,trigger_type,trigger_value,window_start_hour,window_end_hour,window_days,stop_on_stage_ids,auto_resume_after_days,created_at";
 
 function rowToStep(r: any): SequenceStep {
   return {
@@ -523,9 +557,7 @@ export const sequencesDb = {
     const c = await client();
     const { data, error } = await c
       .from("crm_sequences")
-      .select(
-        "id,name,description,is_active,trigger_type,trigger_value,window_start_hour,window_end_hour,window_days,created_at",
-      )
+      .select(SEQ_COLS)
       .order("created_at", { ascending: false });
     if (error) throw error;
     return (data ?? []).map(rowToSeq);
@@ -549,9 +581,7 @@ export const sequencesDb = {
         trigger_value: input.triggerValue ?? null,
         is_active: true,
       })
-      .select(
-        "id,name,description,is_active,trigger_type,trigger_value,window_start_hour,window_end_hour,window_days,created_at",
-      )
+      .select(SEQ_COLS)
       .single();
     if (error) throw error;
     return rowToSeq(data);
@@ -568,6 +598,8 @@ export const sequencesDb = {
       windowStartHour: number;
       windowEndHour: number;
       windowDays: number[];
+      stopOnStageIds: string[];
+      autoResumeAfterDays: number;
     }>,
   ) {
     const c = await client();
@@ -580,6 +612,8 @@ export const sequencesDb = {
     if (patch.windowStartHour !== undefined) dbPatch.window_start_hour = patch.windowStartHour;
     if (patch.windowEndHour !== undefined) dbPatch.window_end_hour = patch.windowEndHour;
     if (patch.windowDays !== undefined) dbPatch.window_days = patch.windowDays;
+    if (patch.stopOnStageIds !== undefined) dbPatch.stop_on_stage_ids = patch.stopOnStageIds;
+    if (patch.autoResumeAfterDays !== undefined) dbPatch.auto_resume_after_days = patch.autoResumeAfterDays;
     const { error } = await c.from("crm_sequences").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
@@ -849,3 +883,67 @@ export const widgetsDb = {
   },
 };
 
+
+// ===================== Templates de mensagem =====================
+
+function rowToTemplate(r: any): MessageTemplate {
+  return {
+    id: r.id,
+    name: r.name,
+    content: r.content,
+    category: r.category ?? null,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+export const templatesDb = {
+  async list(): Promise<MessageTemplate[]> {
+    const c = await client();
+    const { data, error } = await c
+      .from("crm_message_templates")
+      .select("id,name,content,category,created_at,updated_at")
+      .order("name", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(rowToTemplate);
+  },
+
+  async create(input: {
+    name: string;
+    content: string;
+    category?: string | null;
+  }): Promise<MessageTemplate> {
+    const c = await client();
+    const user_id = await uid();
+    const { data, error } = await c
+      .from("crm_message_templates")
+      .insert({
+        user_id,
+        name: input.name,
+        content: input.content,
+        category: input.category ?? null,
+      })
+      .select("id,name,content,category,created_at,updated_at")
+      .single();
+    if (error) throw error;
+    return rowToTemplate(data);
+  },
+
+  async update(
+    id: string,
+    patch: Partial<{ name: string; content: string; category: string | null }>,
+  ) {
+    const c = await client();
+    const { error } = await c
+      .from("crm_message_templates")
+      .update(patch)
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  async remove(id: string) {
+    const c = await client();
+    const { error } = await c.from("crm_message_templates").delete().eq("id", id);
+    if (error) throw error;
+  },
+};

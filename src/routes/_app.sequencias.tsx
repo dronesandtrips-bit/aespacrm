@@ -35,9 +35,11 @@ import {
 import {
   sequencesDb,
   contactsDb,
+  pipelineDb,
   type Sequence,
   type SequenceStep,
   type Contact,
+  type PipelineStage,
 } from "@/lib/db";
 import { toast } from "sonner";
 
@@ -228,14 +230,19 @@ function SequenceEditorDialog({
   const [endHour, setEndHour] = useState<number>(sequence.windowEndHour);
   const [days, setDays] = useState<number[]>(sequence.windowDays);
   const [savingWindow, setSavingWindow] = useState(false);
+  const [stages, setStages] = useState<PipelineStage[]>([]);
+  const [stopStageIds, setStopStageIds] = useState<string[]>(sequence.stopOnStageIds);
+  const [autoResumeDays, setAutoResumeDays] = useState<number>(sequence.autoResumeAfterDays);
+  const [savingRules, setSavingRules] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [s, c] = await Promise.all([
+        const [s, c, st] = await Promise.all([
           sequencesDb.listSteps(sequence.id),
           contactsDb.list(),
+          pipelineDb.listStages(),
         ]);
         if (cancelled) return;
         setSteps(
@@ -248,6 +255,7 @@ function SequenceEditorDialog({
             : [{ message: "", delayValue: 1, delayUnit: "days" }],
         );
         setContacts(c);
+        setStages(st);
       } catch (e: any) {
         toast.error(`Erro: ${e.message ?? e}`);
       } finally {
@@ -367,6 +375,33 @@ function SequenceEditorDialog({
     endHour !== sequence.windowEndHour ||
     JSON.stringify([...days].sort()) !==
       JSON.stringify([...sequence.windowDays].sort());
+
+  const toggleStopStage = (id: string) => {
+    setStopStageIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const saveRules = async () => {
+    setSavingRules(true);
+    try {
+      await sequencesDb.update(sequence.id, {
+        stopOnStageIds: stopStageIds,
+        autoResumeAfterDays: autoResumeDays,
+      });
+      toast.success("Regras de auto-stop salvas");
+      onChange();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setSavingRules(false);
+    }
+  };
+
+  const rulesDirty =
+    autoResumeDays !== sequence.autoResumeAfterDays ||
+    JSON.stringify([...stopStageIds].sort()) !==
+      JSON.stringify([...sequence.stopOnStageIds].sort());
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -551,6 +586,74 @@ function SequenceEditorDialog({
                 <Button size="sm" onClick={saveWindow} disabled={savingWindow}>
                   {savingWindow && <Loader2 className="size-4 mr-1 animate-spin" />}
                   Salvar janela
+                </Button>
+              )}
+            </Card>
+
+            <Card className="p-3 space-y-3">
+              <div className="text-sm font-medium flex items-center gap-2">
+                <Pause className="size-3.5" /> Auto-stop avançado
+              </div>
+
+              <div>
+                <Label className="text-xs">Pausar quando contato entrar nestas etapas do pipeline</Label>
+                {stages.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Nenhuma etapa configurada
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {stages.map((s) => {
+                      const active = stopStageIds.includes(s.id);
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => toggleStopStage(s.id)}
+                          className={
+                            "px-2.5 py-1 rounded-md text-xs font-medium transition-colors border " +
+                            (active
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background hover:bg-muted border-input text-muted-foreground")
+                          }
+                        >
+                          {s.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label className="text-xs">
+                  Retomar automaticamente após resposta (dias)
+                </Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={365}
+                    value={autoResumeDays}
+                    onChange={(e) =>
+                      setAutoResumeDays(
+                        Math.max(0, Math.min(365, Number(e.target.value) || 0)),
+                      )
+                    }
+                    className="w-24"
+                  />
+                  <span className="text-[11px] text-muted-foreground">
+                    {autoResumeDays === 0
+                      ? "desativado — pausa manual"
+                      : `retoma após ${autoResumeDays} dia(s) sem resposta`}
+                  </span>
+                </div>
+              </div>
+
+              {rulesDirty && (
+                <Button size="sm" onClick={saveRules} disabled={savingRules}>
+                  {savingRules && <Loader2 className="size-4 mr-1 animate-spin" />}
+                  Salvar regras
                 </Button>
               )}
             </Card>

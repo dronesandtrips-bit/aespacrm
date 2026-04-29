@@ -38,6 +38,31 @@ export const Route = createFileRoute("/api/public/sequences/due")({
           const limit = Math.min(Number(url.searchParams.get("limit") ?? 50), 200);
 
           const admin = getSupabaseAdmin();
+
+          // Auto-retomar sequências pausadas por inbound_reply após auto_resume_after_days.
+          // Busca sequências com auto_resume_after_days > 0 e atualiza as pausadas há tempo suficiente.
+          const { data: resumeSeqs } = await admin
+            .from("crm_sequences")
+            .select("id,auto_resume_after_days")
+            .gt("auto_resume_after_days", 0);
+          for (const s of resumeSeqs ?? []) {
+            const cutoff = new Date(
+              Date.now() - s.auto_resume_after_days * 86400_000,
+            ).toISOString();
+            await admin
+              .from("crm_contact_sequences")
+              .update({
+                status: "active",
+                paused_at: null,
+                pause_reason: null,
+                next_send_at: new Date().toISOString(),
+              })
+              .eq("sequence_id", s.id)
+              .eq("status", "paused")
+              .eq("pause_reason", "inbound_reply")
+              .lte("paused_at", cutoff);
+          }
+
           let q = admin
             .from("crm_contact_sequences")
             .select(
