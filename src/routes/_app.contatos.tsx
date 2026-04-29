@@ -38,7 +38,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles } from "lucide-react";
 import { contactsDb, categoriesDb, sequencesDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
 import Papa from "papaparse";
@@ -53,6 +53,7 @@ const searchSchema = z.object({
   page: fallback(z.number().int().min(1), 1).default(1),
   q: fallback(z.string(), "").default(""),
   cat: fallback(z.string(), ALL).default(ALL),
+  persona: fallback(z.string(), "").default(""),
 });
 
 export const Route = createFileRoute("/_app/contatos")({
@@ -61,7 +62,7 @@ export const Route = createFileRoute("/_app/contatos")({
 });
 
 function ContactsPage() {
-  const { page, q, cat } = Route.useSearch();
+  const { page, q, cat, persona } = Route.useSearch();
   const navigate = useNavigate({ from: "/contatos" });
 
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -101,9 +102,12 @@ function ContactsPage() {
           c.name.toLowerCase().includes(q.toLowerCase()) ||
           c.phone.includes(q);
         const matchCat = cat === ALL || c.categoryId === cat;
-        return matchSearch && matchCat;
+        const matchPersona =
+          !persona ||
+          (c.aiPersonaSummary ?? "").toLowerCase().includes(persona.toLowerCase());
+        return matchSearch && matchCat && matchPersona;
       }),
-    [contacts, q, cat],
+    [contacts, q, cat, persona],
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -111,8 +115,8 @@ function ContactsPage() {
   const pageStart = (safePage - 1) * PAGE_SIZE;
   const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
 
-  const goto = (next: Partial<{ page: number; q: string; cat: string }>) =>
-    navigate({ search: (prev: { page: number; q: string; cat: string }) => ({ ...prev, ...next }) });
+  const goto = (next: Partial<{ page: number; q: string; cat: string; persona: string }>) =>
+    navigate({ search: (prev: any) => ({ ...prev, ...next }) });
 
   const handleSave = async (data: Omit<Contact, "id" | "createdAt">) => {
     try {
@@ -210,6 +214,15 @@ function ContactsPage() {
               className="pl-9"
             />
           </div>
+          <div className="relative sm:w-64">
+            <Sparkles className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Filtrar por persona (IA)..."
+              value={persona}
+              onChange={(e) => goto({ persona: e.target.value, page: 1 })}
+              className="pl-9"
+            />
+          </div>
           <Select value={cat} onValueChange={(v) => goto({ cat: v, page: 1 })}>
             <SelectTrigger className="sm:w-56">
               <SelectValue placeholder="Categoria" />
@@ -245,6 +258,7 @@ function ContactsPage() {
                 <TableHead>Telefone</TableHead>
                 <TableHead className="hidden md:table-cell">Email</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead>Urgência</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -261,7 +275,17 @@ function ContactsPage() {
                         >
                           {c.name[0]}
                         </div>
-                        <span className="font-medium">{c.name}</span>
+                        <div className="min-w-0">
+                          <span className="font-medium block truncate">{c.name}</span>
+                          {c.aiPersonaSummary && (
+                            <span
+                              className="text-[11px] text-muted-foreground block truncate max-w-[260px]"
+                              title={c.aiPersonaSummary}
+                            >
+                              {c.aiPersonaSummary}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-sm">{c.phone}</TableCell>
@@ -278,6 +302,13 @@ function ContactsPage() {
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {c.urgencyLevel ? (
+                        <UrgencyBadgeContacts level={c.urgencyLevel} />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -757,5 +788,20 @@ function EnrollDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function UrgencyBadgeContacts({ level }: { level: "Baixa" | "Média" | "Alta" }) {
+  const cls =
+    level === "Alta"
+      ? "border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400"
+      : level === "Média"
+        ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+        : "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+  return (
+    <Badge variant="outline" className={`gap-1 ${cls}`}>
+      <AlertTriangle className="size-3" />
+      {level}
+    </Badge>
   );
 }

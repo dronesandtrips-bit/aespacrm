@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, Phone, MoreVertical, MessageCircle, Loader2, PauseCircle } from "lucide-react";
+import { Search, Send, Phone, MoreVertical, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle } from "lucide-react";
 import { contactsDb, messagesDb, sequencesDb, type Contact, type ChatMessage } from "@/lib/db";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -320,7 +320,7 @@ function InboxPage() {
   return (
     <div className="space-y-4 max-w-[1400px]">
       <Card className="overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] h-[calc(100vh-220px)] min-h-[500px]">
+        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr_280px] h-[calc(100vh-220px)] min-h-[500px]">
           {/* Lista */}
           <div className="border-r flex flex-col">
             <div className="p-3 border-b">
@@ -494,6 +494,55 @@ function InboxPage() {
               </div>
             </div>
           )}
+
+          {/* Painel IA — contexto do contato */}
+          <div className="hidden md:flex flex-col border-l bg-card/50">
+            <div className="px-4 py-3 border-b flex items-center gap-2">
+              <Sparkles className="size-4 text-primary" />
+              <h4 className="text-sm font-semibold">Contexto da IA</h4>
+            </div>
+            <div className="p-4 space-y-4 overflow-auto flex-1">
+              {!active ? (
+                <p className="text-xs text-muted-foreground">
+                  Selecione um contato para ver a análise de persona.
+                </p>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                      Urgência
+                    </p>
+                    {active.urgencyLevel ? (
+                      <UrgencyBadge level={active.urgencyLevel} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">
+                        Aguardando análise da IA
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
+                      Resumo de persona
+                    </p>
+                    {active.aiPersonaSummary ? (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                        {active.aiPersonaSummary}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        Aguardando análise da IA
+                      </p>
+                    )}
+                  </div>
+                  {active.lastAiSync && (
+                    <p className="text-[10px] text-muted-foreground pt-2 border-t">
+                      Última análise: {new Date(active.lastAiSync).toLocaleString("pt-BR")}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </Card>
 
@@ -515,5 +564,20 @@ function InboxPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+function UrgencyBadge({ level }: { level: "Baixa" | "Média" | "Alta" }) {
+  const cls =
+    level === "Alta"
+      ? "border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400"
+      : level === "Média"
+        ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+        : "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+  return (
+    <Badge variant="outline" className={cn("gap-1", cls)}>
+      <AlertTriangle className="size-3" />
+      {level}
+    </Badge>
   );
 }

@@ -41,6 +41,7 @@ import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.ev
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
 import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
 import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api.public.evolution.bulk-dispatch'
+import { Route as ApiPublicAiContactEnrichRouteImport } from './routes/api.public.ai.contact-enrich'
 import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
 import { Route as ApiPublicWidgetConfigIdRouteImport } from './routes/api.public.widget.config.$id'
 
@@ -211,6 +212,12 @@ const ApiPublicEvolutionBulkDispatchRoute =
     path: '/api/public/evolution/bulk-dispatch',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicAiContactEnrichRoute =
+  ApiPublicAiContactEnrichRouteImport.update({
+    id: '/api/public/ai/contact-enrich',
+    path: '/api/public/ai/contact-enrich',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWidgetEmbedIdDotjsRoute =
   ApiPublicWidgetEmbedIdDotjsRouteImport.update({
     id: '/api/public/widget/embed/$id.js',
@@ -241,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -276,6 +284,7 @@ export interface FileRoutesByTo {
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -313,6 +322,7 @@ export interface FileRoutesById {
   '/_app/templates': typeof AppTemplatesRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
+  '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -350,6 +360,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/ai/contact-enrich'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -385,6 +396,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/ai/contact-enrich'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -421,6 +433,7 @@ export interface FileRouteTypes {
     | '/_app/templates'
     | '/_app/whatsapp'
     | '/widget/form/$id'
+    | '/api/public/ai/contact-enrich'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -446,6 +459,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
+  ApiPublicAiContactEnrichRoute: typeof ApiPublicAiContactEnrichRoute
   ApiPublicEvolutionBulkDispatchRoute: typeof ApiPublicEvolutionBulkDispatchRoute
   ApiPublicEvolutionConfigureWebhookRoute: typeof ApiPublicEvolutionConfigureWebhookRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
@@ -690,6 +704,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionBulkDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ai/contact-enrich': {
+      id: '/api/public/ai/contact-enrich'
+      path: '/api/public/ai/contact-enrich'
+      fullPath: '/api/public/ai/contact-enrich'
+      preLoaderRoute: typeof ApiPublicAiContactEnrichRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/widget/embed/$id.js': {
       id: '/api/public/widget/embed/$id.js'
       path: '/api/public/widget/embed/$id.js'
@@ -746,6 +767,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
+  ApiPublicAiContactEnrichRoute: ApiPublicAiContactEnrichRoute,
   ApiPublicEvolutionBulkDispatchRoute: ApiPublicEvolutionBulkDispatchRoute,
   ApiPublicEvolutionConfigureWebhookRoute:
     ApiPublicEvolutionConfigureWebhookRoute,

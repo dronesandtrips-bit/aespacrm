@@ -135,6 +135,12 @@ function CategoriesTab() {
     { name: "Perdido", color: "#EF4444" },
     { name: "Não Qualificado", color: "#6B7280" },
     { name: "Follow-up", color: "#06B6D4" },
+    // Nicho segurança (IA)
+    { name: "Cliente Alarme", color: "#DC2626" },
+    { name: "Cliente Câmeras", color: "#0EA5E9" },
+    { name: "Cliente Câmeras Wi-Fi", color: "#0891B2" },
+    { name: "Curioso", color: "#A78BFA" },
+    { name: "Comprador", color: "#16A34A" },
   ];
 
   const seedDefaults = async () => {
