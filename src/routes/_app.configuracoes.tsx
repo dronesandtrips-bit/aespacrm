@@ -177,14 +177,26 @@ function CategoriesTab() {
           <h3 className="font-semibold">Categorias de contatos</h3>
           <p className="text-xs text-muted-foreground">{loading ? "..." : `${list.length} categorias`}</p>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="size-4" /> Nova categoria
-            </Button>
-          </DialogTrigger>
-          <CategoryDialog key={editing?.id ?? "new"} initial={editing} sequences={sequences} onSubmit={save} />
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={seeding}
+            onClick={seedDefaults}
+            title="Cria 7 categorias padrão (pula nomes já existentes)"
+          >
+            {seeding ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+            Criar categorias padrão
+          </Button>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="size-4" /> Nova categoria
+              </Button>
+            </DialogTrigger>
+            <CategoryDialog key={editing?.id ?? "new"} initial={editing} sequences={sequences} onSubmit={save} />
+          </Dialog>
+        </div>
       </div>
 
       {loading ? (
