@@ -539,9 +539,7 @@ export const sequencesDb = {
     const c = await client();
     const { data, error } = await c
       .from("crm_sequences")
-      .select(
-        "id,name,description,is_active,trigger_type,trigger_value,window_start_hour,window_end_hour,window_days,created_at",
-      )
+      .select(SEQ_COLS)
       .order("created_at", { ascending: false });
     if (error) throw error;
     return (data ?? []).map(rowToSeq);
@@ -565,9 +563,7 @@ export const sequencesDb = {
         trigger_value: input.triggerValue ?? null,
         is_active: true,
       })
-      .select(
-        "id,name,description,is_active,trigger_type,trigger_value,window_start_hour,window_end_hour,window_days,created_at",
-      )
+      .select(SEQ_COLS)
       .single();
     if (error) throw error;
     return rowToSeq(data);
@@ -584,6 +580,8 @@ export const sequencesDb = {
       windowStartHour: number;
       windowEndHour: number;
       windowDays: number[];
+      stopOnStageIds: string[];
+      autoResumeAfterDays: number;
     }>,
   ) {
     const c = await client();
@@ -596,6 +594,8 @@ export const sequencesDb = {
     if (patch.windowStartHour !== undefined) dbPatch.window_start_hour = patch.windowStartHour;
     if (patch.windowEndHour !== undefined) dbPatch.window_end_hour = patch.windowEndHour;
     if (patch.windowDays !== undefined) dbPatch.window_days = patch.windowDays;
+    if (patch.stopOnStageIds !== undefined) dbPatch.stop_on_stage_ids = patch.stopOnStageIds;
+    if (patch.autoResumeAfterDays !== undefined) dbPatch.auto_resume_after_days = patch.autoResumeAfterDays;
     const { error } = await c.from("crm_sequences").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
