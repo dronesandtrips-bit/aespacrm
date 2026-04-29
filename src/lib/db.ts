@@ -46,7 +46,18 @@ export type Sequence = {
   windowStartHour: number;
   windowEndHour: number;
   windowDays: number[];
+  stopOnStageIds: string[];
+  autoResumeAfterDays: number;
   createdAt: string;
+};
+
+export type MessageTemplate = {
+  id: string;
+  name: string;
+  content: string;
+  category: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type SequenceStep = {
@@ -489,9 +500,14 @@ function rowToSeq(r: any): Sequence {
     windowStartHour: r.window_start_hour,
     windowEndHour: r.window_end_hour,
     windowDays: r.window_days ?? [1, 2, 3, 4, 5],
+    stopOnStageIds: r.stop_on_stage_ids ?? [],
+    autoResumeAfterDays: r.auto_resume_after_days ?? 0,
     createdAt: r.created_at,
   };
 }
+
+const SEQ_COLS =
+  "id,name,description,is_active,trigger_type,trigger_value,window_start_hour,window_end_hour,window_days,stop_on_stage_ids,auto_resume_after_days,created_at";
 
 function rowToStep(r: any): SequenceStep {
   return {
