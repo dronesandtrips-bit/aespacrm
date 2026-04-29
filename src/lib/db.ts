@@ -865,3 +865,67 @@ export const widgetsDb = {
   },
 };
 
+
+// ===================== Templates de mensagem =====================
+
+function rowToTemplate(r: any): MessageTemplate {
+  return {
+    id: r.id,
+    name: r.name,
+    content: r.content,
+    category: r.category ?? null,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+export const templatesDb = {
+  async list(): Promise<MessageTemplate[]> {
+    const c = await client();
+    const { data, error } = await c
+      .from("crm_message_templates")
+      .select("id,name,content,category,created_at,updated_at")
+      .order("name", { ascending: true });
+    if (error) throw error;
+    return (data ?? []).map(rowToTemplate);
+  },
+
+  async create(input: {
+    name: string;
+    content: string;
+    category?: string | null;
+  }): Promise<MessageTemplate> {
+    const c = await client();
+    const user_id = await uid();
+    const { data, error } = await c
+      .from("crm_message_templates")
+      .insert({
+        user_id,
+        name: input.name,
+        content: input.content,
+        category: input.category ?? null,
+      })
+      .select("id,name,content,category,created_at,updated_at")
+      .single();
+    if (error) throw error;
+    return rowToTemplate(data);
+  },
+
+  async update(
+    id: string,
+    patch: Partial<{ name: string; content: string; category: string | null }>,
+  ) {
+    const c = await client();
+    const { error } = await c
+      .from("crm_message_templates")
+      .update(patch)
+      .eq("id", id);
+    if (error) throw error;
+  },
+
+  async remove(id: string) {
+    const c = await client();
+    const { error } = await c.from("crm_message_templates").delete().eq("id", id);
+    if (error) throw error;
+  },
+};
