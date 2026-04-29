@@ -14,6 +14,7 @@ import {
   GitBranch,
   Activity,
   BarChart3,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -27,6 +28,7 @@ const items = [
   { to: "/disparos", label: "Disparos", icon: Send },
   { to: "/sequencias", label: "Sequências", icon: GitBranch },
   { to: "/sequencias-dashboard", label: "Métricas Seq.", icon: BarChart3 },
+  { to: "/templates", label: "Templates", icon: FileText },
   { to: "/logs", label: "Logs", icon: Activity },
   { to: "/inbox", label: "Inbox", icon: Inbox },
   { to: "/pipeline", label: "Pipeline", icon: Kanban },
