@@ -566,3 +566,18 @@ function InboxPage() {
     </div>
   );
 }
+
+function UrgencyBadge({ level }: { level: "Baixa" | "Média" | "Alta" }) {
+  const cls =
+    level === "Alta"
+      ? "border-red-500/50 bg-red-500/10 text-red-700 dark:text-red-400"
+      : level === "Média"
+        ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+        : "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+  return (
+    <Badge variant="outline" className={cn("gap-1", cls)}>
+      <AlertTriangle className="size-3" />
+      {level}
+    </Badge>
+  );
+}
