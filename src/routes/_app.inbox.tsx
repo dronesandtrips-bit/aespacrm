@@ -25,10 +25,18 @@ function timeAgo(iso: string) {
 }
 
 type LastMap = Record<string, ChatMessage | undefined>;
+type ReplyPause = {
+  contactId: string;
+  sequenceId: string;
+  sequenceName: string;
+  pausedAt: string;
+};
+type PauseMap = Record<string, ReplyPause | undefined>;
 
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [lastByContact, setLastByContact] = useState<LastMap>({});
+  const [replyPauseByContact, setReplyPauseByContact] = useState<PauseMap>({});
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
