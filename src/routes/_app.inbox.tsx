@@ -199,6 +199,61 @@ function InboxPage() {
     };
   }, [activeId]);
 
+  // Realtime: escuta mudanças em contact_sequences para atualizar o badge de pausa
+  useEffect(() => {
+    let channel: any;
+    (async () => {
+      const c = await getSupabaseClient();
+      if (!c) return;
+      const seqs = await sequencesDb.list().catch(() => []);
+      const seqName: Record<string, string> = {};
+      seqs.forEach((s) => (seqName[s.id] = s.name));
+
+      channel = c
+        .channel("crm_contact_sequences_inbox")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "aespacrm", table: "crm_contact_sequences" },
+          (payload: any) => {
+            const row = payload.new ?? payload.old;
+            if (!row?.contact_id) return;
+            const isReplyPause =
+              payload.new?.status === "paused" &&
+              payload.new?.pause_reason === "inbound_reply";
+            if (isReplyPause) {
+              setReplyPauseByContact((prev) => ({
+                ...prev,
+                [row.contact_id]: {
+                  contactId: row.contact_id,
+                  sequenceId: row.sequence_id,
+                  sequenceName: seqName[row.sequence_id] ?? "Sequência",
+                  pausedAt: payload.new.paused_at ?? new Date().toISOString(),
+                },
+              }));
+            } else {
+              // saiu do estado paused-by-reply → limpa
+              setReplyPauseByContact((prev) => {
+                const cur = prev[row.contact_id];
+                if (!cur || cur.sequenceId !== row.sequence_id) return prev;
+                const next = { ...prev };
+                delete next[row.contact_id];
+                return next;
+              });
+            }
+          },
+        )
+        .subscribe();
+    })();
+    return () => {
+      if (channel) {
+        (async () => {
+          const c = await getSupabaseClient();
+          c?.removeChannel(channel);
+        })();
+      }
+    };
+  }, []);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
