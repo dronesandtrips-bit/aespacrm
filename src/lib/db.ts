@@ -386,6 +386,24 @@ export const pipelineDb = {
     if (seqId) {
       await sequencesDb.enrollFromTrigger(contactId, seqId);
     }
+    // Auto-stop: pausa sequências ativas que tenham essa etapa em stop_on_stage_ids.
+    const { data: stopSeqs } = await c
+      .from("crm_sequences")
+      .select("id")
+      .contains("stop_on_stage_ids", [stageId]);
+    const ids = (stopSeqs ?? []).map((s: any) => s.id);
+    if (ids.length > 0) {
+      await c
+        .from("crm_contact_sequences")
+        .update({
+          status: "paused",
+          paused_at: new Date().toISOString(),
+          pause_reason: "pipeline_stage",
+        })
+        .eq("contact_id", contactId)
+        .eq("status", "active")
+        .in("sequence_id", ids);
+    }
   },
 };
 
