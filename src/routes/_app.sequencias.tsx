@@ -325,6 +325,49 @@ function SequenceEditorDialog({
     }
   };
 
+  const toggleDay = (d: number) => {
+    setDays((prev) =>
+      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort(),
+    );
+  };
+
+  const applyPreset = (preset: "weekdays" | "all" | "weekend") => {
+    if (preset === "weekdays") setDays([1, 2, 3, 4, 5]);
+    else if (preset === "all") setDays([0, 1, 2, 3, 4, 5, 6]);
+    else setDays([0, 6]);
+  };
+
+  const saveWindow = async () => {
+    if (startHour >= endHour) {
+      toast.error("Hora inicial deve ser menor que a final");
+      return;
+    }
+    if (days.length === 0) {
+      toast.error("Selecione pelo menos um dia");
+      return;
+    }
+    setSavingWindow(true);
+    try {
+      await sequencesDb.update(sequence.id, {
+        windowStartHour: startHour,
+        windowEndHour: endHour,
+        windowDays: days,
+      });
+      toast.success("Janela atualizada");
+      onChange();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setSavingWindow(false);
+    }
+  };
+
+  const windowDirty =
+    startHour !== sequence.windowStartHour ||
+    endHour !== sequence.windowEndHour ||
+    JSON.stringify([...days].sort()) !==
+      JSON.stringify([...sequence.windowDays].sort());
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
