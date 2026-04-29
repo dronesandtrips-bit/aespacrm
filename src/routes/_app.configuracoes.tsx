@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2, Code2, Copy, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2, Code2, Copy, ExternalLink, Sparkles } from "lucide-react";
 import { categoriesDb, pipelineDb, sequencesDb, widgetsDb, type Category, type PipelineStage, type Sequence, type CaptureWidget } from "@/lib/db";
 import {
   Select,
@@ -125,6 +125,46 @@ function CategoriesTab() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Category | null>(null);
   const [open, setOpen] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+
+  const DEFAULT_CATEGORIES: Array<{ name: string; color: string }> = [
+    { name: "Novo Lead", color: "#3B82F6" },
+    { name: "Lead Qualificado", color: "#8B5CF6" },
+    { name: "Em Negociação", color: "#F59E0B" },
+    { name: "Cliente", color: "#10B981" },
+    { name: "Perdido", color: "#EF4444" },
+    { name: "Não Qualificado", color: "#6B7280" },
+    { name: "Follow-up", color: "#06B6D4" },
+  ];
+
+  const seedDefaults = async () => {
+    setSeeding(true);
+    try {
+      const existing = new Set(list.map((c) => c.name.trim().toLowerCase()));
+      const toCreate = DEFAULT_CATEGORIES.filter(
+        (d) => !existing.has(d.name.toLowerCase()),
+      );
+      if (toCreate.length === 0) {
+        toast.info("Todas as 7 categorias padrão já existem.");
+        return;
+      }
+      let created = 0;
+      for (const d of toCreate) {
+        try {
+          await categoriesDb.create(d.name, d.color, null);
+          created++;
+        } catch (e: any) {
+          console.error("seed category error", d.name, e);
+        }
+      }
+      await refresh();
+      toast.success(`${created} categoria(s) criada(s).${toCreate.length - created > 0 ? ` ${toCreate.length - created} falharam.` : ""}`);
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const refresh = async () => {
     try {
@@ -177,14 +217,26 @@ function CategoriesTab() {
           <h3 className="font-semibold">Categorias de contatos</h3>
           <p className="text-xs text-muted-foreground">{loading ? "..." : `${list.length} categorias`}</p>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="size-4" /> Nova categoria
-            </Button>
-          </DialogTrigger>
-          <CategoryDialog key={editing?.id ?? "new"} initial={editing} sequences={sequences} onSubmit={save} />
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            disabled={seeding}
+            onClick={seedDefaults}
+            title="Cria 7 categorias padrão (pula nomes já existentes)"
+          >
+            {seeding ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+            Criar categorias padrão
+          </Button>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setEditing(null); }}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="size-4" /> Nova categoria
+              </Button>
+            </DialogTrigger>
+            <CategoryDialog key={editing?.id ?? "new"} initial={editing} sequences={sequences} onSubmit={save} />
+          </Dialog>
+        </div>
       </div>
 
       {loading ? (
