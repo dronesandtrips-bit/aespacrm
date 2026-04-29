@@ -7,6 +7,7 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
 // ===================== Tipos =====================
 
 export type Category = { id: string; name: string; color: string; sequenceId?: string | null };
+export type UrgencyLevel = "Baixa" | "Média" | "Alta";
 export type Contact = {
   id: string;
   name: string;
@@ -15,6 +16,9 @@ export type Contact = {
   notes?: string | null;
   categoryId?: string | null;
   createdAt: string;
+  aiPersonaSummary?: string | null;
+  urgencyLevel?: UrgencyLevel | null;
+  lastAiSync?: string | null;
 };
 export type BulkSend = {
   id: string;
@@ -151,8 +155,14 @@ function rowToContact(r: any): Contact {
     notes: r.notes,
     categoryId: r.category_id,
     createdAt: r.created_at,
+    aiPersonaSummary: r.ai_persona_summary ?? null,
+    urgencyLevel: (r.urgency_level ?? null) as UrgencyLevel | null,
+    lastAiSync: r.last_ai_sync ?? null,
   };
 }
+
+const CONTACT_COLUMNS =
+  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync";
 
 /**
  * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
