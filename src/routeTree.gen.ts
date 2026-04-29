@@ -15,6 +15,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
+import { Route as AppSequenciasDashboardRouteImport } from './routes/_app.sequencias-dashboard'
 import { Route as AppSequenciasRouteImport } from './routes/_app.sequencias'
 import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
 import { Route as AppLogsRouteImport } from './routes/_app.logs'
@@ -69,6 +70,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppWhatsappRoute = AppWhatsappRouteImport.update({
   id: '/whatsapp',
   path: '/whatsapp',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSequenciasDashboardRoute = AppSequenciasDashboardRouteImport.update({
+  id: '/sequencias-dashboard',
+  path: '/sequencias-dashboard',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSequenciasRoute = AppSequenciasRouteImport.update({
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/logs': typeof AppLogsRoute
   '/pipeline': typeof AppPipelineRoute
   '/sequencias': typeof AppSequenciasRoute
+  '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
@@ -258,6 +265,7 @@ export interface FileRoutesByTo {
   '/logs': typeof AppLogsRoute
   '/pipeline': typeof AppPipelineRoute
   '/sequencias': typeof AppSequenciasRoute
+  '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
@@ -293,6 +301,7 @@ export interface FileRoutesById {
   '/_app/logs': typeof AppLogsRoute
   '/_app/pipeline': typeof AppPipelineRoute
   '/_app/sequencias': typeof AppSequenciasRoute
+  '/_app/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
@@ -328,6 +337,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/pipeline'
     | '/sequencias'
+    | '/sequencias-dashboard'
     | '/whatsapp'
     | '/widget/form/$id'
     | '/api/public/evolution/bulk-dispatch'
@@ -361,6 +371,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/pipeline'
     | '/sequencias'
+    | '/sequencias-dashboard'
     | '/whatsapp'
     | '/widget/form/$id'
     | '/api/public/evolution/bulk-dispatch'
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/_app/logs'
     | '/_app/pipeline'
     | '/_app/sequencias'
+    | '/_app/sequencias-dashboard'
     | '/_app/whatsapp'
     | '/widget/form/$id'
     | '/api/public/evolution/bulk-dispatch'
@@ -482,6 +494,13 @@ declare module '@tanstack/react-router' {
       path: '/whatsapp'
       fullPath: '/whatsapp'
       preLoaderRoute: typeof AppWhatsappRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sequencias-dashboard': {
+      id: '/_app/sequencias-dashboard'
+      path: '/sequencias-dashboard'
+      fullPath: '/sequencias-dashboard'
+      preLoaderRoute: typeof AppSequenciasDashboardRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/sequencias': {
@@ -679,6 +698,7 @@ interface AppRouteChildren {
   AppLogsRoute: typeof AppLogsRoute
   AppPipelineRoute: typeof AppPipelineRoute
   AppSequenciasRoute: typeof AppSequenciasRoute
+  AppSequenciasDashboardRoute: typeof AppSequenciasDashboardRoute
   AppWhatsappRoute: typeof AppWhatsappRoute
 }
 
@@ -692,6 +712,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLogsRoute: AppLogsRoute,
   AppPipelineRoute: AppPipelineRoute,
   AppSequenciasRoute: AppSequenciasRoute,
+  AppSequenciasDashboardRoute: AppSequenciasDashboardRoute,
   AppWhatsappRoute: AppWhatsappRoute,
 }
 
