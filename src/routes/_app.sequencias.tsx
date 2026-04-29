@@ -376,6 +376,33 @@ function SequenceEditorDialog({
     JSON.stringify([...days].sort()) !==
       JSON.stringify([...sequence.windowDays].sort());
 
+  const toggleStopStage = (id: string) => {
+    setStopStageIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const saveRules = async () => {
+    setSavingRules(true);
+    try {
+      await sequencesDb.update(sequence.id, {
+        stopOnStageIds: stopStageIds,
+        autoResumeAfterDays: autoResumeDays,
+      });
+      toast.success("Regras de auto-stop salvas");
+      onChange();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setSavingRules(false);
+    }
+  };
+
+  const rulesDirty =
+    autoResumeDays !== sequence.autoResumeAfterDays ||
+    JSON.stringify([...stopStageIds].sort()) !==
+      JSON.stringify([...sequence.stopOnStageIds].sort());
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
