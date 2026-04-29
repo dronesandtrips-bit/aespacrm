@@ -291,6 +291,7 @@ function InboxPage() {
               ) : (
                 filtered.map(({ contact, last }) => {
                   const isActive = contact.id === activeId;
+                  const pause = replyPauseByContact[contact.id];
                   return (
                     <button
                       key={contact.id}
@@ -300,8 +301,18 @@ function InboxPage() {
                         isActive && "bg-primary/5",
                       )}
                     >
-                      <div className="size-11 rounded-full bg-primary/10 grid place-items-center text-primary font-semibold shrink-0">
-                        {contact.name[0]}
+                      <div className="relative shrink-0">
+                        <div className="size-11 rounded-full bg-primary/10 grid place-items-center text-primary font-semibold">
+                          {contact.name[0]}
+                        </div>
+                        {pause && (
+                          <span
+                            className="absolute -bottom-0.5 -right-0.5 size-4 rounded-full bg-amber-500 border-2 border-card grid place-items-center"
+                            title={`Sequência pausada: ${pause.sequenceName}`}
+                          >
+                            <PauseCircle className="size-2.5 text-white" />
+                          </span>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline gap-2">
@@ -314,6 +325,11 @@ function InboxPage() {
                           {last?.fromMe && "Você: "}
                           {last?.body ?? <span className="italic opacity-60">Sem mensagens</span>}
                         </p>
+                        {pause && (
+                          <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-0.5 truncate">
+                            ⏸ {pause.sequenceName} pausada · respondeu há {timeAgo(pause.pausedAt)}
+                          </p>
+                        )}
                       </div>
                     </button>
                   );
