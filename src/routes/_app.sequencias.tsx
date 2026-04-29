@@ -224,6 +224,10 @@ function SequenceEditorDialog({
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollContactId, setEnrollContactId] = useState<string>("");
+  const [startHour, setStartHour] = useState<number>(sequence.windowStartHour);
+  const [endHour, setEndHour] = useState<number>(sequence.windowEndHour);
+  const [days, setDays] = useState<number[]>(sequence.windowDays);
+  const [savingWindow, setSavingWindow] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
