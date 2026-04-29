@@ -350,6 +350,28 @@ function InboxPage() {
                     <p className="font-medium text-sm">{active.name}</p>
                     <p className="text-xs text-muted-foreground font-mono">{active.phone}</p>
                   </div>
+                  {active && replyPauseByContact[active.id] && (
+                    <TooltipProvider delayDuration={150}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant="outline"
+                            className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 gap-1 cursor-help"
+                          >
+                            <PauseCircle className="size-3" />
+                            Sequência pausada
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p className="text-xs">
+                            <strong>{replyPauseByContact[active.id]!.sequenceName}</strong> pausada
+                            <br />
+                            Lead respondeu há {timeAgo(replyPauseByContact[active.id]!.pausedAt)}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                 </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon">
