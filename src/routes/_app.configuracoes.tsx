@@ -125,6 +125,46 @@ function CategoriesTab() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Category | null>(null);
   const [open, setOpen] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+
+  const DEFAULT_CATEGORIES: Array<{ name: string; color: string }> = [
+    { name: "Novo Lead", color: "#3B82F6" },
+    { name: "Lead Qualificado", color: "#8B5CF6" },
+    { name: "Em Negociação", color: "#F59E0B" },
+    { name: "Cliente", color: "#10B981" },
+    { name: "Perdido", color: "#EF4444" },
+    { name: "Não Qualificado", color: "#6B7280" },
+    { name: "Follow-up", color: "#06B6D4" },
+  ];
+
+  const seedDefaults = async () => {
+    setSeeding(true);
+    try {
+      const existing = new Set(list.map((c) => c.name.trim().toLowerCase()));
+      const toCreate = DEFAULT_CATEGORIES.filter(
+        (d) => !existing.has(d.name.toLowerCase()),
+      );
+      if (toCreate.length === 0) {
+        toast.info("Todas as 7 categorias padrão já existem.");
+        return;
+      }
+      let created = 0;
+      for (const d of toCreate) {
+        try {
+          await categoriesDb.create(d.name, d.color, null);
+          created++;
+        } catch (e: any) {
+          console.error("seed category error", d.name, e);
+        }
+      }
+      await refresh();
+      toast.success(`${created} categoria(s) criada(s).${toCreate.length - created > 0 ? ` ${toCreate.length - created} falharam.` : ""}`);
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const refresh = async () => {
     try {
