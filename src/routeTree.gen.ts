@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
 import { Route as AppSequenciasRouteImport } from './routes/_app.sequencias'
 import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
+import { Route as AppLogsRouteImport } from './routes/_app.logs'
 import { Route as AppInboxRouteImport } from './routes/_app.inbox'
 import { Route as AppExplorarRouteImport } from './routes/_app.explorar'
 import { Route as AppDisparosRouteImport } from './routes/_app.disparos'
@@ -78,6 +79,11 @@ const AppSequenciasRoute = AppSequenciasRouteImport.update({
 const AppPipelineRoute = AppPipelineRouteImport.update({
   id: '/pipeline',
   path: '/pipeline',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLogsRoute = AppLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInboxRoute = AppInboxRouteImport.update({
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/disparos': typeof AppDisparosRoute
   '/explorar': typeof AppExplorarRoute
   '/inbox': typeof AppInboxRoute
+  '/logs': typeof AppLogsRoute
   '/pipeline': typeof AppPipelineRoute
   '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/disparos': typeof AppDisparosRoute
   '/explorar': typeof AppExplorarRoute
   '/inbox': typeof AppInboxRoute
+  '/logs': typeof AppLogsRoute
   '/pipeline': typeof AppPipelineRoute
   '/sequencias': typeof AppSequenciasRoute
   '/whatsapp': typeof AppWhatsappRoute
@@ -282,6 +290,7 @@ export interface FileRoutesById {
   '/_app/disparos': typeof AppDisparosRoute
   '/_app/explorar': typeof AppExplorarRoute
   '/_app/inbox': typeof AppInboxRoute
+  '/_app/logs': typeof AppLogsRoute
   '/_app/pipeline': typeof AppPipelineRoute
   '/_app/sequencias': typeof AppSequenciasRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
@@ -316,6 +325,7 @@ export interface FileRouteTypes {
     | '/disparos'
     | '/explorar'
     | '/inbox'
+    | '/logs'
     | '/pipeline'
     | '/sequencias'
     | '/whatsapp'
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/disparos'
     | '/explorar'
     | '/inbox'
+    | '/logs'
     | '/pipeline'
     | '/sequencias'
     | '/whatsapp'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/_app/disparos'
     | '/_app/explorar'
     | '/_app/inbox'
+    | '/_app/logs'
     | '/_app/pipeline'
     | '/_app/sequencias'
     | '/_app/whatsapp'
@@ -484,6 +496,13 @@ declare module '@tanstack/react-router' {
       path: '/pipeline'
       fullPath: '/pipeline'
       preLoaderRoute: typeof AppPipelineRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logs': {
+      id: '/_app/logs'
+      path: '/logs'
+      fullPath: '/logs'
+      preLoaderRoute: typeof AppLogsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/inbox': {
@@ -657,6 +676,7 @@ interface AppRouteChildren {
   AppDisparosRoute: typeof AppDisparosRoute
   AppExplorarRoute: typeof AppExplorarRoute
   AppInboxRoute: typeof AppInboxRoute
+  AppLogsRoute: typeof AppLogsRoute
   AppPipelineRoute: typeof AppPipelineRoute
   AppSequenciasRoute: typeof AppSequenciasRoute
   AppWhatsappRoute: typeof AppWhatsappRoute
@@ -669,6 +689,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDisparosRoute: AppDisparosRoute,
   AppExplorarRoute: AppExplorarRoute,
   AppInboxRoute: AppInboxRoute,
+  AppLogsRoute: AppLogsRoute,
   AppPipelineRoute: AppPipelineRoute,
   AppSequenciasRoute: AppSequenciasRoute,
   AppWhatsappRoute: AppWhatsappRoute,
