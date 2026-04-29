@@ -35,9 +35,11 @@ import {
 import {
   sequencesDb,
   contactsDb,
+  pipelineDb,
   type Sequence,
   type SequenceStep,
   type Contact,
+  type PipelineStage,
 } from "@/lib/db";
 import { toast } from "sonner";
 
