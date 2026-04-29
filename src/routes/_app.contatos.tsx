@@ -214,6 +214,15 @@ function ContactsPage() {
               className="pl-9"
             />
           </div>
+          <div className="relative sm:w-64">
+            <Sparkles className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Filtrar por persona (IA)..."
+              value={persona}
+              onChange={(e) => goto({ persona: e.target.value, page: 1 })}
+              className="pl-9"
+            />
+          </div>
           <Select value={cat} onValueChange={(v) => goto({ cat: v, page: 1 })}>
             <SelectTrigger className="sm:w-56">
               <SelectValue placeholder="Categoria" />
@@ -249,6 +258,7 @@ function ContactsPage() {
                 <TableHead>Telefone</TableHead>
                 <TableHead className="hidden md:table-cell">Email</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead>Urgência</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -265,7 +275,17 @@ function ContactsPage() {
                         >
                           {c.name[0]}
                         </div>
-                        <span className="font-medium">{c.name}</span>
+                        <div className="min-w-0">
+                          <span className="font-medium block truncate">{c.name}</span>
+                          {c.aiPersonaSummary && (
+                            <span
+                              className="text-[11px] text-muted-foreground block truncate max-w-[260px]"
+                              title={c.aiPersonaSummary}
+                            >
+                              {c.aiPersonaSummary}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-sm">{c.phone}</TableCell>
@@ -282,6 +302,13 @@ function ContactsPage() {
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {c.urgencyLevel ? (
+                        <UrgencyBadgeContacts level={c.urgencyLevel} />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
