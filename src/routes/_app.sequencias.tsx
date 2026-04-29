@@ -46,6 +46,18 @@ export const Route = createFileRoute("/_app/sequencias")({
 });
 
 const MAX_STEPS = 10;
+const DAY_LABELS = ["D", "S", "T", "Q", "Q", "S", "S"];
+const DAY_FULL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function formatDays(days: number[]): string {
+  if (!days || days.length === 0) return "Nenhum dia";
+  if (days.length === 7) return "Todos os dias";
+  const sorted = [...days].sort();
+  const isWeekdays =
+    sorted.length === 5 && sorted.every((d, i) => d === i + 1);
+  if (isWeekdays) return "Seg–Sex";
+  return sorted.map((d) => DAY_FULL[d]).join(", ");
+}
 
 type DraftStep = { message: string; delayValue: number; delayUnit: "hours" | "days" };
 
