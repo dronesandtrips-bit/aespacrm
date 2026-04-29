@@ -3,8 +3,10 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Send, Phone, MoreVertical, MessageCircle, Loader2 } from "lucide-react";
-import { contactsDb, messagesDb, type Contact, type ChatMessage } from "@/lib/db";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Search, Send, Phone, MoreVertical, MessageCircle, Loader2, PauseCircle } from "lucide-react";
+import { contactsDb, messagesDb, sequencesDb, type Contact, type ChatMessage } from "@/lib/db";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -23,10 +25,18 @@ function timeAgo(iso: string) {
 }
 
 type LastMap = Record<string, ChatMessage | undefined>;
+type ReplyPause = {
+  contactId: string;
+  sequenceId: string;
+  sequenceName: string;
+  pausedAt: string;
+};
+type PauseMap = Record<string, ReplyPause | undefined>;
 
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [lastByContact, setLastByContact] = useState<LastMap>({});
+  const [replyPauseByContact, setReplyPauseByContact] = useState<PauseMap>({});
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
@@ -82,6 +92,46 @@ function InboxPage() {
         toast.error(`Erro ao carregar inbox: ${e.message ?? e}`);
       } finally {
         if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Carrega sequências pausadas por resposta do lead (badge no Inbox)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const c = await getSupabaseClient();
+        if (!c) return;
+        const [{ data: pauses, error: pErr }, seqs] = await Promise.all([
+          c
+            .from("crm_contact_sequences")
+            .select("contact_id,sequence_id,paused_at")
+            .eq("status", "paused")
+            .eq("pause_reason", "inbound_reply"),
+          sequencesDb.list(),
+        ]);
+        if (pErr) throw pErr;
+        const seqName: Record<string, string> = {};
+        seqs.forEach((s) => (seqName[s.id] = s.name));
+        const map: PauseMap = {};
+        (pauses ?? []).forEach((p: any) => {
+          const existing = map[p.contact_id];
+          if (!existing || (p.paused_at ?? "") > (existing.pausedAt ?? "")) {
+            map[p.contact_id] = {
+              contactId: p.contact_id,
+              sequenceId: p.sequence_id,
+              sequenceName: seqName[p.sequence_id] ?? "Sequência",
+              pausedAt: p.paused_at,
+            };
+          }
+        });
+        if (!cancelled) setReplyPauseByContact(map);
+      } catch (e: any) {
+        console.warn("Falha ao carregar pausas por resposta", e);
       }
     })();
     return () => {
@@ -148,6 +198,61 @@ function InboxPage() {
       }
     };
   }, [activeId]);
+
+  // Realtime: escuta mudanças em contact_sequences para atualizar o badge de pausa
+  useEffect(() => {
+    let channel: any;
+    (async () => {
+      const c = await getSupabaseClient();
+      if (!c) return;
+      const seqs = await sequencesDb.list().catch(() => []);
+      const seqName: Record<string, string> = {};
+      seqs.forEach((s) => (seqName[s.id] = s.name));
+
+      channel = c
+        .channel("crm_contact_sequences_inbox")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "aespacrm", table: "crm_contact_sequences" },
+          (payload: any) => {
+            const row = payload.new ?? payload.old;
+            if (!row?.contact_id) return;
+            const isReplyPause =
+              payload.new?.status === "paused" &&
+              payload.new?.pause_reason === "inbound_reply";
+            if (isReplyPause) {
+              setReplyPauseByContact((prev) => ({
+                ...prev,
+                [row.contact_id]: {
+                  contactId: row.contact_id,
+                  sequenceId: row.sequence_id,
+                  sequenceName: seqName[row.sequence_id] ?? "Sequência",
+                  pausedAt: payload.new.paused_at ?? new Date().toISOString(),
+                },
+              }));
+            } else {
+              // saiu do estado paused-by-reply → limpa
+              setReplyPauseByContact((prev) => {
+                const cur = prev[row.contact_id];
+                if (!cur || cur.sequenceId !== row.sequence_id) return prev;
+                const next = { ...prev };
+                delete next[row.contact_id];
+                return next;
+              });
+            }
+          },
+        )
+        .subscribe();
+    })();
+    return () => {
+      if (channel) {
+        (async () => {
+          const c = await getSupabaseClient();
+          c?.removeChannel(channel);
+        })();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -241,6 +346,7 @@ function InboxPage() {
               ) : (
                 filtered.map(({ contact, last }) => {
                   const isActive = contact.id === activeId;
+                  const pause = replyPauseByContact[contact.id];
                   return (
                     <button
                       key={contact.id}
@@ -250,8 +356,18 @@ function InboxPage() {
                         isActive && "bg-primary/5",
                       )}
                     >
-                      <div className="size-11 rounded-full bg-primary/10 grid place-items-center text-primary font-semibold shrink-0">
-                        {contact.name[0]}
+                      <div className="relative shrink-0">
+                        <div className="size-11 rounded-full bg-primary/10 grid place-items-center text-primary font-semibold">
+                          {contact.name[0]}
+                        </div>
+                        {pause && (
+                          <span
+                            className="absolute -bottom-0.5 -right-0.5 size-4 rounded-full bg-amber-500 border-2 border-card grid place-items-center"
+                            title={`Sequência pausada: ${pause.sequenceName}`}
+                          >
+                            <PauseCircle className="size-2.5 text-white" />
+                          </span>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline gap-2">
@@ -264,6 +380,11 @@ function InboxPage() {
                           {last?.fromMe && "Você: "}
                           {last?.body ?? <span className="italic opacity-60">Sem mensagens</span>}
                         </p>
+                        {pause && (
+                          <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-0.5 truncate">
+                            ⏸ {pause.sequenceName} pausada · respondeu há {timeAgo(pause.pausedAt)}
+                          </p>
+                        )}
                       </div>
                     </button>
                   );
@@ -284,6 +405,28 @@ function InboxPage() {
                     <p className="font-medium text-sm">{active.name}</p>
                     <p className="text-xs text-muted-foreground font-mono">{active.phone}</p>
                   </div>
+                  {active && replyPauseByContact[active.id] && (
+                    <TooltipProvider delayDuration={150}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant="outline"
+                            className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 gap-1 cursor-help"
+                          >
+                            <PauseCircle className="size-3" />
+                            Sequência pausada
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p className="text-xs">
+                            <strong>{replyPauseByContact[active.id]!.sequenceName}</strong> pausada
+                            <br />
+                            Lead respondeu há {timeAgo(replyPauseByContact[active.id]!.pausedAt)}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                 </div>
                 <div className="flex gap-1">
                   <Button variant="ghost" size="icon">
