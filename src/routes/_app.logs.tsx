@@ -142,6 +142,7 @@ function SendsTab({ sequenceFilter }: { sequenceFilter: string }) {
     setLoading(true);
     try {
       const sb = await getSupabaseClient();
+      if (!sb) throw new Error("Supabase indisponível");
       const { data, error } = await sb
         .schema("aespacrm" as any)
         .from("crm_sequence_send_log")
@@ -296,6 +297,7 @@ function ContactsTab({ sequenceFilter }: { sequenceFilter: string }) {
     setLoading(true);
     try {
       const sb = await getSupabaseClient();
+      if (!sb) throw new Error("Supabase indisponível");
       const { data, error } = await sb
         .schema("aespacrm" as any)
         .from("crm_contact_sequences")
@@ -323,6 +325,7 @@ function ContactsTab({ sequenceFilter }: { sequenceFilter: string }) {
   const resume = async (id: string) => {
     try {
       const sb = await getSupabaseClient();
+      if (!sb) throw new Error("Supabase indisponível");
       const { error } = await sb
         .schema("aespacrm" as any)
         .from("crm_contact_sequences")
@@ -344,6 +347,7 @@ function ContactsTab({ sequenceFilter }: { sequenceFilter: string }) {
   const pause = async (id: string) => {
     try {
       const sb = await getSupabaseClient();
+      if (!sb) throw new Error("Supabase indisponível");
       const { error } = await sb
         .schema("aespacrm" as any)
         .from("crm_contact_sequences")
