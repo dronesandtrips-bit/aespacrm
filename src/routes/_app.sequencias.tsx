@@ -230,14 +230,19 @@ function SequenceEditorDialog({
   const [endHour, setEndHour] = useState<number>(sequence.windowEndHour);
   const [days, setDays] = useState<number[]>(sequence.windowDays);
   const [savingWindow, setSavingWindow] = useState(false);
+  const [stages, setStages] = useState<PipelineStage[]>([]);
+  const [stopStageIds, setStopStageIds] = useState<string[]>(sequence.stopOnStageIds);
+  const [autoResumeDays, setAutoResumeDays] = useState<number>(sequence.autoResumeAfterDays);
+  const [savingRules, setSavingRules] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [s, c] = await Promise.all([
+        const [s, c, st] = await Promise.all([
           sequencesDb.listSteps(sequence.id),
           contactsDb.list(),
+          pipelineDb.listStages(),
         ]);
         if (cancelled) return;
         setSteps(
@@ -250,6 +255,7 @@ function SequenceEditorDialog({
             : [{ message: "", delayValue: 1, delayUnit: "days" }],
         );
         setContacts(c);
+        setStages(st);
       } catch (e: any) {
         toast.error(`Erro: ${e.message ?? e}`);
       } finally {
