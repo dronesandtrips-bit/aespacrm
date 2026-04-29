@@ -99,6 +99,46 @@ function InboxPage() {
     };
   }, []);
 
+  // Carrega sequências pausadas por resposta do lead (badge no Inbox)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const c = await getSupabaseClient();
+        if (!c) return;
+        const [{ data: pauses, error: pErr }, seqs] = await Promise.all([
+          c
+            .from("crm_contact_sequences")
+            .select("contact_id,sequence_id,paused_at")
+            .eq("status", "paused")
+            .eq("pause_reason", "inbound_reply"),
+          sequencesDb.list(),
+        ]);
+        if (pErr) throw pErr;
+        const seqName: Record<string, string> = {};
+        seqs.forEach((s) => (seqName[s.id] = s.name));
+        const map: PauseMap = {};
+        (pauses ?? []).forEach((p: any) => {
+          const existing = map[p.contact_id];
+          if (!existing || (p.paused_at ?? "") > (existing.pausedAt ?? "")) {
+            map[p.contact_id] = {
+              contactId: p.contact_id,
+              sequenceId: p.sequence_id,
+              sequenceName: seqName[p.sequence_id] ?? "Sequência",
+              pausedAt: p.paused_at,
+            };
+          }
+        });
+        if (!cancelled) setReplyPauseByContact(map);
+      } catch (e: any) {
+        console.warn("Falha ao carregar pausas por resposta", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Carrega mensagens da conversa ativa
   useEffect(() => {
     if (!activeId) {
