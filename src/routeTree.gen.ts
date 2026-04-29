@@ -41,6 +41,7 @@ import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.ev
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
 import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
 import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api.public.evolution.bulk-dispatch'
+import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
 import { Route as ApiPublicAiContactEnrichRouteImport } from './routes/api.public.ai.contact-enrich'
 import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
 import { Route as ApiPublicWidgetConfigIdRouteImport } from './routes/api.public.widget.config.$id'
@@ -212,6 +213,11 @@ const ApiPublicEvolutionBulkDispatchRoute =
     path: '/api/public/evolution/bulk-dispatch',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicAiLovableProxyRoute = ApiPublicAiLovableProxyRouteImport.update({
+  id: '/api/public/ai/lovable-proxy',
+  path: '/api/public/ai/lovable-proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAiContactEnrichRoute =
   ApiPublicAiContactEnrichRouteImport.update({
     id: '/api/public/ai/contact-enrich',
@@ -249,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
+  '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -285,6 +292,7 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
+  '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -323,6 +331,7 @@ export interface FileRoutesById {
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
+  '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -361,6 +370,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
+    | '/api/public/ai/lovable-proxy'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -397,6 +407,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
+    | '/api/public/ai/lovable-proxy'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -434,6 +445,7 @@ export interface FileRouteTypes {
     | '/_app/whatsapp'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
+    | '/api/public/ai/lovable-proxy'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -460,6 +472,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
   ApiPublicAiContactEnrichRoute: typeof ApiPublicAiContactEnrichRoute
+  ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
   ApiPublicEvolutionBulkDispatchRoute: typeof ApiPublicEvolutionBulkDispatchRoute
   ApiPublicEvolutionConfigureWebhookRoute: typeof ApiPublicEvolutionConfigureWebhookRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
@@ -704,6 +717,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionBulkDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ai/lovable-proxy': {
+      id: '/api/public/ai/lovable-proxy'
+      path: '/api/public/ai/lovable-proxy'
+      fullPath: '/api/public/ai/lovable-proxy'
+      preLoaderRoute: typeof ApiPublicAiLovableProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ai/contact-enrich': {
       id: '/api/public/ai/contact-enrich'
       path: '/api/public/ai/contact-enrich'
@@ -768,6 +788,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
   ApiPublicAiContactEnrichRoute: ApiPublicAiContactEnrichRoute,
+  ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
   ApiPublicEvolutionBulkDispatchRoute: ApiPublicEvolutionBulkDispatchRoute,
   ApiPublicEvolutionConfigureWebhookRoute:
     ApiPublicEvolutionConfigureWebhookRoute,
