@@ -30,6 +30,7 @@ import {
   Pause,
   Clock,
   Users,
+  CalendarClock,
 } from "lucide-react";
 import {
   sequencesDb,
@@ -116,9 +117,10 @@ function SequenciasPage() {
                   {s.description && (
                     <p className="text-xs text-muted-foreground mt-1">{s.description}</p>
                   )}
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Janela: {s.windowStartHour}h–{s.windowEndHour}h · Dias{" "}
-                    {s.windowDays.join(",")}
+                  <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+                    <CalendarClock className="size-3" />
+                    {s.windowStartHour}h–{s.windowEndHour}h ·{" "}
+                    {formatDays(s.windowDays)}
                   </p>
                 </div>
                 <Button variant="outline" size="sm">
