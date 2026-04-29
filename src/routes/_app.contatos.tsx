@@ -38,7 +38,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles } from "lucide-react";
 import { contactsDb, categoriesDb, sequencesDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
 import Papa from "papaparse";
@@ -53,6 +53,7 @@ const searchSchema = z.object({
   page: fallback(z.number().int().min(1), 1).default(1),
   q: fallback(z.string(), "").default(""),
   cat: fallback(z.string(), ALL).default(ALL),
+  persona: fallback(z.string(), "").default(""),
 });
 
 export const Route = createFileRoute("/_app/contatos")({
@@ -61,7 +62,7 @@ export const Route = createFileRoute("/_app/contatos")({
 });
 
 function ContactsPage() {
-  const { page, q, cat } = Route.useSearch();
+  const { page, q, cat, persona } = Route.useSearch();
   const navigate = useNavigate({ from: "/contatos" });
 
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -101,9 +102,12 @@ function ContactsPage() {
           c.name.toLowerCase().includes(q.toLowerCase()) ||
           c.phone.includes(q);
         const matchCat = cat === ALL || c.categoryId === cat;
-        return matchSearch && matchCat;
+        const matchPersona =
+          !persona ||
+          (c.aiPersonaSummary ?? "").toLowerCase().includes(persona.toLowerCase());
+        return matchSearch && matchCat && matchPersona;
       }),
-    [contacts, q, cat],
+    [contacts, q, cat, persona],
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -111,8 +115,8 @@ function ContactsPage() {
   const pageStart = (safePage - 1) * PAGE_SIZE;
   const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
 
-  const goto = (next: Partial<{ page: number; q: string; cat: string }>) =>
-    navigate({ search: (prev: { page: number; q: string; cat: string }) => ({ ...prev, ...next }) });
+  const goto = (next: Partial<{ page: number; q: string; cat: string; persona: string }>) =>
+    navigate({ search: (prev: any) => ({ ...prev, ...next }) });
 
   const handleSave = async (data: Omit<Contact, "id" | "createdAt">) => {
     try {
