@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import {
   DndContext,
   type DragEndEvent,
@@ -23,7 +24,7 @@ import {
   type PipelinePlacement,
 } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { GripVertical, Phone, Loader2 } from "lucide-react";
+import { GripVertical, Phone, Loader2, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/pipeline")({
@@ -39,7 +40,8 @@ function ContactCard({
   category?: Category;
   dragging?: boolean;
 }) {
-  return (
+  const hasAi = !!contact.aiPersonaSummary || !!contact.urgencyLevel;
+  const card = (
     <div
       className={cn(
         "bg-card border rounded-lg p-3 shadow-sm space-y-2 cursor-grab active:cursor-grabbing",
@@ -49,22 +51,66 @@ function ContactCard({
       <div className="flex items-start gap-2">
         <GripVertical className="size-4 text-muted-foreground shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm truncate">{contact.name}</p>
+          <div className="flex items-center gap-1">
+            <p className="font-medium text-sm truncate">{contact.name}</p>
+            {hasAi && <Sparkles className="size-3 text-primary shrink-0" />}
+          </div>
           <p className="text-xs text-muted-foreground font-mono flex items-center gap-1">
             <Phone className="size-3" /> {contact.phone}
           </p>
         </div>
       </div>
-      {category && (
-        <Badge
-          variant="outline"
-          className="text-[10px]"
-          style={{ borderColor: category.color, color: category.color }}
-        >
-          {category.name}
-        </Badge>
-      )}
+      <div className="flex items-center gap-1 flex-wrap">
+        {category && (
+          <Badge
+            variant="outline"
+            className="text-[10px]"
+            style={{ borderColor: category.color, color: category.color }}
+          >
+            {category.name}
+          </Badge>
+        )}
+        {contact.urgencyLevel && (
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px] gap-0.5",
+              contact.urgencyLevel === "Alta"
+                ? "border-red-500/50 text-red-600 dark:text-red-400"
+                : contact.urgencyLevel === "Média"
+                  ? "border-amber-500/50 text-amber-600 dark:text-amber-400"
+                  : "border-emerald-500/50 text-emerald-600 dark:text-emerald-400",
+            )}
+          >
+            <AlertTriangle className="size-2.5" />
+            {contact.urgencyLevel}
+          </Badge>
+        )}
+      </div>
     </div>
+  );
+  if (!hasAi || dragging) return card;
+  return (
+    <HoverCard openDelay={200}>
+      <HoverCardTrigger asChild>{card}</HoverCardTrigger>
+      <HoverCardContent side="right" className="w-72 text-xs space-y-2">
+        <div className="flex items-center gap-1.5 text-primary">
+          <Sparkles className="size-3.5" />
+          <span className="font-semibold">Análise da IA</span>
+        </div>
+        {contact.urgencyLevel && (
+          <p>
+            <span className="text-muted-foreground">Urgência:</span>{" "}
+            <strong>{contact.urgencyLevel}</strong>
+          </p>
+        )}
+        {contact.aiPersonaSummary ? (
+          <p className="leading-relaxed">{contact.aiPersonaSummary}</p>
+        ) : (
+          <p className="italic text-muted-foreground">Sem resumo</p>
+        )}
+      </HoverCardContent>
+    </HoverCard>
   );
 }
 
