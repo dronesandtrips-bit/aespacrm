@@ -148,14 +148,16 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             .from("crm_contact_categories")
             .select("category_id")
             .eq("contact_id", contact.id);
-          const currentIds = new Set((current ?? []).map((r: any) => r.category_id));
+          const currentIds = new Set<string>(
+            (current ?? []).map((r: any) => String(r.category_id)),
+          );
 
           let targetIds: Set<string>;
           if (mode === "replace") {
-            targetIds = new Set(resolvedIds);
+            targetIds = new Set<string>(resolvedIds);
           } else {
             // merge
-            targetIds = new Set([...currentIds, ...resolvedIds]);
+            targetIds = new Set<string>([...currentIds, ...resolvedIds]);
           }
 
           const toInsert = [...targetIds].filter((id) => !currentIds.has(id));
