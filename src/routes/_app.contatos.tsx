@@ -38,7 +38,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { contactsDb, categoriesDb, sequencesDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
 import Papa from "papaparse";
@@ -50,11 +50,16 @@ const ALL = "__all__";
 const NONE = "__none__";
 const PAGE_SIZE = 50;
 
+const SORT_KEYS = ["name", "phone", "email", "category", "urgency"] as const;
+type SortKey = (typeof SORT_KEYS)[number];
+
 const searchSchema = z.object({
   page: fallback(z.number().int().min(1), 1).default(1),
   q: fallback(z.string(), "").default(""),
   cat: fallback(z.string(), ALL).default(ALL),
   persona: fallback(z.string(), "").default(""),
+  sort: fallback(z.enum(SORT_KEYS), "name").default("name"),
+  dir: fallback(z.enum(["asc", "desc"]), "asc").default("asc"),
 });
 
 export const Route = createFileRoute("/_app/contatos")({
@@ -63,7 +68,7 @@ export const Route = createFileRoute("/_app/contatos")({
 });
 
 function ContactsPage() {
-  const { page, q, cat, persona } = Route.useSearch();
+  const { page, q, cat, persona, sort, dir } = Route.useSearch();
   const navigate = useNavigate({ from: "/contatos" });
 
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -136,13 +141,65 @@ function ContactsPage() {
     [contacts, q, cat, persona],
   );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const URGENCY_RANK: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const mult = dir === "asc" ? 1 : -1;
+    const catName = (id?: string | null) =>
+      (id && categories.find((k) => k.id === id)?.name) || "";
+    arr.sort((a, b) => {
+      let va: string | number = "";
+      let vb: string | number = "";
+      switch (sort) {
+        case "name":
+          va = a.name?.toLowerCase() ?? "";
+          vb = b.name?.toLowerCase() ?? "";
+          break;
+        case "phone":
+          va = a.phone ?? "";
+          vb = b.phone ?? "";
+          break;
+        case "email":
+          va = (a.email ?? "").toLowerCase();
+          vb = (b.email ?? "").toLowerCase();
+          break;
+        case "category":
+          va = catName(a.categoryId).toLowerCase();
+          vb = catName(b.categoryId).toLowerCase();
+          break;
+        case "urgency":
+          va = URGENCY_RANK[a.urgencyLevel ?? ""] ?? 0;
+          vb = URGENCY_RANK[b.urgencyLevel ?? ""] ?? 0;
+          break;
+      }
+      // Vazios sempre por último, independente da direção
+      const aEmpty = va === "" || va === 0;
+      const bEmpty = vb === "" || vb === 0;
+      if (aEmpty && !bEmpty) return 1;
+      if (!aEmpty && bEmpty) return -1;
+      if (va < vb) return -1 * mult;
+      if (va > vb) return 1 * mult;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sort, dir, categories]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageStart = (safePage - 1) * PAGE_SIZE;
-  const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+  const pageItems = sorted.slice(pageStart, pageStart + PAGE_SIZE);
 
-  const goto = (next: Partial<{ page: number; q: string; cat: string; persona: string }>) =>
-    navigate({ search: (prev: any) => ({ ...prev, ...next }) });
+  const goto = (
+    next: Partial<{ page: number; q: string; cat: string; persona: string; sort: SortKey; dir: "asc" | "desc" }>,
+  ) => navigate({ search: (prev: any) => ({ ...prev, ...next }) });
+
+  const toggleSort = (key: SortKey) => {
+    if (sort === key) {
+      goto({ dir: dir === "asc" ? "desc" : "asc", page: 1 });
+    } else {
+      goto({ sort: key, dir: "asc", page: 1 });
+    }
+  };
 
   const handleSave = async (data: Omit<Contact, "id" | "createdAt">) => {
     try {
@@ -291,11 +348,11 @@ function ContactsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead className="hidden md:table-cell">Email</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Urgência</TableHead>
+                <SortableHead label="Nome" k="name" sort={sort} dir={dir} onSort={toggleSort} />
+                <SortableHead label="Telefone" k="phone" sort={sort} dir={dir} onSort={toggleSort} />
+                <SortableHead label="Email" k="email" sort={sort} dir={dir} onSort={toggleSort} className="hidden md:table-cell" />
+                <SortableHead label="Categoria" k="category" sort={sort} dir={dir} onSort={toggleSort} />
+                <SortableHead label="Urgência" k="urgency" sort={sort} dir={dir} onSort={toggleSort} />
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -410,6 +467,40 @@ function ContactsPage() {
         onClose={() => setEnrollContact(null)}
       />
     </div>
+  );
+}
+
+function SortableHead({
+  label,
+  k,
+  sort,
+  dir,
+  onSort,
+  className,
+}: {
+  label: string;
+  k: SortKey;
+  sort: SortKey;
+  dir: "asc" | "desc";
+  onSort: (k: SortKey) => void;
+  className?: string;
+}) {
+  const active = sort === k;
+  const Icon = active ? (dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={() => onSort(k)}
+        className={`inline-flex items-center gap-1.5 hover:text-foreground transition-colors ${
+          active ? "text-foreground font-medium" : "text-muted-foreground"
+        }`}
+        title={`Ordenar por ${label}`}
+      >
+        {label}
+        <Icon className="size-3.5 opacity-70" />
+      </button>
+    </TableHead>
   );
 }
 
