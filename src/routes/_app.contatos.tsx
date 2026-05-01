@@ -201,6 +201,17 @@ function ContactsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleCleanInvalid}
+            disabled={cleaning}
+            title="Remove contatos vindos de grupos, broadcasts e telefones inválidos"
+          >
+            {cleaning ? <Loader2 className="size-4 animate-spin" /> : <Sparkle className="size-4" />}
+            Limpar contatos inválidos
+          </Button>
           <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
             <Download className="size-4" /> Exportar CSV
           </Button>
