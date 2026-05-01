@@ -41,6 +41,7 @@ import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.ev
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
 import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
 import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api.public.evolution.bulk-dispatch'
+import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
 import { Route as ApiPublicAiContactEnrichRouteImport } from './routes/api.public.ai.contact-enrich'
 import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
@@ -213,6 +214,12 @@ const ApiPublicEvolutionBulkDispatchRoute =
     path: '/api/public/evolution/bulk-dispatch',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicContactsCleanupRoute =
+  ApiPublicContactsCleanupRouteImport.update({
+    id: '/api/public/contacts/cleanup',
+    path: '/api/public/contacts/cleanup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAiLovableProxyRoute = ApiPublicAiLovableProxyRouteImport.update({
   id: '/api/public/ai/lovable-proxy',
   path: '/api/public/ai/lovable-proxy',
@@ -256,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -293,6 +301,7 @@ export interface FileRoutesByTo {
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -332,6 +341,7 @@ export interface FileRoutesById {
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -371,6 +381,7 @@ export interface FileRouteTypes {
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -408,6 +419,7 @@ export interface FileRouteTypes {
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -446,6 +458,7 @@ export interface FileRouteTypes {
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -473,6 +486,7 @@ export interface RootRouteChildren {
   WidgetFormIdRoute: typeof WidgetFormIdRoute
   ApiPublicAiContactEnrichRoute: typeof ApiPublicAiContactEnrichRoute
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
+  ApiPublicContactsCleanupRoute: typeof ApiPublicContactsCleanupRoute
   ApiPublicEvolutionBulkDispatchRoute: typeof ApiPublicEvolutionBulkDispatchRoute
   ApiPublicEvolutionConfigureWebhookRoute: typeof ApiPublicEvolutionConfigureWebhookRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
@@ -717,6 +731,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionBulkDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/contacts/cleanup': {
+      id: '/api/public/contacts/cleanup'
+      path: '/api/public/contacts/cleanup'
+      fullPath: '/api/public/contacts/cleanup'
+      preLoaderRoute: typeof ApiPublicContactsCleanupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ai/lovable-proxy': {
       id: '/api/public/ai/lovable-proxy'
       path: '/api/public/ai/lovable-proxy'
@@ -789,6 +810,7 @@ const rootRouteChildren: RootRouteChildren = {
   WidgetFormIdRoute: WidgetFormIdRoute,
   ApiPublicAiContactEnrichRoute: ApiPublicAiContactEnrichRoute,
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
+  ApiPublicContactsCleanupRoute: ApiPublicContactsCleanupRoute,
   ApiPublicEvolutionBulkDispatchRoute: ApiPublicEvolutionBulkDispatchRoute,
   ApiPublicEvolutionConfigureWebhookRoute:
     ApiPublicEvolutionConfigureWebhookRoute,
