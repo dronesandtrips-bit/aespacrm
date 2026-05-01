@@ -44,7 +44,6 @@ import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api
 import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
 import { Route as ApiPublicAiContactEnrichRouteImport } from './routes/api.public.ai.contact-enrich'
-import { Route as ApiPublicAdminRerunEnrichJonesRouteImport } from './routes/api.public.admin.rerun-enrich-jones'
 import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
 import { Route as ApiPublicWidgetConfigIdRouteImport } from './routes/api.public.widget.config.$id'
 
@@ -232,12 +231,6 @@ const ApiPublicAiContactEnrichRoute =
     path: '/api/public/ai/contact-enrich',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicAdminRerunEnrichJonesRoute =
-  ApiPublicAdminRerunEnrichJonesRouteImport.update({
-    id: '/api/public/admin/rerun-enrich-jones',
-    path: '/api/public/admin/rerun-enrich-jones',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicWidgetEmbedIdDotjsRoute =
   ApiPublicWidgetEmbedIdDotjsRouteImport.update({
     id: '/api/public/widget/embed/$id.js',
@@ -268,7 +261,6 @@ export interface FileRoutesByFullPath {
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
-  '/api/public/admin/rerun-enrich-jones': typeof ApiPublicAdminRerunEnrichJonesRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -307,7 +299,6 @@ export interface FileRoutesByTo {
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
-  '/api/public/admin/rerun-enrich-jones': typeof ApiPublicAdminRerunEnrichJonesRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -348,7 +339,6 @@ export interface FileRoutesById {
   '/_app/templates': typeof AppTemplatesRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
-  '/api/public/admin/rerun-enrich-jones': typeof ApiPublicAdminRerunEnrichJonesRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -389,7 +379,6 @@ export interface FileRouteTypes {
     | '/templates'
     | '/whatsapp'
     | '/widget/form/$id'
-    | '/api/public/admin/rerun-enrich-jones'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/contacts/cleanup'
@@ -428,7 +417,6 @@ export interface FileRouteTypes {
     | '/templates'
     | '/whatsapp'
     | '/widget/form/$id'
-    | '/api/public/admin/rerun-enrich-jones'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/contacts/cleanup'
@@ -468,7 +456,6 @@ export interface FileRouteTypes {
     | '/_app/templates'
     | '/_app/whatsapp'
     | '/widget/form/$id'
-    | '/api/public/admin/rerun-enrich-jones'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/contacts/cleanup'
@@ -497,7 +484,6 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
-  ApiPublicAdminRerunEnrichJonesRoute: typeof ApiPublicAdminRerunEnrichJonesRoute
   ApiPublicAiContactEnrichRoute: typeof ApiPublicAiContactEnrichRoute
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
   ApiPublicContactsCleanupRoute: typeof ApiPublicContactsCleanupRoute
@@ -766,13 +752,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAiContactEnrichRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/admin/rerun-enrich-jones': {
-      id: '/api/public/admin/rerun-enrich-jones'
-      path: '/api/public/admin/rerun-enrich-jones'
-      fullPath: '/api/public/admin/rerun-enrich-jones'
-      preLoaderRoute: typeof ApiPublicAdminRerunEnrichJonesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/widget/embed/$id.js': {
       id: '/api/public/widget/embed/$id.js'
       path: '/api/public/widget/embed/$id.js'
@@ -829,7 +808,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
-  ApiPublicAdminRerunEnrichJonesRoute: ApiPublicAdminRerunEnrichJonesRoute,
   ApiPublicAiContactEnrichRoute: ApiPublicAiContactEnrichRoute,
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
   ApiPublicContactsCleanupRoute: ApiPublicContactsCleanupRoute,
