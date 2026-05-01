@@ -490,7 +490,14 @@ function ContactsPage() {
                   .filter(Boolean) as Category[];
                 const primary = tagObjs[0];
                 return (
-                  <TableRow key={c.id}>
+                  <TableRow key={c.id} data-state={selected.has(c.id) ? "selected" : undefined}>
+                    <TableCell className="w-[40px]">
+                      <Checkbox
+                        checked={selected.has(c.id)}
+                        onCheckedChange={() => toggleSelect(c.id)}
+                        aria-label={`Selecionar ${c.name}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div
