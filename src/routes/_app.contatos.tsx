@@ -463,6 +463,13 @@ function ContactsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]">
+                  <Checkbox
+                    checked={allPageSelected ? true : somePageSelected ? "indeterminate" : false}
+                    onCheckedChange={togglePageAll}
+                    aria-label="Selecionar todos da página"
+                  />
+                </TableHead>
                 <SortableHead label="Nome" k="name" sort={sort} dir={dir} onSort={toggleSort} />
                 <SortableHead label="Telefone" k="phone" sort={sort} dir={dir} onSort={toggleSort} />
                 <SortableHead label="Email" k="email" sort={sort} dir={dir} onSort={toggleSort} className="hidden md:table-cell" />
