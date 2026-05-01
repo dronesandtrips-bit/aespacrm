@@ -1,15 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseAdmin } from "@/integrations/supabase/server";
-
-const isE164 = (p: string | null | undefined) => !!p && /^\d{10,15}$/.test(p);
-const looksLikeJidName = (n: string | null | undefined) =>
-  !!n && (String(n).includes("@") || /^\d{14,}$/.test(String(n).trim()));
+import { isStrictValidPhone, looksLikeJidOrIdName } from "./phone-validation";
 
 function classify(rows: Array<{ id: string; name: string | null; phone: string | null; phone_norm: string | null }>) {
   return rows.filter((c) => {
-    const badPhone = !isE164(c.phone_norm) && !isE164(c.phone);
-    const badName = looksLikeJidName(c.name);
-    return badPhone || badName;
+    // Telefone: precisa passar na regra estrita em phone_norm OU phone.
+    const phoneOk = isStrictValidPhone(c.phone_norm) || isStrictValidPhone(c.phone);
+    const badName = looksLikeJidOrIdName(c.name);
+    return !phoneOk || badName;
   });
 }
 
