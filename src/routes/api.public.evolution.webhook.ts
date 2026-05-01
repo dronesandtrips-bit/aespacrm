@@ -14,6 +14,7 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { getSupabaseAdmin, jsonResponse } from "@/integrations/supabase/server";
+import { isStrictValidPhone } from "@/server/phone-validation";
 
 const INSTANCE = "zapcrm";
 
@@ -32,9 +33,9 @@ function normalizePhone(jid: string | undefined | null): string {
   return String(jid).split("@")[0].replace(/\D/g, "");
 }
 
-// E.164: 10 a 15 dígitos numéricos.
+// Validação estrita: E.164 + regras por país (BR=12/13) + anti-lixo.
 function isValidE164(phone: string): boolean {
-  return /^\d{10,15}$/.test(phone);
+  return isStrictValidPhone(phone);
 }
 
 // Sanitiza nome vindo da Evolution: rejeita JIDs, vazios e strings que parecem IDs técnicos.
