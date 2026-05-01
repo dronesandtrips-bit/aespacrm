@@ -197,7 +197,10 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
               if (!isValidE164(phone)) continue;
               const fromMe: boolean = !!msg?.key?.fromMe;
               const messageId: string = msg?.key?.id ?? "";
-              const pushName: string = msg?.pushName ?? "";
+              // IMPORTANTE: quando fromMe=true, pushName é o nome do DONO da instância
+              // (você), não do destinatário. Ignorar nesse caso para não poluir contatos
+              // novos com "Jones Hahn". A IA preenche o nome real depois via enrich.
+              const pushName: string = fromMe ? "" : (msg?.pushName ?? "");
               const ts = msg?.messageTimestamp
                 ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
                 : new Date().toISOString();
