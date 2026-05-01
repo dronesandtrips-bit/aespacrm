@@ -17,10 +17,34 @@ import { getSupabaseAdmin, jsonResponse } from "@/integrations/supabase/server";
 
 const INSTANCE = "zapcrm";
 
+// Aceita apenas JIDs de contatos individuais do WhatsApp.
+// Rejeita grupos (@g.us), broadcast (@broadcast), status, lid (@lid) e qualquer outro.
+function isIndividualJid(jid: string | undefined | null): boolean {
+  if (!jid) return false;
+  const s = String(jid).toLowerCase();
+  if (!s.includes("@")) return false; // sem domínio, não confiamos
+  return s.endsWith("@s.whatsapp.net") || s.endsWith("@c.us");
+}
+
 function normalizePhone(jid: string | undefined | null): string {
   if (!jid) return "";
   // 5511999999999@s.whatsapp.net → 5511999999999
-  return jid.split("@")[0].replace(/\D/g, "");
+  return String(jid).split("@")[0].replace(/\D/g, "");
+}
+
+// E.164: 10 a 15 dígitos numéricos.
+function isValidE164(phone: string): boolean {
+  return /^\d{10,15}$/.test(phone);
+}
+
+// Sanitiza nome vindo da Evolution: rejeita JIDs, vazios e strings que parecem IDs técnicos.
+function sanitizeContactName(rawName: string | undefined | null, phone: string): string {
+  const n = (rawName ?? "").toString().trim();
+  if (!n) return phone;
+  if (n.includes("@")) return phone; // parece JID
+  if (/^\d{14,}$/.test(n)) return phone; // ID numérico longo
+  if (n.length > 120) return n.slice(0, 120);
+  return n;
 }
 
 function detectMessageType(msg: any): {
@@ -91,7 +115,8 @@ async function ensureContact(
   phone: string,
   fallbackName: string,
 ): Promise<string | null> {
-  if (!phone) return null;
+  if (!phone || !isValidE164(phone)) return null;
+  const safeName = sanitizeContactName(fallbackName, phone);
   // tenta achar
   const { data: existing } = await sb
     .from("crm_contacts")
@@ -105,7 +130,7 @@ async function ensureContact(
     .from("crm_contacts")
     .insert({
       user_id: userId,
-      name: fallbackName || phone,
+      name: safeName,
       phone,
     })
     .select("id")
@@ -165,8 +190,10 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
             const arr = Array.isArray(payload?.data) ? payload.data : [payload?.data].filter(Boolean);
             for (const msg of arr) {
               const remoteJid: string = msg?.key?.remoteJid ?? "";
-              if (!remoteJid || remoteJid.endsWith("@g.us")) continue; // ignora grupos
+              // só contatos individuais — ignora grupos, broadcast, status, lid
+              if (!isIndividualJid(remoteJid)) continue;
               const phone = normalizePhone(remoteJid);
+              if (!isValidE164(phone)) continue;
               const fromMe: boolean = !!msg?.key?.fromMe;
               const messageId: string = msg?.key?.id ?? "";
               const pushName: string = msg?.pushName ?? "";
@@ -241,8 +268,9 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
             const arr = Array.isArray(payload?.data) ? payload.data : [payload?.data].filter(Boolean);
             for (const c of arr) {
               const remoteJid = c?.id ?? c?.remoteJid;
-              if (!remoteJid || String(remoteJid).endsWith("@g.us")) continue;
+              if (!isIndividualJid(remoteJid)) continue;
               const phone = normalizePhone(remoteJid);
+              if (!isValidE164(phone)) continue;
               const name = c?.pushName ?? c?.name ?? c?.notify ?? phone;
               await ensureContact(sb, ownerUserId, phone, name);
             }
