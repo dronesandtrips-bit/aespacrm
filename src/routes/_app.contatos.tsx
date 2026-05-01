@@ -348,11 +348,11 @@ function ContactsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead className="hidden md:table-cell">Email</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Urgência</TableHead>
+                <SortableHead label="Nome" k="name" sort={sort} dir={dir} onSort={toggleSort} />
+                <SortableHead label="Telefone" k="phone" sort={sort} dir={dir} onSort={toggleSort} />
+                <SortableHead label="Email" k="email" sort={sort} dir={dir} onSort={toggleSort} className="hidden md:table-cell" />
+                <SortableHead label="Categoria" k="category" sort={sort} dir={dir} onSort={toggleSort} />
+                <SortableHead label="Urgência" k="urgency" sort={sort} dir={dir} onSort={toggleSort} />
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
