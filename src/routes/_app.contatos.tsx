@@ -50,11 +50,16 @@ const ALL = "__all__";
 const NONE = "__none__";
 const PAGE_SIZE = 50;
 
+const SORT_KEYS = ["name", "phone", "email", "category", "urgency"] as const;
+type SortKey = (typeof SORT_KEYS)[number];
+
 const searchSchema = z.object({
   page: fallback(z.number().int().min(1), 1).default(1),
   q: fallback(z.string(), "").default(""),
   cat: fallback(z.string(), ALL).default(ALL),
   persona: fallback(z.string(), "").default(""),
+  sort: fallback(z.enum(SORT_KEYS), "name").default("name"),
+  dir: fallback(z.enum(["asc", "desc"]), "asc").default("asc"),
 });
 
 export const Route = createFileRoute("/_app/contatos")({
