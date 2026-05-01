@@ -33,7 +33,13 @@ export type BulkSend = {
   status: "pending" | "in_progress" | "completed" | "error";
   createdAt: string;
 };
-export type PipelineStage = { id: string; name: string; color: string; order: number; sequenceId?: string | null };
+export type PipelineStage = {
+  id: string;
+  name: string;
+  color: string;
+  order: number;
+  sequenceId?: string | null;
+};
 export type PipelinePlacement = { contactId: string; stageId: string };
 export type ChatMessage = {
   id: string;
@@ -206,7 +212,10 @@ async function setContactCategories(contactId: string, categoryIds: string[]) {
     .select("category_id")
     .eq("contact_id", contactId);
   if (currentError) {
-    console.warn("[contacts] crm_contact_categories indisponível no salvamento; usando category_id legado:", currentError.message);
+    console.warn(
+      "[contacts] crm_contact_categories indisponível no salvamento; usando category_id legado:",
+      currentError.message,
+    );
     const { error } = await c
       .from("crm_contacts")
       .update({ category_id: wanted[0] ?? null })
@@ -242,9 +251,7 @@ async function setContactCategories(contactId: string, categoryIds: string[]) {
       category_id: cid,
       user_id,
     }));
-    const { error } = await c
-      .from("crm_contact_categories")
-      .insert(rows);
+    const { error } = await c.from("crm_contact_categories").insert(rows);
     if (error) {
       console.warn("[contacts] falha ao inserir tags; usando category_id legado:", error.message);
       const { error: legacyError } = await c
@@ -285,10 +292,7 @@ export const contactsDb = {
   async list(): Promise<Contact[]> {
     const c = await client();
     const [contactsRes, tagsMap] = await Promise.all([
-      c
-        .from("crm_contacts")
-        .select(CONTACT_COLUMNS)
-        .order("created_at", { ascending: false }),
+      c.from("crm_contacts").select(CONTACT_COLUMNS).order("created_at", { ascending: false }),
       loadContactCategoriesMap(),
     ]);
     if (contactsRes.error) throw contactsRes.error;
@@ -304,11 +308,12 @@ export const contactsDb = {
     const c = await client();
     const user_id = await uid();
     // Prioriza categoryIds; cai pra categoryId se vier só ele
-    const tags = input.categoryIds && input.categoryIds.length
-      ? input.categoryIds
-      : input.categoryId
-        ? [input.categoryId]
-        : [];
+    const tags =
+      input.categoryIds && input.categoryIds.length
+        ? input.categoryIds
+        : input.categoryId
+          ? [input.categoryId]
+          : [];
     const { data, error } = await c
       .from("crm_contacts")
       .insert({
@@ -353,7 +358,11 @@ export const contactsDb = {
         .from("crm_contact_categories")
         .select("category_id")
         .eq("contact_id", id);
-      if (prevError) console.warn("[contacts] crm_contact_categories indisponível para diff de tags:", prevError.message);
+      if (prevError)
+        console.warn(
+          "[contacts] crm_contact_categories indisponível para diff de tags:",
+          prevError.message,
+        );
       else prevTags = new Set((prev ?? []).map((r: any) => r.category_id));
     }
 
@@ -392,9 +401,7 @@ export const contactsDb = {
     const user_id = await uid();
 
     // Telefones já existentes (para reportar skipped)
-    const { data: existing } = await c
-      .from("crm_contacts")
-      .select("phone");
+    const { data: existing } = await c.from("crm_contacts").select("phone");
     const existingNorm = new Set(
       (existing ?? []).map((e: any) => String(e.phone).replace(/\D/g, "")),
     );
@@ -410,11 +417,8 @@ export const contactsDb = {
         continue;
       }
       seenInBatch.add(norm);
-      const tags = r.categoryIds && r.categoryIds.length
-        ? r.categoryIds
-        : r.categoryId
-          ? [r.categoryId]
-          : [];
+      const tags =
+        r.categoryIds && r.categoryIds.length ? r.categoryIds : r.categoryId ? [r.categoryId] : [];
       tagsByPhone.set(norm, tags);
       toInsert.push({
         user_id,
@@ -441,9 +445,7 @@ export const contactsDb = {
       }
     }
     if (ccRows.length) {
-      const { error: ccErr } = await c
-        .from("crm_contact_categories")
-        .insert(ccRows);
+      const { error: ccErr } = await c.from("crm_contact_categories").insert(ccRows);
       if (ccErr) console.error("bulkImport contact_categories", ccErr);
     }
     return { imported: toInsert.length, skipped };
@@ -476,13 +478,15 @@ export const pipelineDb = {
   },
   async listPlacements(): Promise<PipelinePlacement[]> {
     const c = await client();
-    const { data, error } = await c
-      .from("crm_pipeline_placements")
-      .select("contact_id,stage_id");
+    const { data, error } = await c.from("crm_pipeline_placements").select("contact_id,stage_id");
     if (error) throw error;
     return (data ?? []).map((r: any) => ({ contactId: r.contact_id, stageId: r.stage_id }));
   },
-  async createStage(name: string, color: string, sequenceId?: string | null): Promise<PipelineStage> {
+  async createStage(
+    name: string,
+    color: string,
+    sequenceId?: string | null,
+  ): Promise<PipelineStage> {
     const c = await client();
     const user_id = await uid();
     // Calcula próximo order
@@ -491,7 +495,7 @@ export const pipelineDb = {
       .select('"order"')
       .order("order", { ascending: false })
       .limit(1);
-    const nextOrder = (existing && existing[0]?.order != null ? existing[0].order + 1 : 0);
+    const nextOrder = existing && existing[0]?.order != null ? existing[0].order + 1 : 0;
     const { data, error } = await c
       .from("crm_pipeline_stages")
       .insert({ user_id, name, color, order: nextOrder, sequence_id: sequenceId ?? null })
@@ -783,7 +787,8 @@ export const sequencesDb = {
     if (patch.windowEndHour !== undefined) dbPatch.window_end_hour = patch.windowEndHour;
     if (patch.windowDays !== undefined) dbPatch.window_days = patch.windowDays;
     if (patch.stopOnStageIds !== undefined) dbPatch.stop_on_stage_ids = patch.stopOnStageIds;
-    if (patch.autoResumeAfterDays !== undefined) dbPatch.auto_resume_after_days = patch.autoResumeAfterDays;
+    if (patch.autoResumeAfterDays !== undefined)
+      dbPatch.auto_resume_after_days = patch.autoResumeAfterDays;
     const { error } = await c.from("crm_sequences").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
@@ -855,8 +860,7 @@ export const sequencesDb = {
       .limit(1);
     const first = steps?.[0];
     const ms = first
-      ? first.delay_value *
-        (first.delay_unit === "hours" ? 3600_000 : 86_400_000)
+      ? first.delay_value * (first.delay_unit === "hours" ? 3600_000 : 86_400_000)
       : 0;
     const nextAt = new Date(Date.now() + ms).toISOString();
 
@@ -870,7 +874,11 @@ export const sequencesDb = {
     }));
     const { error, count } = await c
       .from("crm_contact_sequences")
-      .upsert(rows, { onConflict: "contact_id,sequence_id", ignoreDuplicates: true, count: "exact" });
+      .upsert(rows, {
+        onConflict: "contact_id,sequence_id",
+        ignoreDuplicates: true,
+        count: "exact",
+      });
     if (error) throw error;
     return { enrolled: count ?? rows.length };
   },
@@ -897,7 +905,11 @@ export const sequencesDb = {
    * Pausa todas as sequências ativas de um contato (exceto a indicada).
    * Usada antes de inscrever em uma nova sequência via gatilho automático.
    */
-  async pauseAllActiveForContact(contactId: string, exceptSequenceId?: string, reason = "auto_replaced") {
+  async pauseAllActiveForContact(
+    contactId: string,
+    exceptSequenceId?: string,
+    reason = "auto_replaced",
+  ) {
     const c = await client();
     let q = c
       .from("crm_contact_sequences")
@@ -1018,8 +1030,7 @@ export const widgetsDb = {
         button_text: input.buttonText ?? "Enviar",
         primary_color: input.primaryColor ?? "#10B981",
         success_message:
-          input.successMessage ??
-          "Recebemos sua mensagem! Entraremos em contato em breve.",
+          input.successMessage ?? "Recebemos sua mensagem! Entraremos em contato em breve.",
         source_tag: input.sourceTag ?? "site",
       })
       .select("*")
@@ -1052,7 +1063,6 @@ export const widgetsDb = {
     if (error) throw error;
   },
 };
-
 
 // ===================== Templates de mensagem =====================
 
@@ -1104,10 +1114,7 @@ export const templatesDb = {
     patch: Partial<{ name: string; content: string; category: string | null }>,
   ) {
     const c = await client();
-    const { error } = await c
-      .from("crm_message_templates")
-      .update(patch)
-      .eq("id", id);
+    const { error } = await c.from("crm_message_templates").update(patch).eq("id", id);
     if (error) throw error;
   },
 

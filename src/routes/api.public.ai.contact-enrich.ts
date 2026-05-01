@@ -22,7 +22,12 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { checkApiKey, getSupabaseAdmin, jsonResponse, PUBLIC_CORS } from "@/integrations/supabase/server";
+import {
+  checkApiKey,
+  getSupabaseAdmin,
+  jsonResponse,
+  PUBLIC_CORS,
+} from "@/integrations/supabase/server";
 
 const BodySchema = z.object({
   phone: z.string().min(6).max(32),
@@ -47,10 +52,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
         }
         const ownerUserId = process.env.EVOLUTION_OWNER_USER_ID?.trim();
         if (!ownerUserId) {
-          return jsonResponse(
-            { ok: false, error: "EVOLUTION_OWNER_USER_ID não configurado" },
-            500,
-          );
+          return jsonResponse({ ok: false, error: "EVOLUTION_OWNER_USER_ID não configurado" }, 500);
         }
 
         let raw: any;
@@ -68,7 +70,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
         }
         const { phone, ai_summary, category_name, category_names, mode } = parsed.data;
         // Normaliza "Media" → "Média" (acentos podem perder no transporte)
-        const urgency = parsed.data.urgency === "Media" ? "Média" : parsed.data.urgency ?? null;
+        const urgency = parsed.data.urgency === "Media" ? "Média" : (parsed.data.urgency ?? null);
 
         const sb = getSupabaseAdmin();
         const phoneNorm = normalizePhone(phone);
@@ -149,8 +151,12 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             .select("category_id")
             .eq("contact_id", contact.id);
           if (currentErr) {
-            console.warn("contact-enrich crm_contact_categories unavailable; using legacy category_id", currentErr);
-            const fallbackCategoryId = mode === "replace" ? resolvedIds[0] ?? null : resolvedIds[0] ?? undefined;
+            console.warn(
+              "contact-enrich crm_contact_categories unavailable; using legacy category_id",
+              currentErr,
+            );
+            const fallbackCategoryId =
+              mode === "replace" ? (resolvedIds[0] ?? null) : (resolvedIds[0] ?? undefined);
             if (fallbackCategoryId !== undefined) {
               const { error: legacyErr } = await sb
                 .from("crm_contacts")
@@ -167,7 +173,8 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
               ok: true,
               contact_id: contact.id,
               mode,
-              warning: "crm_contact_categories indisponível na API; categoria principal atualizada no modo legado",
+              warning:
+                "crm_contact_categories indisponível na API; categoria principal atualizada no modo legado",
               updated: {
                 ai_persona_summary: ai_summary !== undefined,
                 urgency_level: !!urgency,
@@ -192,9 +199,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
 
           const toInsert = [...targetIds].filter((id) => !currentIds.has(id));
           const toDelete =
-            mode === "replace"
-              ? [...currentIds].filter((id) => !targetIds.has(id))
-              : [];
+            mode === "replace" ? [...currentIds].filter((id) => !targetIds.has(id)) : [];
 
           if (toInsert.length) {
             const rows = toInsert.map((cid) => ({
@@ -202,9 +207,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
               category_id: cid,
               user_id: ownerUserId,
             }));
-            const { error: insErr } = await sb
-              .from("crm_contact_categories")
-              .insert(rows);
+            const { error: insErr } = await sb.from("crm_contact_categories").insert(rows);
             if (insErr) {
               console.error("contact-enrich insert categories", insErr);
               return jsonResponse({ ok: false, error: insErr.message }, 500);
