@@ -376,6 +376,42 @@ function ContactsPage() {
         </div>
       </div>
 
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5">
+          <div className="flex items-center gap-3 text-sm">
+            <span className="font-medium">
+              {selected.size} contato{selected.size > 1 ? "s" : ""} selecionado{selected.size > 1 ? "s" : ""}
+            </span>
+            {selected.size < filtered.length && (
+              <button
+                type="button"
+                onClick={selectAllFiltered}
+                className="text-primary hover:underline text-xs"
+              >
+                Selecionar todos os {filtered.length} filtrados
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="text-muted-foreground hover:underline text-xs"
+            >
+              Limpar seleção
+            </button>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="gap-2"
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+          >
+            {bulkDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+            Excluir selecionados
+          </Button>
+        </div>
+      )}
+
       <Card className="p-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
