@@ -109,8 +109,8 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             .from("crm_categories")
             .select("id, name")
             .eq("user_id", ownerUserId);
-          const byName = new Map(
-            (cats ?? []).map((c: any) => [String(c.name).trim().toLowerCase(), c.id]),
+          const byName = new Map<string, string>(
+            (cats ?? []).map((c: any) => [String(c.name).trim().toLowerCase(), String(c.id)]),
           );
           for (const name of normalizedIncoming) {
             const id = byName.get(name.toLowerCase());
