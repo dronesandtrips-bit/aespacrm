@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
-import { contactsDb, categoriesDb, sequencesDb, type Contact, type Category, type Sequence } from "@/lib/db";
+import { contactsDb, categoriesDb, sequencesDb, userSettingsDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import { z } from "zod";
@@ -120,6 +120,52 @@ function ContactsPage() {
       setSequences(sqs);
     } catch (e: any) {
       toast.error(`Erro ao carregar: ${e.message ?? e}`);
+    }
+  };
+
+  const [enriching, setEnriching] = useState<Set<string>>(new Set());
+  const handleEnrich = async (c: Contact) => {
+    if (enriching.has(c.id)) return;
+    let webhookUrl: string | null = null;
+    try {
+      const s = await userSettingsDb.get();
+      webhookUrl = s.rescanWebhookUrl;
+    } catch (e: any) {
+      toast.error(`Erro ao ler configurações: ${e.message ?? e}`);
+      return;
+    }
+    if (!webhookUrl) {
+      toast.error("Configure a URL de varredura em Configurações → IA");
+      return;
+    }
+    setEnriching((prev) => new Set(prev).add(c.id));
+    try {
+      const res = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "enrich_contact",
+          contact_id: c.id,
+          phone: c.phone,
+          triggered_at: new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) {
+        toast.error(`Webhook respondeu ${res.status}`);
+        return;
+      }
+      toast.success(`Enriquecimento disparado para ${c.name}. Atualizando em 8s…`);
+      setTimeout(() => {
+        refresh();
+      }, 8000);
+    } catch (e: any) {
+      toast.error(`Falha ao chamar webhook: ${e.message ?? e}`);
+    } finally {
+      setEnriching((prev) => {
+        const n = new Set(prev);
+        n.delete(c.id);
+        return n;
+      });
     }
   };
 
@@ -548,6 +594,19 @@ function ContactsPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Enriquecer com IA agora"
+                        disabled={enriching.has(c.id)}
+                        onClick={() => handleEnrich(c)}
+                      >
+                        {enriching.has(c.id) ? (
+                          <Loader2 className="size-4 animate-spin text-primary" />
+                        ) : (
+                          <Sparkles className="size-4 text-primary" />
+                        )}
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
