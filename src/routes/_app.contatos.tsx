@@ -790,8 +790,20 @@ function ContactDialog({
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
-  const [categoryId, setCategoryId] = useState<string>(initial?.categoryId ?? NONE);
+  const initialTags =
+    initial?.categoryIds && initial.categoryIds.length
+      ? initial.categoryIds
+      : initial?.categoryId
+        ? [initial.categoryId]
+        : [];
+  const [selectedIds, setSelectedIds] = useState<string[]>(initialTags);
   const [saving, setSaving] = useState(false);
+
+  const toggle = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -806,7 +818,7 @@ function ContactDialog({
         phone: phone.trim(),
         email: email.trim() || undefined,
         notes: notes.trim() || undefined,
-        categoryId: categoryId === NONE ? undefined : categoryId,
+        categoryIds: selectedIds,
       });
     } finally {
       setSaving(false);
@@ -838,20 +850,36 @@ function ContactDialog({
           <Input id="e" type="email" value={email ?? ""} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Categoria</Label>
-          <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>Sem categoria</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>Categorias (tags)</Label>
+          {categories.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Nenhuma categoria cadastrada. Crie em Configurações.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {categories.map((c) => {
+                const active = selectedIds.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => toggle(c.id)}
+                    className="rounded-md border px-2.5 py-1 text-xs font-semibold transition-all"
+                    style={{
+                      borderColor: c.color,
+                      color: active ? "#fff" : c.color,
+                      backgroundColor: active ? c.color : "transparent",
+                    }}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            Clique para adicionar/remover. A primeira tag será a categoria principal.
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="nt">Notas</Label>
