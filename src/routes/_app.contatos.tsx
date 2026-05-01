@@ -141,13 +141,65 @@ function ContactsPage() {
     [contacts, q, cat, persona],
   );
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const URGENCY_RANK: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const mult = dir === "asc" ? 1 : -1;
+    const catName = (id?: string | null) =>
+      (id && categories.find((k) => k.id === id)?.name) || "";
+    arr.sort((a, b) => {
+      let va: string | number = "";
+      let vb: string | number = "";
+      switch (sort) {
+        case "name":
+          va = a.name?.toLowerCase() ?? "";
+          vb = b.name?.toLowerCase() ?? "";
+          break;
+        case "phone":
+          va = a.phone ?? "";
+          vb = b.phone ?? "";
+          break;
+        case "email":
+          va = (a.email ?? "").toLowerCase();
+          vb = (b.email ?? "").toLowerCase();
+          break;
+        case "category":
+          va = catName(a.categoryId).toLowerCase();
+          vb = catName(b.categoryId).toLowerCase();
+          break;
+        case "urgency":
+          va = URGENCY_RANK[a.urgencyLevel ?? ""] ?? 0;
+          vb = URGENCY_RANK[b.urgencyLevel ?? ""] ?? 0;
+          break;
+      }
+      // Vazios sempre por último, independente da direção
+      const aEmpty = va === "" || va === 0;
+      const bEmpty = vb === "" || vb === 0;
+      if (aEmpty && !bEmpty) return 1;
+      if (!aEmpty && bEmpty) return -1;
+      if (va < vb) return -1 * mult;
+      if (va > vb) return 1 * mult;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sort, dir, categories]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pageStart = (safePage - 1) * PAGE_SIZE;
-  const pageItems = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+  const pageItems = sorted.slice(pageStart, pageStart + PAGE_SIZE);
 
-  const goto = (next: Partial<{ page: number; q: string; cat: string; persona: string }>) =>
-    navigate({ search: (prev: any) => ({ ...prev, ...next }) });
+  const goto = (
+    next: Partial<{ page: number; q: string; cat: string; persona: string; sort: SortKey; dir: "asc" | "desc" }>,
+  ) => navigate({ search: (prev: any) => ({ ...prev, ...next }) });
+
+  const toggleSort = (key: SortKey) => {
+    if (sort === key) {
+      goto({ dir: dir === "asc" ? "desc" : "asc", page: 1 });
+    } else {
+      goto({ sort: key, dir: "asc", page: 1 });
+    }
+  };
 
   const handleSave = async (data: Omit<Contact, "id" | "createdAt">) => {
     try {
