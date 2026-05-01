@@ -38,12 +38,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle } from "lucide-react";
 import { contactsDb, categoriesDb, sequencesDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import { z } from "zod";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
+import { previewInvalidContacts, deleteInvalidContacts } from "@/server/contacts-cleanup.functions";
 
 const ALL = "__all__";
 const NONE = "__none__";
@@ -73,6 +74,31 @@ function ContactsPage() {
   const [open, setOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
+  const [cleaning, setCleaning] = useState(false);
+
+  const handleCleanInvalid = async () => {
+    try {
+      setCleaning(true);
+      const preview = await previewInvalidContacts();
+      if (preview.invalid === 0) {
+        toast.success("Nenhum contato inválido encontrado 🎉");
+        return;
+      }
+      const ok = window.confirm(
+        `Encontrados ${preview.invalid} contatos inválidos (de ${preview.total} no total).\n\n` +
+          `Eles serão APAGADOS permanentemente, junto com mensagens e sequências vinculadas.\n\n` +
+          `Confirmar limpeza?`,
+      );
+      if (!ok) return;
+      const res = await deleteInvalidContacts();
+      toast.success(`${res.deleted} contatos removidos. ${res.remaining} restantes.`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao limpar contatos");
+    } finally {
+      setCleaning(false);
+    }
+  };
 
   const refresh = async () => {
     try {
@@ -175,6 +201,17 @@ function ContactsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleCleanInvalid}
+            disabled={cleaning}
+            title="Remove contatos vindos de grupos, broadcasts e telefones inválidos"
+          >
+            {cleaning ? <Loader2 className="size-4 animate-spin" /> : <Sparkle className="size-4" />}
+            Limpar contatos inválidos
+          </Button>
           <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
             <Download className="size-4" /> Exportar CSV
           </Button>
