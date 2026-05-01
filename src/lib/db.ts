@@ -872,13 +872,11 @@ export const sequencesDb = {
       status: "active" as const,
       next_send_at: nextAt,
     }));
-    const { error, count } = await c
-      .from("crm_contact_sequences")
-      .upsert(rows, {
-        onConflict: "contact_id,sequence_id",
-        ignoreDuplicates: true,
-        count: "exact",
-      });
+    const { error, count } = await c.from("crm_contact_sequences").upsert(rows, {
+      onConflict: "contact_id,sequence_id",
+      ignoreDuplicates: true,
+      count: "exact",
+    });
     if (error) throw error;
     return { enrolled: count ?? rows.length };
   },
