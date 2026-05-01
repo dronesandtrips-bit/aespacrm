@@ -236,14 +236,25 @@ function ContactsPage() {
   };
 
   const handleExport = () => {
-    const rows = filtered.map((c) => ({
-      Nome: c.name,
-      Telefone: c.phone,
-      Email: c.email ?? "",
-      Categoria: categories.find((k) => k.id === c.categoryId)?.name ?? "",
-      Notas: c.notes ?? "",
-      "Criado em": new Date(c.createdAt).toLocaleString("pt-BR"),
-    }));
+    const rows = filtered.map((c) => {
+      const tagIds = c.categoryIds && c.categoryIds.length
+        ? c.categoryIds
+        : c.categoryId
+          ? [c.categoryId]
+          : [];
+      const tagNames = tagIds
+        .map((id) => categories.find((k) => k.id === id)?.name)
+        .filter(Boolean)
+        .join(", ");
+      return {
+        Nome: c.name,
+        Telefone: c.phone,
+        Email: c.email ?? "",
+        Categorias: tagNames,
+        Notas: c.notes ?? "",
+        "Criado em": new Date(c.createdAt).toLocaleString("pt-BR"),
+      };
+    });
     const csv = Papa.unparse(rows);
     const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
