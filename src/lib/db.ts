@@ -14,7 +14,10 @@ export type Contact = {
   phone: string;
   email?: string | null;
   notes?: string | null;
+  /** Categoria principal (espelho da 1ª tag — mantido pelo trigger no DB). */
   categoryId?: string | null;
+  /** Todas as tags do contato (M:N via crm_contact_categories). */
+  categoryIds?: string[];
   createdAt: string;
   aiPersonaSummary?: string | null;
   urgencyLevel?: UrgencyLevel | null;
