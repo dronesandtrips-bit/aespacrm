@@ -231,11 +231,70 @@ function ContactsPage() {
     if (!confirm("Remover este contato?")) return;
     try {
       await contactsDb.remove(id);
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       await refresh();
       toast.success("Contato removido");
     } catch (e: any) {
       toast.error(`Erro: ${e.message ?? e}`);
     }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allPageSelected =
+    pageItems.length > 0 && pageItems.every((c) => selected.has(c.id));
+  const somePageSelected =
+    pageItems.some((c) => selected.has(c.id)) && !allPageSelected;
+
+  const togglePageAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) {
+        pageItems.forEach((c) => next.delete(c.id));
+      } else {
+        pageItems.forEach((c) => next.add(c.id));
+      }
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    setSelected(new Set(filtered.map((c) => c.id)));
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (!confirm(`Remover ${ids.length} contato${ids.length > 1 ? "s" : ""}? Essa ação não pode ser desfeita.`)) return;
+    setBulkDeleting(true);
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      try {
+        await contactsDb.remove(id);
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setSelected(new Set());
+    await refresh();
+    setBulkDeleting(false);
+    if (fail === 0) toast.success(`${ok} contato${ok > 1 ? "s" : ""} removido${ok > 1 ? "s" : ""}`);
+    else toast.warning(`${ok} removidos, ${fail} falharam`);
   };
 
   const handleExport = () => {
