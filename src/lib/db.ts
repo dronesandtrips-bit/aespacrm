@@ -157,6 +157,9 @@ function rowToContact(r: any): Contact {
     email: r.email,
     notes: r.notes,
     categoryId: r.category_id,
+    categoryIds: Array.isArray(r.crm_contact_categories)
+      ? r.crm_contact_categories.map((x: any) => x.category_id).filter(Boolean)
+      : [],
     createdAt: r.created_at,
     aiPersonaSummary: r.ai_persona_summary ?? null,
     urgencyLevel: (r.urgency_level ?? null) as UrgencyLevel | null,
@@ -165,7 +168,7 @@ function rowToContact(r: any): Contact {
 }
 
 const CONTACT_COLUMNS =
-  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync";
+  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,crm_contact_categories(category_id)";
 
 /**
  * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
@@ -188,6 +191,49 @@ async function maybeTriggerCategorySequence(contactId: string, categoryId: strin
   }
 }
 
+/**
+ * Sobrescreve as tags de um contato pela lista informada.
+ * - Apaga as tags removidas
+ * - Insere as novas
+ * O DB mantém crm_contacts.category_id sincronizado via trigger
+ * (espelho da 1ª tag por created_at).
+ */
+async function setContactCategories(contactId: string, categoryIds: string[]) {
+  const c = await client();
+  const user_id = await uid();
+  const wanted = Array.from(new Set(categoryIds.filter(Boolean)));
+
+  const { data: current } = await c
+    .from("crm_contact_categories")
+    .select("category_id")
+    .eq("contact_id", contactId);
+  const currentSet = new Set((current ?? []).map((r: any) => r.category_id));
+  const wantedSet = new Set(wanted);
+
+  const toDelete = [...currentSet].filter((id) => !wantedSet.has(id));
+  const toInsert = wanted.filter((id) => !currentSet.has(id));
+
+  if (toDelete.length) {
+    const { error } = await c
+      .from("crm_contact_categories")
+      .delete()
+      .eq("contact_id", contactId)
+      .in("category_id", toDelete);
+    if (error) throw error;
+  }
+  if (toInsert.length) {
+    const rows = toInsert.map((cid) => ({
+      contact_id: contactId,
+      category_id: cid,
+      user_id,
+    }));
+    const { error } = await c
+      .from("crm_contact_categories")
+      .insert(rows);
+    if (error) throw error;
+  }
+}
+
 export const contactsDb = {
   async list(): Promise<Contact[]> {
     const c = await client();
@@ -201,6 +247,12 @@ export const contactsDb = {
   async create(input: Omit<Contact, "id" | "createdAt">): Promise<Contact> {
     const c = await client();
     const user_id = await uid();
+    // Prioriza categoryIds; cai pra categoryId se vier só ele
+    const tags = input.categoryIds && input.categoryIds.length
+      ? input.categoryIds
+      : input.categoryId
+        ? [input.categoryId]
+        : [];
     const { data, error } = await c
       .from("crm_contacts")
       .insert({
@@ -209,14 +261,20 @@ export const contactsDb = {
         phone: input.phone,
         email: input.email || null,
         notes: input.notes || null,
-        category_id: input.categoryId || null,
+        category_id: tags[0] ?? null,
       })
       .select(CONTACT_COLUMNS)
       .single();
     if (error) throw error;
     const created = rowToContact(data);
-    if (created.categoryId) {
-      await maybeTriggerCategorySequence(created.id, created.categoryId);
+    if (tags.length) {
+      await setContactCategories(created.id, tags);
+      created.categoryIds = tags;
+      created.categoryId = tags[0] ?? null;
+      // Dispara gatilhos para cada tag com sequência associada
+      for (const cid of tags) {
+        await maybeTriggerCategorySequence(created.id, cid);
+      }
     }
     return created;
   },
@@ -227,28 +285,41 @@ export const contactsDb = {
     if (patch.phone !== undefined) dbPatch.phone = patch.phone;
     if (patch.email !== undefined) dbPatch.email = patch.email || null;
     if (patch.notes !== undefined) dbPatch.notes = patch.notes || null;
-    if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId || null;
     if (patch.aiPersonaSummary !== undefined)
       dbPatch.ai_persona_summary = patch.aiPersonaSummary || null;
     if (patch.urgencyLevel !== undefined) dbPatch.urgency_level = patch.urgencyLevel || null;
     if (patch.lastAiSync !== undefined) dbPatch.last_ai_sync = patch.lastAiSync || null;
-    let prevCategoryId: string | null = null;
-    if (patch.categoryId !== undefined) {
+
+    // Estado anterior das tags (para detectar novas e disparar gatilhos)
+    let prevTags: Set<string> = new Set();
+    if (patch.categoryIds !== undefined || patch.categoryId !== undefined) {
       const { data: prev } = await c
-        .from("crm_contacts")
+        .from("crm_contact_categories")
         .select("category_id")
-        .eq("id", id)
-        .maybeSingle();
-      prevCategoryId = prev?.category_id ?? null;
+        .eq("contact_id", id);
+      prevTags = new Set((prev ?? []).map((r: any) => r.category_id));
     }
-    const { error } = await c.from("crm_contacts").update(dbPatch).eq("id", id);
-    if (error) throw error;
-    if (
-      patch.categoryId !== undefined &&
-      patch.categoryId &&
-      patch.categoryId !== prevCategoryId
-    ) {
-      await maybeTriggerCategorySequence(id, patch.categoryId);
+
+    if (Object.keys(dbPatch).length) {
+      const { error } = await c.from("crm_contacts").update(dbPatch).eq("id", id);
+      if (error) throw error;
+    }
+
+    // Atualiza tags. Prioriza categoryIds; senão, usa categoryId (single).
+    let nextTags: string[] | null = null;
+    if (patch.categoryIds !== undefined) {
+      nextTags = patch.categoryIds ?? [];
+    } else if (patch.categoryId !== undefined) {
+      nextTags = patch.categoryId ? [patch.categoryId] : [];
+    }
+    if (nextTags !== null) {
+      await setContactCategories(id, nextTags);
+      // Dispara gatilho para cada tag NOVA
+      for (const cid of nextTags) {
+        if (!prevTags.has(cid)) {
+          await maybeTriggerCategorySequence(id, cid);
+        }
+      }
     }
   },
   async remove(id: string) {
@@ -272,6 +343,7 @@ export const contactsDb = {
     );
 
     const toInsert: any[] = [];
+    const tagsByPhone = new Map<string, string[]>();
     let skipped = 0;
     const seenInBatch = new Set<string>();
     for (const r of rows) {
@@ -281,20 +353,46 @@ export const contactsDb = {
         continue;
       }
       seenInBatch.add(norm);
+      const tags = r.categoryIds && r.categoryIds.length
+        ? r.categoryIds
+        : r.categoryId
+          ? [r.categoryId]
+          : [];
+      tagsByPhone.set(norm, tags);
       toInsert.push({
         user_id,
         name: r.name,
         phone: r.phone,
         email: r.email || null,
         notes: r.notes || null,
-        category_id: r.categoryId || null,
+        category_id: tags[0] ?? null,
       });
     }
     if (toInsert.length === 0) return { imported: 0, skipped };
-    const { error } = await c.from("crm_contacts").insert(toInsert);
+    const { data: inserted, error } = await c
+      .from("crm_contacts")
+      .insert(toInsert)
+      .select("id,phone");
     if (error) throw error;
+    // Replica nas tags
+    const ccRows: any[] = [];
+    for (const row of inserted ?? []) {
+      const norm = String(row.phone).replace(/\D/g, "");
+      const tags = tagsByPhone.get(norm) ?? [];
+      for (const cid of tags) {
+        ccRows.push({ contact_id: row.id, category_id: cid, user_id });
+      }
+    }
+    if (ccRows.length) {
+      const { error: ccErr } = await c
+        .from("crm_contact_categories")
+        .insert(ccRows);
+      if (ccErr) console.error("bulkImport contact_categories", ccErr);
+    }
     return { imported: toInsert.length, skipped };
   },
+  /** API pública para a UI: definir as tags de um contato. */
+  setCategories: setContactCategories,
 };
 
 // ===================== Pipeline =====================
