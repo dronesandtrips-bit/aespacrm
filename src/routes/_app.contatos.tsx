@@ -38,6 +38,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { contactsDb, categoriesDb, sequencesDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
@@ -80,6 +81,8 @@ function ContactsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
   const [cleaning, setCleaning] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const handleCleanInvalid = async () => {
     try {
@@ -228,11 +231,70 @@ function ContactsPage() {
     if (!confirm("Remover este contato?")) return;
     try {
       await contactsDb.remove(id);
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       await refresh();
       toast.success("Contato removido");
     } catch (e: any) {
       toast.error(`Erro: ${e.message ?? e}`);
     }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allPageSelected =
+    pageItems.length > 0 && pageItems.every((c) => selected.has(c.id));
+  const somePageSelected =
+    pageItems.some((c) => selected.has(c.id)) && !allPageSelected;
+
+  const togglePageAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) {
+        pageItems.forEach((c) => next.delete(c.id));
+      } else {
+        pageItems.forEach((c) => next.add(c.id));
+      }
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    setSelected(new Set(filtered.map((c) => c.id)));
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    if (!confirm(`Remover ${ids.length} contato${ids.length > 1 ? "s" : ""}? Essa ação não pode ser desfeita.`)) return;
+    setBulkDeleting(true);
+    let ok = 0;
+    let fail = 0;
+    for (const id of ids) {
+      try {
+        await contactsDb.remove(id);
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setSelected(new Set());
+    await refresh();
+    setBulkDeleting(false);
+    if (fail === 0) toast.success(`${ok} contato${ok > 1 ? "s" : ""} removido${ok > 1 ? "s" : ""}`);
+    else toast.warning(`${ok} removidos, ${fail} falharam`);
   };
 
   const handleExport = () => {
@@ -314,6 +376,42 @@ function ContactsPage() {
         </div>
       </div>
 
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5">
+          <div className="flex items-center gap-3 text-sm">
+            <span className="font-medium">
+              {selected.size} contato{selected.size > 1 ? "s" : ""} selecionado{selected.size > 1 ? "s" : ""}
+            </span>
+            {selected.size < filtered.length && (
+              <button
+                type="button"
+                onClick={selectAllFiltered}
+                className="text-primary hover:underline text-xs"
+              >
+                Selecionar todos os {filtered.length} filtrados
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="text-muted-foreground hover:underline text-xs"
+            >
+              Limpar seleção
+            </button>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="gap-2"
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+          >
+            {bulkDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+            Excluir selecionados
+          </Button>
+        </div>
+      )}
+
       <Card className="p-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -365,6 +463,13 @@ function ContactsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]">
+                  <Checkbox
+                    checked={allPageSelected ? true : somePageSelected ? "indeterminate" : false}
+                    onCheckedChange={togglePageAll}
+                    aria-label="Selecionar todos da página"
+                  />
+                </TableHead>
                 <SortableHead label="Nome" k="name" sort={sort} dir={dir} onSort={toggleSort} />
                 <SortableHead label="Telefone" k="phone" sort={sort} dir={dir} onSort={toggleSort} />
                 <SortableHead label="Email" k="email" sort={sort} dir={dir} onSort={toggleSort} className="hidden md:table-cell" />
@@ -385,7 +490,14 @@ function ContactsPage() {
                   .filter(Boolean) as Category[];
                 const primary = tagObjs[0];
                 return (
-                  <TableRow key={c.id}>
+                  <TableRow key={c.id} data-state={selected.has(c.id) ? "selected" : undefined}>
+                    <TableCell className="w-[40px]">
+                      <Checkbox
+                        checked={selected.has(c.id)}
+                        onCheckedChange={() => toggleSelect(c.id)}
+                        aria-label={`Selecionar ${c.name}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div
