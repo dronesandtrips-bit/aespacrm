@@ -597,6 +597,19 @@ function ContactsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        title="Enriquecer com IA agora"
+                        disabled={enriching.has(c.id)}
+                        onClick={() => handleEnrich(c)}
+                      >
+                        {enriching.has(c.id) ? (
+                          <Loader2 className="size-4 animate-spin text-primary" />
+                        ) : (
+                          <Sparkles className="size-4 text-primary" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         title="Adicionar a uma sequência"
                         onClick={() => setEnrollContact(c)}
                       >
