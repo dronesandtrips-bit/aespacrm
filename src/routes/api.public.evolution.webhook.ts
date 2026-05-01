@@ -34,7 +34,6 @@ function normalizePhone(jid: string | undefined | null): string {
 }
 
 // Validação estrita: E.164 + regras por país (BR=12/13) + anti-lixo.
-import { isStrictValidPhone } from "@/server/phone-validation";
 function isValidE164(phone: string): boolean {
   return isStrictValidPhone(phone);
 }
