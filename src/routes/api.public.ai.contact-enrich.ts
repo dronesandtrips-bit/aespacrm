@@ -144,10 +144,40 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
 
         if (normalizedIncoming.length > 0) {
           // Lê as tags atuais
-          const { data: current } = await sb
+          const { data: current, error: currentErr } = await sb
             .from("crm_contact_categories")
             .select("category_id")
             .eq("contact_id", contact.id);
+          if (currentErr) {
+            console.warn("contact-enrich crm_contact_categories unavailable; using legacy category_id", currentErr);
+            const fallbackCategoryId = mode === "replace" ? resolvedIds[0] ?? null : resolvedIds[0] ?? undefined;
+            if (fallbackCategoryId !== undefined) {
+              const { error: legacyErr } = await sb
+                .from("crm_contacts")
+                .update({ category_id: fallbackCategoryId })
+                .eq("id", contact.id)
+                .eq("user_id", ownerUserId);
+              if (legacyErr) {
+                console.error("contact-enrich legacy category update", legacyErr);
+                return jsonResponse({ ok: false, error: legacyErr.message }, 500);
+              }
+            }
+            finalCategoryIds = fallbackCategoryId ? [fallbackCategoryId] : [];
+            return jsonResponse({
+              ok: true,
+              contact_id: contact.id,
+              mode,
+              warning: "crm_contact_categories indisponível na API; categoria principal atualizada no modo legado",
+              updated: {
+                ai_persona_summary: ai_summary !== undefined,
+                urgency_level: !!urgency,
+                categories_added: finalCategoryIds.length,
+                categories_removed: 0,
+                final_category_ids: finalCategoryIds,
+                unknown_categories: unknownCategories,
+              },
+            });
+          }
           const currentIds = new Set<string>(
             (current ?? []).map((r: any) => String(r.category_id)),
           );
