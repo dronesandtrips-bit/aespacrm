@@ -470,6 +470,40 @@ function ContactsPage() {
   );
 }
 
+function SortableHead({
+  label,
+  k,
+  sort,
+  dir,
+  onSort,
+  className,
+}: {
+  label: string;
+  k: SortKey;
+  sort: SortKey;
+  dir: "asc" | "desc";
+  onSort: (k: SortKey) => void;
+  className?: string;
+}) {
+  const active = sort === k;
+  const Icon = active ? (dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={() => onSort(k)}
+        className={`inline-flex items-center gap-1.5 hover:text-foreground transition-colors ${
+          active ? "text-foreground font-medium" : "text-muted-foreground"
+        }`}
+        title={`Ordenar por ${label}`}
+      >
+        {label}
+        <Icon className="size-3.5 opacity-70" />
+      </button>
+    </TableHead>
+  );
+}
+
 function PaginationNav({
   page,
   totalPages,
