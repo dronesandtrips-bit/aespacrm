@@ -157,9 +157,7 @@ function rowToContact(r: any): Contact {
     email: r.email,
     notes: r.notes,
     categoryId: r.category_id,
-    categoryIds: Array.isArray(r.crm_contact_categories)
-      ? r.crm_contact_categories.map((x: any) => x.category_id).filter(Boolean)
-      : [],
+    categoryIds: [],
     createdAt: r.created_at,
     aiPersonaSummary: r.ai_persona_summary ?? null,
     urgencyLevel: (r.urgency_level ?? null) as UrgencyLevel | null,
@@ -168,7 +166,7 @@ function rowToContact(r: any): Contact {
 }
 
 const CONTACT_COLUMNS =
-  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,crm_contact_categories(category_id)";
+  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync";
 
 /**
  * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
@@ -234,15 +232,48 @@ async function setContactCategories(contactId: string, categoryIds: string[]) {
   }
 }
 
+/**
+ * Carrega todas as tags (M:N) com SELECT simples (sem embed do PostgREST,
+ * que pode estar desatualizado após a migração). Retorna Map<contactId, ids[]>.
+ * Se a tabela ainda não existe, retorna Map vazio.
+ */
+async function loadContactCategoriesMap(): Promise<Map<string, string[]>> {
+  const c = await client();
+  const map = new Map<string, string[]>();
+  const { data, error } = await c
+    .from("crm_contact_categories")
+    .select("contact_id,category_id,created_at")
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.warn("[contacts] crm_contact_categories indisponível:", error.message);
+    return map;
+  }
+  for (const row of data ?? []) {
+    const list = map.get(row.contact_id) ?? [];
+    list.push(row.category_id);
+    map.set(row.contact_id, list);
+  }
+  return map;
+}
+
 export const contactsDb = {
   async list(): Promise<Contact[]> {
     const c = await client();
-    const { data, error } = await c
-      .from("crm_contacts")
-      .select(CONTACT_COLUMNS)
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return (data ?? []).map(rowToContact);
+    const [contactsRes, tagsMap] = await Promise.all([
+      c
+        .from("crm_contacts")
+        .select(CONTACT_COLUMNS)
+        .order("created_at", { ascending: false }),
+      loadContactCategoriesMap(),
+    ]);
+    if (contactsRes.error) throw contactsRes.error;
+    return (contactsRes.data ?? []).map((r: any) => {
+      const base = rowToContact(r);
+      const tags = tagsMap.get(base.id);
+      if (tags && tags.length) base.categoryIds = tags;
+      else if (base.categoryId) base.categoryIds = [base.categoryId];
+      return base;
+    });
   },
   async create(input: Omit<Contact, "id" | "createdAt">): Promise<Contact> {
     const c = await client();
