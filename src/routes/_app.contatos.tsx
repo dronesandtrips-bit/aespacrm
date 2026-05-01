@@ -132,7 +132,12 @@ function ContactsPage() {
           !q ||
           c.name.toLowerCase().includes(q.toLowerCase()) ||
           c.phone.includes(q);
-        const matchCat = cat === ALL || c.categoryId === cat;
+        const tags = c.categoryIds && c.categoryIds.length
+          ? c.categoryIds
+          : c.categoryId
+            ? [c.categoryId]
+            : [];
+        const matchCat = cat === ALL || tags.includes(cat);
         const matchPersona =
           !persona ||
           (c.aiPersonaSummary ?? "").toLowerCase().includes(persona.toLowerCase());
@@ -164,6 +169,7 @@ function ContactsPage() {
           vb = (b.email ?? "").toLowerCase();
           break;
         case "category":
+          // Ordena pela 1ª tag (espelho em categoryId)
           va = catName(a.categoryId).toLowerCase();
           vb = catName(b.categoryId).toLowerCase();
           break;
