@@ -14,7 +14,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2, Code2, Copy, ExternalLink, Sparkles } from "lucide-react";
-import { categoriesDb, pipelineDb, sequencesDb, widgetsDb, type Category, type PipelineStage, type Sequence, type CaptureWidget } from "@/lib/db";
+import { categoriesDb, pipelineDb, sequencesDb, widgetsDb, userSettingsDb, type Category, type PipelineStage, type Sequence, type CaptureWidget } from "@/lib/db";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -65,6 +66,7 @@ function SettingsPage() {
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
           <TabsTrigger value="widgets">Widgets</TabsTrigger>
+          <TabsTrigger value="ia">IA</TabsTrigger>
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
           <TabsTrigger value="conta">Conta</TabsTrigger>
         </TabsList>
@@ -76,6 +78,9 @@ function SettingsPage() {
         </TabsContent>
         <TabsContent value="widgets" className="mt-5">
           <WidgetsTab />
+        </TabsContent>
+        <TabsContent value="ia" className="mt-5">
+          <AiTermsTab />
         </TabsContent>
         <TabsContent value="integracoes" className="mt-5">
           <IntegrationsTab />
@@ -602,6 +607,202 @@ function AccountTab() {
 
 const EXPLORAR_WEBHOOK_KEY = "wpp-crm-explorar-webhook";
 const EXPLORAR_API_KEY_KEY = "wpp-crm-explorar-webhook-apikey";
+
+// =====================================================================
+// Termos de Interesse para IA
+// =====================================================================
+function AiTermsTab() {
+  const [termsText, setTermsText] = useState("");
+  const [rescanUrl, setRescanUrl] = useState("");
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [rescanning, setRescanning] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await userSettingsDb.get();
+        setTermsText(s.interestTerms.join(", "));
+        setRescanUrl(s.rescanWebhookUrl ?? "");
+        setUpdatedAt(s.updatedAt);
+      } catch (e: any) {
+        toast.error(`Erro ao carregar: ${e.message ?? e}`);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const parseTerms = (text: string): string[] => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const raw of text.split(/[,\n]/g)) {
+      const t = raw.trim();
+      if (!t) continue;
+      const k = t.toLowerCase();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(t);
+    }
+    return out;
+  };
+
+  const terms = parseTerms(termsText);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const url = rescanUrl.trim();
+      if (url && !/^https?:\/\//i.test(url)) {
+        toast.error("URL de varredura inválida (use http:// ou https://)");
+        return;
+      }
+      await userSettingsDb.save({
+        interestTerms: terms,
+        rescanWebhookUrl: url || null,
+      });
+      toast.success(`${terms.length} termo(s) salvos`);
+      const s = await userSettingsDb.get();
+      setUpdatedAt(s.updatedAt);
+    } catch (e: any) {
+      toast.error(`Erro ao salvar: ${e.message ?? e}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const triggerRescan = async () => {
+    const url = rescanUrl.trim();
+    if (!url) {
+      toast.error("Configure primeiro a URL de varredura (webhook do n8n)");
+      return;
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      toast.error("URL inválida");
+      return;
+    }
+    setRescanning(true);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "rescan_all_contacts",
+          terms,
+          triggered_at: new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) {
+        toast.error(`Webhook respondeu ${res.status}`);
+        return;
+      }
+      toast.success("Varredura disparada — o n8n vai reprocessar os contatos");
+    } catch (e: any) {
+      toast.error(`Erro ao disparar: ${e.message ?? e}`);
+    } finally {
+      setRescanning(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card className="p-5">
+        <Loader2 className="size-6 mx-auto animate-spin opacity-60" />
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-5 space-y-5">
+      <div className="flex items-center gap-3">
+        <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
+          <Sparkles className="size-5" />
+        </div>
+        <div>
+          <h3 className="font-semibold">Termos de Interesse para IA</h3>
+          <p className="text-xs text-muted-foreground">
+            A IA vai procurar esses termos nas conversas e taguear os contatos automaticamente
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="terms">Termos (separados por vírgula)</Label>
+        <Textarea
+          id="terms"
+          rows={4}
+          placeholder="Ezviz, Hilook, Intelbras, Isic Lite, Manutenção, Orçamento, Cerca Elétrica"
+          value={termsText}
+          onChange={(e) => setTermsText(e.target.value)}
+        />
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <p className="text-xs text-muted-foreground">
+            {terms.length} termo(s){updatedAt ? ` · atualizado em ${new Date(updatedAt).toLocaleString("pt-BR")}` : ""}
+          </p>
+          {terms.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {terms.slice(0, 8).map((t) => (
+                <span key={t} className="text-[11px] px-2 py-0.5 rounded-full bg-muted">
+                  {t}
+                </span>
+              ))}
+              {terms.length > 8 && (
+                <span className="text-[11px] text-muted-foreground">+{terms.length - 8}</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-1.5 border-t pt-4">
+        <Label htmlFor="rescan">Webhook de varredura (n8n) — opcional</Label>
+        <Input
+          id="rescan"
+          placeholder="https://seu-n8n.com/webhook/zapcrm-rescan-contacts"
+          value={rescanUrl}
+          onChange={(e) => setRescanUrl(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Endpoint do n8n que reprocessa contatos antigos com os termos atuais. Receberá{" "}
+          <code className="font-mono">{`{ action, terms, triggered_at }`}</code> via POST.
+        </p>
+      </div>
+
+      <div className="border-t pt-4 space-y-2">
+        <p className="text-xs font-medium uppercase text-muted-foreground">Endpoint para o n8n</p>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p>O n8n pode ler a lista atual via:</p>
+          <code className="block font-mono text-[11px] p-2 bg-muted rounded">
+            GET {typeof window !== "undefined" ? window.location.origin : ""}/api/public/ai/interest-terms
+            <br />
+            Header: x-api-key: &lt;N8N_API_KEY&gt;
+          </code>
+          <p>
+            A resposta inclui <code className="font-mono">terms</code> e{" "}
+            <code className="font-mono">prompt_hint</code> pronto pra injetar no prompt da IA.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <Button onClick={save} disabled={saving} className="gap-2">
+          {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+          Salvar termos
+        </Button>
+        <Button
+          variant="outline"
+          onClick={triggerRescan}
+          disabled={rescanning || terms.length === 0}
+          className="gap-2"
+        >
+          {rescanning ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+          Disparar nova varredura
+        </Button>
+      </div>
+    </Card>
+  );
+}
 
 function IntegrationsTab() {
   const [webhook, setWebhook] = useState<string>(() => {
