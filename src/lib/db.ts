@@ -349,11 +349,12 @@ export const contactsDb = {
     // Estado anterior das tags (para detectar novas e disparar gatilhos)
     let prevTags: Set<string> = new Set();
     if (patch.categoryIds !== undefined || patch.categoryId !== undefined) {
-      const { data: prev } = await c
+      const { data: prev, error: prevError } = await c
         .from("crm_contact_categories")
         .select("category_id")
         .eq("contact_id", id);
-      prevTags = new Set((prev ?? []).map((r: any) => r.category_id));
+      if (prevError) console.warn("[contacts] crm_contact_categories indisponível para diff de tags:", prevError.message);
+      else prevTags = new Set((prev ?? []).map((r: any) => r.category_id));
     }
 
     if (Object.keys(dbPatch).length) {
