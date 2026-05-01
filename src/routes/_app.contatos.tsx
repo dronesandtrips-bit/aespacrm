@@ -375,14 +375,22 @@ function ContactsPage() {
             </TableHeader>
             <TableBody>
               {pageItems.map((c) => {
-                const catObj = categories.find((k) => k.id === c.categoryId);
+                const tagIds = c.categoryIds && c.categoryIds.length
+                  ? c.categoryIds
+                  : c.categoryId
+                    ? [c.categoryId]
+                    : [];
+                const tagObjs = tagIds
+                  .map((id) => categories.find((k) => k.id === id))
+                  .filter(Boolean) as Category[];
+                const primary = tagObjs[0];
                 return (
                   <TableRow key={c.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div
                           className="size-8 rounded-full grid place-items-center text-white text-xs font-semibold"
-                          style={{ backgroundColor: catObj?.color ?? "#94a3b8" }}
+                          style={{ backgroundColor: primary?.color ?? "#94a3b8" }}
                         >
                           {c.name[0]}
                         </div>
@@ -404,13 +412,18 @@ function ContactsPage() {
                       {c.email || "—"}
                     </TableCell>
                     <TableCell>
-                      {catObj ? (
-                        <Badge
-                          variant="outline"
-                          style={{ borderColor: catObj.color, color: catObj.color }}
-                        >
-                          {catObj.name}
-                        </Badge>
+                      {tagObjs.length ? (
+                        <div className="flex flex-wrap gap-1 max-w-[280px]">
+                          {tagObjs.map((t) => (
+                            <Badge
+                              key={t.id}
+                              variant="outline"
+                              style={{ borderColor: t.color, color: t.color }}
+                            >
+                              {t.name}
+                            </Badge>
+                          ))}
+                        </div>
                       ) : (
                         <span className="text-muted-foreground text-sm">—</span>
                       )}
