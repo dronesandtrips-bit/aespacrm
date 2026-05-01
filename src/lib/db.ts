@@ -201,10 +201,19 @@ async function setContactCategories(contactId: string, categoryIds: string[]) {
   const user_id = await uid();
   const wanted = Array.from(new Set(categoryIds.filter(Boolean)));
 
-  const { data: current } = await c
+  const { data: current, error: currentError } = await c
     .from("crm_contact_categories")
     .select("category_id")
     .eq("contact_id", contactId);
+  if (currentError) {
+    console.warn("[contacts] crm_contact_categories indisponível no salvamento; usando category_id legado:", currentError.message);
+    const { error } = await c
+      .from("crm_contacts")
+      .update({ category_id: wanted[0] ?? null })
+      .eq("id", contactId);
+    if (error) throw error;
+    return;
+  }
   const currentSet = new Set((current ?? []).map((r: any) => r.category_id));
   const wantedSet = new Set(wanted);
 
@@ -217,7 +226,15 @@ async function setContactCategories(contactId: string, categoryIds: string[]) {
       .delete()
       .eq("contact_id", contactId)
       .in("category_id", toDelete);
-    if (error) throw error;
+    if (error) {
+      console.warn("[contacts] falha ao remover tags; usando category_id legado:", error.message);
+      const { error: legacyError } = await c
+        .from("crm_contacts")
+        .update({ category_id: wanted[0] ?? null })
+        .eq("id", contactId);
+      if (legacyError) throw legacyError;
+      return;
+    }
   }
   if (toInsert.length) {
     const rows = toInsert.map((cid) => ({
@@ -228,7 +245,15 @@ async function setContactCategories(contactId: string, categoryIds: string[]) {
     const { error } = await c
       .from("crm_contact_categories")
       .insert(rows);
-    if (error) throw error;
+    if (error) {
+      console.warn("[contacts] falha ao inserir tags; usando category_id legado:", error.message);
+      const { error: legacyError } = await c
+        .from("crm_contacts")
+        .update({ category_id: wanted[0] ?? null })
+        .eq("id", contactId);
+      if (legacyError) throw legacyError;
+      return;
+    }
   }
 }
 
