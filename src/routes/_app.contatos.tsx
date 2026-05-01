@@ -81,6 +81,8 @@ function ContactsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
   const [cleaning, setCleaning] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const handleCleanInvalid = async () => {
     try {
