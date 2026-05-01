@@ -132,7 +132,12 @@ function ContactsPage() {
           !q ||
           c.name.toLowerCase().includes(q.toLowerCase()) ||
           c.phone.includes(q);
-        const matchCat = cat === ALL || c.categoryId === cat;
+        const tags = c.categoryIds && c.categoryIds.length
+          ? c.categoryIds
+          : c.categoryId
+            ? [c.categoryId]
+            : [];
+        const matchCat = cat === ALL || tags.includes(cat);
         const matchPersona =
           !persona ||
           (c.aiPersonaSummary ?? "").toLowerCase().includes(persona.toLowerCase());
@@ -164,6 +169,7 @@ function ContactsPage() {
           vb = (b.email ?? "").toLowerCase();
           break;
         case "category":
+          // Ordena pela 1ª tag (espelho em categoryId)
           va = catName(a.categoryId).toLowerCase();
           vb = catName(b.categoryId).toLowerCase();
           break;
@@ -230,14 +236,25 @@ function ContactsPage() {
   };
 
   const handleExport = () => {
-    const rows = filtered.map((c) => ({
-      Nome: c.name,
-      Telefone: c.phone,
-      Email: c.email ?? "",
-      Categoria: categories.find((k) => k.id === c.categoryId)?.name ?? "",
-      Notas: c.notes ?? "",
-      "Criado em": new Date(c.createdAt).toLocaleString("pt-BR"),
-    }));
+    const rows = filtered.map((c) => {
+      const tagIds = c.categoryIds && c.categoryIds.length
+        ? c.categoryIds
+        : c.categoryId
+          ? [c.categoryId]
+          : [];
+      const tagNames = tagIds
+        .map((id) => categories.find((k) => k.id === id)?.name)
+        .filter(Boolean)
+        .join(", ");
+      return {
+        Nome: c.name,
+        Telefone: c.phone,
+        Email: c.email ?? "",
+        Categorias: tagNames,
+        Notas: c.notes ?? "",
+        "Criado em": new Date(c.createdAt).toLocaleString("pt-BR"),
+      };
+    });
     const csv = Papa.unparse(rows);
     const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -358,14 +375,22 @@ function ContactsPage() {
             </TableHeader>
             <TableBody>
               {pageItems.map((c) => {
-                const catObj = categories.find((k) => k.id === c.categoryId);
+                const tagIds = c.categoryIds && c.categoryIds.length
+                  ? c.categoryIds
+                  : c.categoryId
+                    ? [c.categoryId]
+                    : [];
+                const tagObjs = tagIds
+                  .map((id) => categories.find((k) => k.id === id))
+                  .filter(Boolean) as Category[];
+                const primary = tagObjs[0];
                 return (
                   <TableRow key={c.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div
                           className="size-8 rounded-full grid place-items-center text-white text-xs font-semibold"
-                          style={{ backgroundColor: catObj?.color ?? "#94a3b8" }}
+                          style={{ backgroundColor: primary?.color ?? "#94a3b8" }}
                         >
                           {c.name[0]}
                         </div>
@@ -387,13 +412,18 @@ function ContactsPage() {
                       {c.email || "—"}
                     </TableCell>
                     <TableCell>
-                      {catObj ? (
-                        <Badge
-                          variant="outline"
-                          style={{ borderColor: catObj.color, color: catObj.color }}
-                        >
-                          {catObj.name}
-                        </Badge>
+                      {tagObjs.length ? (
+                        <div className="flex flex-wrap gap-1 max-w-[280px]">
+                          {tagObjs.map((t) => (
+                            <Badge
+                              key={t.id}
+                              variant="outline"
+                              style={{ borderColor: t.color, color: t.color }}
+                            >
+                              {t.name}
+                            </Badge>
+                          ))}
+                        </div>
                       ) : (
                         <span className="text-muted-foreground text-sm">—</span>
                       )}
@@ -760,8 +790,20 @@ function ContactDialog({
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
-  const [categoryId, setCategoryId] = useState<string>(initial?.categoryId ?? NONE);
+  const initialTags =
+    initial?.categoryIds && initial.categoryIds.length
+      ? initial.categoryIds
+      : initial?.categoryId
+        ? [initial.categoryId]
+        : [];
+  const [selectedIds, setSelectedIds] = useState<string[]>(initialTags);
   const [saving, setSaving] = useState(false);
+
+  const toggle = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -776,7 +818,7 @@ function ContactDialog({
         phone: phone.trim(),
         email: email.trim() || undefined,
         notes: notes.trim() || undefined,
-        categoryId: categoryId === NONE ? undefined : categoryId,
+        categoryIds: selectedIds,
       });
     } finally {
       setSaving(false);
@@ -808,20 +850,36 @@ function ContactDialog({
           <Input id="e" type="email" value={email ?? ""} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Categoria</Label>
-          <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>Sem categoria</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>Categorias (tags)</Label>
+          {categories.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Nenhuma categoria cadastrada. Crie em Configurações.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {categories.map((c) => {
+                const active = selectedIds.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => toggle(c.id)}
+                    className="rounded-md border px-2.5 py-1 text-xs font-semibold transition-all"
+                    style={{
+                      borderColor: c.color,
+                      color: active ? "#fff" : c.color,
+                      backgroundColor: active ? c.color : "transparent",
+                    }}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            Clique para adicionar/remover. A primeira tag será a categoria principal.
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="nt">Notas</Label>
