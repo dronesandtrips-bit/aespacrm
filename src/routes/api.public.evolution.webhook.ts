@@ -18,13 +18,23 @@ import { isStrictValidPhone } from "@/server/phone-validation";
 
 const INSTANCE = "zapcrm";
 
-// Aceita apenas JIDs de contatos individuais do WhatsApp.
-// Rejeita grupos (@g.us), broadcast (@broadcast), status, lid (@lid) e qualquer outro.
+// Aceita JIDs de contatos individuais do WhatsApp.
 function isIndividualJid(jid: string | undefined | null): boolean {
   if (!jid) return false;
   const s = String(jid).toLowerCase();
   if (!s.includes("@")) return false; // sem domínio, não confiamos
   return s.endsWith("@s.whatsapp.net") || s.endsWith("@c.us");
+}
+
+// Aceita JIDs de grupos do WhatsApp (@g.us).
+function isGroupJid(jid: string | undefined | null): boolean {
+  if (!jid) return false;
+  return String(jid).toLowerCase().endsWith("@g.us");
+}
+
+// Aceita individual OU grupo. Continua rejeitando broadcast/status/lid/etc.
+function isAcceptedJid(jid: string | undefined | null): boolean {
+  return isIndividualJid(jid) || isGroupJid(jid);
 }
 
 function normalizePhone(jid: string | undefined | null): string {
