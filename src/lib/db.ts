@@ -6,7 +6,8 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
 
 // ===================== Tipos =====================
 
-export type Category = { id: string; name: string; color: string; sequenceId?: string | null };
+export type CategoryStatus = "approved" | "pending";
+export type Category = { id: string; name: string; color: string; sequenceId?: string | null; status: CategoryStatus };
 export type UrgencyLevel = "Baixa" | "Média" | "Alta";
 export type Contact = {
   id: string;
