@@ -97,6 +97,29 @@ function HistoricoIaPage() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (logs.length === 0) {
+      toast.info("Nada para limpar");
+      return;
+    }
+    if (
+      !confirm(
+        `Remover TODOS os ${logs.length} logs do histórico de enriquecimento? Esta ação não pode ser desfeita.`,
+      )
+    )
+      return;
+    setBusy("__all__");
+    try {
+      const r = await deleteEnrichmentLogs({ data: { all: true } });
+      toast.success(`${r.deleted} log(s) removido(s)`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(`Erro ao remover: ${e.message ?? e}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   useEffect(() => {
     refresh();
   }, []);
