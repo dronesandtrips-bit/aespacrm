@@ -205,6 +205,22 @@ function HistoricoIaPage() {
                     <TableCell className="max-w-[260px] truncate text-xs text-muted-foreground">
                       {l.error_message ?? ""}
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title={`Limpar todos os logs de ${l.contact_name ?? "este contato"}`}
+                        disabled={busy === l.contact_id || !l.contact_id}
+                        onClick={() => handleDeleteForContact(l.contact_id, l.contact_name)}
+                      >
+                        {busy === l.contact_id ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-4" />
+                        )}
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })
