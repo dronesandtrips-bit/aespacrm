@@ -253,21 +253,44 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
               filtered.push(original);
               continue;
             }
-            // Quebra a marca em tokens (ex: "multi giga admin" → 3 tokens).
-            // Se TODOS os tokens significativos aparecerem na transcrição
-            // (ordem irrelevante), aceitamos.
-            const tokens = brand
-              .split(/[\s\-_/]+/)
+            // Regra reforçada (anti-cardápio do n8n):
+            // - Marca multi-token (ex: "multi giga admin", "mibo smart"): exige
+            //   a FRASE COMPLETA da marca como substring na transcrição. Se não
+            //   estiver inteira, exige pelo menos UM bigrama adjacente
+            //   (ex: "mibo smart" OU "multi giga"). Tokens soltos NÃO bastam,
+            //   porque "multi", "smart", "admin" são palavras genéricas que
+            //   aparecem em qualquer conversa.
+            // - Marca single-token (ex: "hikvision", "icsee"): exige a palavra
+            //   inteira (word boundary), não substring solta.
+            const cleanBrand = brand.replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+            const tokens = cleanBrand
+              .split(" ")
               .map((t) => t.replace(/[^a-z0-9]/g, ""))
-              .filter((t) => t.length >= 3);
-            if (tokens.length === 0) {
-              // marca de 1-2 chars → exige string completa
-              if (transcript.includes(brand)) filtered.push(original);
-              else droppedHallucinations.push(original);
-              continue;
+              .filter(Boolean);
+
+            const matchWord = (word: string) => {
+              if (!word) return false;
+              const re = new RegExp(`(^|[^a-z0-9])${word}([^a-z0-9]|$)`, "i");
+              return re.test(transcript);
+            };
+
+            let ok = false;
+            if (tokens.length <= 1) {
+              ok = matchWord(tokens[0] ?? brand);
+            } else {
+              // 1) frase completa
+              if (transcript.includes(cleanBrand)) {
+                ok = true;
+              } else {
+                // 2) algum bigrama adjacente (token[i] + " " + token[i+1])
+                for (let i = 0; i < tokens.length - 1; i++) {
+                  const bigram = `${tokens[i]} ${tokens[i + 1]}`;
+                  if (transcript.includes(bigram)) { ok = true; break; }
+                }
+              }
             }
-            const allPresent = tokens.every((t) => transcript.includes(t));
-            if (allPresent) filtered.push(original);
+
+            if (ok) filtered.push(original);
             else droppedHallucinations.push(original);
           }
 
