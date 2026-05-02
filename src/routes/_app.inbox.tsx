@@ -788,6 +788,27 @@ function InboxPage() {
         </div>
       </Card>
 
+      {/* Dialog: editar contato ativo */}
+      <Dialog
+        open={editOpen}
+        onOpenChange={(v) => setEditOpen(v)}
+      >
+        {active && (
+          <ContactDialog
+            key={active.id}
+            initial={active}
+            categories={categories}
+            onSubmit={handleSaveContact}
+          />
+        )}
+      </Dialog>
+
+      {/* Dialog: inscrever em sequência */}
+      <EnrollDialog
+        contact={enrollContact}
+        sequences={sequences}
+        onClose={() => setEnrollContact(null)}
+      />
     </div>
   );
 }
