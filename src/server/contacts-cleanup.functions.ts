@@ -15,7 +15,8 @@ export const previewInvalidContacts = createServerFn({ method: "GET" }).handler(
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("crm_contacts")
-    .select("id,name,phone,phone_norm");
+    .select("id,name,phone,phone_norm")
+    .eq("is_group", false);
   if (error) throw new Error(error.message);
   const trash = classify((data ?? []) as any);
   return {
