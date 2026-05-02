@@ -537,6 +537,16 @@ function ContactsPage() {
             </button>
           </div>
           <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleBulkBlacklist}
+            disabled={bulkBlacklisting}
+          >
+            {bulkBlacklisting ? <Loader2 className="size-4 animate-spin" /> : <ShieldOff className="size-4" />}
+            Adicionar à blacklist
+          </Button>
+          <Button
             variant="destructive"
             size="sm"
             className="gap-2"
