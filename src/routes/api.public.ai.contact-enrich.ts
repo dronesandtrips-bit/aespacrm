@@ -179,7 +179,12 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             if (!id) {
               const { data: created, error: createErr } = await sb
                 .from("crm_categories")
-                .insert({ user_id: ownerUserId, name })
+                .insert({
+                  user_id: ownerUserId,
+                  name,
+                  color: "#94a3b8",
+                  status: "pending",
+                })
                 .select("id")
                 .single();
               if (createErr) {
