@@ -14,8 +14,11 @@ import {
 import {
   listEnrichmentLogs,
   deleteEnrichmentLogs,
+  logEnrichmentFailure,
 } from "@/server/ai-enrichment-logs.functions";
 import { toast } from "sonner";
+
+const STUCK_THRESHOLD_MS = 90_000; // 1m30s — após isso, log "dispatched" é considerado travado
 
 export const Route = createFileRoute("/_app/historico-ia")({
   component: HistoricoIaPage,
