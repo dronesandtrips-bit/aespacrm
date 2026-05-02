@@ -64,6 +64,8 @@ function HistoricoIaPage() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [busy, setBusy] = useState<string | null>(null);
+
   const refresh = async () => {
     setLoading(true);
     try {
@@ -73,6 +75,25 @@ function HistoricoIaPage() {
       toast.error(`Erro ao carregar: ${e.message ?? e}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteForContact = async (contactId: string | null, name: string | null) => {
+    if (!contactId) {
+      toast.error("Log sem contact_id — não é possível filtrar");
+      return;
+    }
+    const label = name ?? "este contato";
+    if (!confirm(`Remover TODOS os logs de "${label}" do histórico?`)) return;
+    setBusy(contactId);
+    try {
+      const r = await deleteEnrichmentLogs({ data: { contact_id: contactId } });
+      toast.success(`${r.deleted} log(s) removido(s)`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(`Erro ao remover: ${e.message ?? e}`);
+    } finally {
+      setBusy(null);
     }
   };
 
