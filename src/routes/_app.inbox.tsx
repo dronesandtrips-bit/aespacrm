@@ -519,7 +519,7 @@ function InboxPage() {
           )}
 
           {/* Painel IA — contexto do contato */}
-          <div className="hidden md:flex flex-col border-l bg-card/50">
+          <div className="hidden md:flex flex-col border-l bg-card/50 min-h-0 h-full overflow-hidden">
             <div className="px-4 py-3 border-b flex items-center gap-2">
               <Sparkles className="size-4 text-primary" />
               <h4 className="text-sm font-semibold">Contexto da IA</h4>
