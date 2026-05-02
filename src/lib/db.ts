@@ -1183,7 +1183,7 @@ export type IgnoredPhone = {
   createdAt: string;
 };
 
-function normalizePhoneStr(p: string): string {
+export function normalizePhoneStr(p: string): string {
   return String(p ?? "").replace(/\D/g, "");
 }
 
@@ -1274,5 +1274,38 @@ export const ignoredPhonesDb = {
       .delete()
       .eq("phone_norm", phoneNorm);
     if (error) throw error;
+  },
+  /** Remove pela versão original do telefone (normaliza antes). */
+  async removeByPhone(phone: string): Promise<void> {
+    const phone_norm = normalizePhoneStr(phone);
+    if (!phone_norm) return;
+    const c = await client();
+    const { error } = await c
+      .from("crm_ignored_phones")
+      .delete()
+      .eq("phone_norm", phone_norm);
+    if (error) throw error;
+  },
+  /** Adiciona vários telefones em lote (normaliza e dedupe). Retorna quantos foram inseridos. */
+  async addMany(phones: string[], reason?: string | null): Promise<{ added: number; skipped: number }> {
+    const c = await client();
+    const user_id = await uid();
+    const seen = new Set<string>();
+    const norms: string[] = [];
+    for (const p of phones) {
+      const n = normalizePhoneStr(p);
+      if (!n || n.length < 6 || seen.has(n)) continue;
+      seen.add(n);
+      norms.push(n);
+    }
+    if (norms.length === 0) return { added: 0, skipped: phones.length };
+    const rows = norms.map((phone_norm) => ({ user_id, phone_norm, reason: reason || null }));
+    const { error, data } = await c
+      .from("crm_ignored_phones")
+      .upsert(rows, { onConflict: "user_id,phone_norm", ignoreDuplicates: true })
+      .select("id");
+    if (error) throw error;
+    const added = (data ?? []).length;
+    return { added, skipped: phones.length - added };
   },
 };
