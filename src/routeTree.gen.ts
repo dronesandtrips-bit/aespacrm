@@ -46,7 +46,6 @@ import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.publi
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
 import { Route as ApiPublicAiInterestTermsRouteImport } from './routes/api.public.ai.interest-terms'
 import { Route as ApiPublicAiExistingCategoriesRouteImport } from './routes/api.public.ai.existing-categories'
-import { Route as ApiPublicAiContactEnrichFailureRouteImport } from './routes/api.public.ai.contact-enrich-failure'
 import { Route as ApiPublicAiContactEnrichRouteImport } from './routes/api.public.ai.contact-enrich'
 import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
 import { Route as ApiPublicWidgetConfigIdRouteImport } from './routes/api.public.widget.config.$id'
@@ -246,12 +245,6 @@ const ApiPublicAiExistingCategoriesRoute =
     path: '/api/public/ai/existing-categories',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicAiContactEnrichFailureRoute =
-  ApiPublicAiContactEnrichFailureRouteImport.update({
-    id: '/api/public/ai/contact-enrich-failure',
-    path: '/api/public/ai/contact-enrich-failure',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicAiContactEnrichRoute =
   ApiPublicAiContactEnrichRouteImport.update({
     id: '/api/public/ai/contact-enrich',
@@ -290,7 +283,6 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
-  '/api/public/ai/contact-enrich-failure': typeof ApiPublicAiContactEnrichFailureRoute
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
@@ -332,7 +324,6 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
-  '/api/public/ai/contact-enrich-failure': typeof ApiPublicAiContactEnrichFailureRoute
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
@@ -376,7 +367,6 @@ export interface FileRoutesById {
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
-  '/api/public/ai/contact-enrich-failure': typeof ApiPublicAiContactEnrichFailureRoute
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
@@ -420,7 +410,6 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
-    | '/api/public/ai/contact-enrich-failure'
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
@@ -462,7 +451,6 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
-    | '/api/public/ai/contact-enrich-failure'
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
@@ -505,7 +493,6 @@ export interface FileRouteTypes {
     | '/_app/whatsapp'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
-    | '/api/public/ai/contact-enrich-failure'
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
@@ -536,7 +523,6 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
   ApiPublicAiContactEnrichRoute: typeof ApiPublicAiContactEnrichRoute
-  ApiPublicAiContactEnrichFailureRoute: typeof ApiPublicAiContactEnrichFailureRoute
   ApiPublicAiExistingCategoriesRoute: typeof ApiPublicAiExistingCategoriesRoute
   ApiPublicAiInterestTermsRoute: typeof ApiPublicAiInterestTermsRoute
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
@@ -820,13 +806,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAiExistingCategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/ai/contact-enrich-failure': {
-      id: '/api/public/ai/contact-enrich-failure'
-      path: '/api/public/ai/contact-enrich-failure'
-      fullPath: '/api/public/ai/contact-enrich-failure'
-      preLoaderRoute: typeof ApiPublicAiContactEnrichFailureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/ai/contact-enrich': {
       id: '/api/public/ai/contact-enrich'
       path: '/api/public/ai/contact-enrich'
@@ -893,7 +872,6 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
   ApiPublicAiContactEnrichRoute: ApiPublicAiContactEnrichRoute,
-  ApiPublicAiContactEnrichFailureRoute: ApiPublicAiContactEnrichFailureRoute,
   ApiPublicAiExistingCategoriesRoute: ApiPublicAiExistingCategoriesRoute,
   ApiPublicAiInterestTermsRoute: ApiPublicAiInterestTermsRoute,
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,

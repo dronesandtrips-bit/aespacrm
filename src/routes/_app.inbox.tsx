@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck } from "lucide-react";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
-import { getSupabaseClient, getSupabaseClientSync } from "@/integrations/supabase/client";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog } from "@/components/ui/dialog";
@@ -324,13 +324,11 @@ function InboxPage() {
   // Realtime: escuta novas mensagens do usuário
   useEffect(() => {
     let channel: any;
-    let cancelled = false;
-    const channelName = `crm_messages_inbox_${Math.random().toString(36).slice(2)}`;
     (async () => {
       const c = await getSupabaseClient();
-      if (!c || cancelled) return;
+      if (!c) return;
       channel = c
-        .channel(channelName)
+        .channel("crm_messages_inbox")
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "aespacrm", table: "crm_messages" },
@@ -359,26 +357,27 @@ function InboxPage() {
         .subscribe();
     })();
     return () => {
-      cancelled = true;
-      const c = getSupabaseClientSync();
-      if (c && channel) c.removeChannel(channel);
+      if (channel) {
+        (async () => {
+          const c = await getSupabaseClient();
+          c?.removeChannel(channel);
+        })();
+      }
     };
   }, [activeId]);
 
   // Realtime: escuta mudanças em contact_sequences para atualizar o badge de pausa
   useEffect(() => {
     let channel: any;
-    let cancelled = false;
-    const channelName = `crm_contact_sequences_inbox_${Math.random().toString(36).slice(2)}`;
     (async () => {
       const c = await getSupabaseClient();
-      if (!c || cancelled) return;
+      if (!c) return;
       const seqs = await sequencesDb.list().catch(() => []);
       const seqName: Record<string, string> = {};
       seqs.forEach((s) => (seqName[s.id] = s.name));
 
       channel = c
-        .channel(channelName)
+        .channel("crm_contact_sequences_inbox")
         .on(
           "postgres_changes",
           { event: "*", schema: "aespacrm", table: "crm_contact_sequences" },
@@ -399,6 +398,7 @@ function InboxPage() {
                 },
               }));
             } else {
+              // saiu do estado paused-by-reply → limpa
               setReplyPauseByContact((prev) => {
                 const cur = prev[row.contact_id];
                 if (!cur || cur.sequenceId !== row.sequence_id) return prev;
@@ -412,9 +412,12 @@ function InboxPage() {
         .subscribe();
     })();
     return () => {
-      cancelled = true;
-      const c = getSupabaseClientSync();
-      if (c && channel) c.removeChannel(channel);
+      if (channel) {
+        (async () => {
+          const c = await getSupabaseClient();
+          c?.removeChannel(channel);
+        })();
+      }
     };
   }, []);
 

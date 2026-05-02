@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, RefreshCw, CheckCircle2, XCircle, Loader2, Clock, Trash2, AlertTriangle } from "lucide-react";
+import { Sparkles, RefreshCw, CheckCircle2, XCircle, Loader2, Clock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,11 +14,8 @@ import {
 import {
   listEnrichmentLogs,
   deleteEnrichmentLogs,
-  logEnrichmentFailure,
 } from "@/server/ai-enrichment-logs.functions";
 import { toast } from "sonner";
-
-const STUCK_THRESHOLD_MS = 90_000; // 1m30s — após isso, log "dispatched" é considerado travado
 
 export const Route = createFileRoute("/_app/historico-ia")({
   component: HistoricoIaPage,
@@ -41,7 +38,7 @@ function fmt(dt: string | null) {
   return new Date(dt).toLocaleString("pt-BR");
 }
 
-function StatusBadge({ s, stuck }: { s: Log["status"]; stuck?: boolean }) {
+function StatusBadge({ s }: { s: Log["status"] }) {
   if (s === "success") {
     return (
       <Badge className="bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 gap-1">
@@ -53,13 +50,6 @@ function StatusBadge({ s, stuck }: { s: Log["status"]; stuck?: boolean }) {
     return (
       <Badge variant="destructive" className="gap-1">
         <XCircle className="size-3" /> Erro
-      </Badge>
-    );
-  }
-  if (stuck) {
-    return (
-      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1">
-        <AlertTriangle className="size-3" /> Travado
       </Badge>
     );
   }
@@ -130,49 +120,9 @@ function HistoricoIaPage() {
     }
   };
 
-  const handleMarkAsError = async (logId: string, contactName: string | null) => {
-    const label = contactName ?? "este disparo";
-    if (
-      !confirm(
-        `Marcar disparo de "${label}" como erro? Use isso quando o n8n travou e nunca retornou. O contato pode ser re-disparado depois.`,
-      )
-    )
-      return;
-    setBusy(logId);
-    try {
-      await logEnrichmentFailure({
-        data: {
-          log_id: logId,
-          error_message: "Cancelado manualmente — n8n não respondeu (timeout)",
-        },
-      });
-      toast.success("Log marcado como erro");
-      await refresh();
-    } catch (e: any) {
-      toast.error(`Erro: ${e.message ?? e}`);
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  // Tick a cada 10s para reavaliar quais logs viraram "travado" sem precisar refazer fetch
-  const [, setNowTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setNowTick((n) => n + 1), 10_000);
-    return () => clearInterval(id);
-  }, []);
-
-  // Auto-refresh enquanto houver logs em andamento
   useEffect(() => {
     refresh();
   }, []);
-
-  useEffect(() => {
-    const hasPending = logs.some((l) => l.status === "dispatched");
-    if (!hasPending) return;
-    const id = setInterval(refresh, 15_000);
-    return () => clearInterval(id);
-  }, [logs]);
 
   const counts = logs.reduce(
     (acc, l) => {
@@ -266,9 +216,6 @@ function HistoricoIaPage() {
                         ),
                       )
                     : null;
-                const isStuck =
-                  l.status === "dispatched" &&
-                  Date.now() - new Date(l.triggered_at).getTime() > STUCK_THRESHOLD_MS;
                 return (
                   <TableRow key={l.id}>
                     <TableCell className="font-medium">
@@ -287,7 +234,7 @@ function HistoricoIaPage() {
                       {l.contact_phone ?? "—"}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge s={l.status} stuck={isStuck} />
+                      <StatusBadge s={l.status} />
                     </TableCell>
                     <TableCell className="text-sm">{fmt(l.triggered_at)}</TableCell>
                     <TableCell className="text-sm">{fmt(l.completed_at)}</TableCell>
@@ -298,38 +245,20 @@ function HistoricoIaPage() {
                       {l.error_message ?? ""}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        {isStuck && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
-                            title="Marcar como erro (n8n não respondeu)"
-                            disabled={busy === l.id}
-                            onClick={() => handleMarkAsError(l.id, l.contact_name)}
-                          >
-                            {busy === l.id ? (
-                              <Loader2 className="size-4 animate-spin" />
-                            ) : (
-                              <AlertTriangle className="size-4" />
-                            )}
-                          </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title={`Limpar todos os logs de ${l.contact_name ?? "este contato"}`}
+                        disabled={busy === l.contact_id || !l.contact_id}
+                        onClick={() => handleDeleteForContact(l.contact_id, l.contact_name)}
+                      >
+                        {busy === l.contact_id ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-4" />
                         )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          title={`Limpar todos os logs de ${l.contact_name ?? "este contato"}`}
-                          disabled={busy === l.contact_id || !l.contact_id}
-                          onClick={() => handleDeleteForContact(l.contact_id, l.contact_name)}
-                        >
-                          {busy === l.contact_id ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="size-4" />
-                          )}
-                        </Button>
-                      </div>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
