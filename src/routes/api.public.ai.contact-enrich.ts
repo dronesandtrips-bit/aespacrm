@@ -188,6 +188,101 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
           orderedNames.push(t);
         }
 
+        // -------- Trava anti-alucinação de marcas --------
+        // A IA às vezes inventa marcas que o cliente NUNCA citou (ex: cliente
+        // pediu "icsee" e veio "Cliente Mibo Smart" + "Cliente Multi Giga Admin").
+        // Para cada categoria do formato "Cliente <Marca>", verificamos se a
+        // marca aparece literalmente no histórico de mensagens do contato.
+        // Categorias genéricas (Câmeras, Alarme, etc.) passam sem checagem.
+        const droppedHallucinations: string[] = [];
+        if (orderedNames.length > 0) {
+          const { data: msgsRaw } = await sb
+            .from("crm_messages")
+            .select("body, from_me")
+            .eq("user_id", ownerUserId)
+            .eq("contact_id", contactId)
+            .order("at", { ascending: false })
+            .limit(80);
+          const norm = (s: string) =>
+            s
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .toLowerCase();
+          // Concatena só o que o CLIENTE escreveu (from_me=false). O que o
+          // atendente disse não conta — a marca pode ter sido sugerida pelo bot.
+          const transcript = norm(
+            (msgsRaw ?? [])
+              .filter((m: any) => !m.from_me)
+              .map((m: any) => String(m.body ?? ""))
+              .join(" \n "),
+          );
+
+          // Categorias genéricas que SEMPRE podem passar (não são marca específica)
+          const GENERIC = new Set(
+            [
+              "cliente cameras",
+              "cliente cameras wi-fi",
+              "cliente cameras wifi",
+              "cliente alarme",
+              "cliente alarmes",
+              "cliente cerca eletrica",
+              "cliente cftv",
+              "cliente geral",
+              "cliente automacao",
+              "cliente controle de acesso",
+              "cliente interfone",
+              "cliente portao",
+              "cliente suporte",
+            ].map((s) => s),
+          );
+
+          const filtered: string[] = [];
+          for (const original of orderedNames) {
+            const n = norm(original);
+            if (!n.startsWith("cliente ")) {
+              filtered.push(original);
+              continue;
+            }
+            if (GENERIC.has(n)) {
+              filtered.push(original);
+              continue;
+            }
+            // Extrai a "marca" depois de "cliente "
+            const brand = n.slice("cliente ".length).trim();
+            if (!brand) {
+              filtered.push(original);
+              continue;
+            }
+            // Quebra a marca em tokens (ex: "multi giga admin" → 3 tokens).
+            // Se TODOS os tokens significativos aparecerem na transcrição
+            // (ordem irrelevante), aceitamos.
+            const tokens = brand
+              .split(/[\s\-_/]+/)
+              .map((t) => t.replace(/[^a-z0-9]/g, ""))
+              .filter((t) => t.length >= 3);
+            if (tokens.length === 0) {
+              // marca de 1-2 chars → exige string completa
+              if (transcript.includes(brand)) filtered.push(original);
+              else droppedHallucinations.push(original);
+              continue;
+            }
+            const allPresent = tokens.every((t) => transcript.includes(t));
+            if (allPresent) filtered.push(original);
+            else droppedHallucinations.push(original);
+          }
+
+          if (droppedHallucinations.length > 0) {
+            console.warn(
+              `[contact-enrich] Dropped hallucinated categories for ${contactId}:`,
+              droppedHallucinations,
+              "transcript_len=",
+              transcript.length,
+            );
+          }
+          orderedNames.length = 0;
+          orderedNames.push(...filtered);
+        }
+
         const orderedIds: string[] = [];
         const createdCategories: string[] = [];
 
