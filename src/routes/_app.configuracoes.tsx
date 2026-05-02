@@ -13,7 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2, Code2, Copy, ExternalLink, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2, Code2, Copy, ExternalLink, Sparkles, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { categoriesDb, pipelineDb, sequencesDb, widgetsDb, userSettingsDb, type Category, type PipelineStage, type Sequence, type CaptureWidget } from "@/lib/db";
 import { Textarea } from "@/components/ui/textarea";
 import {
