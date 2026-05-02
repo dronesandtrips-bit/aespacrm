@@ -39,7 +39,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle, ArrowUp, ArrowDown, ArrowUpDown, ShieldOff } from "lucide-react";
 import { contactsDb, categoriesDb, sequencesDb, userSettingsDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
 import Papa from "papaparse";
@@ -594,7 +594,18 @@ function ContactsPage() {
                           {c.name[0]}
                         </div>
                         <div className="min-w-0">
-                          <span className="font-medium block truncate">{c.name}</span>
+                          <span className="font-medium block truncate">
+                            {c.name}
+                            {c.isIgnored && (
+                              <Badge
+                                variant="outline"
+                                className="ml-2 gap-1 border-amber-500/40 text-amber-600 dark:text-amber-400"
+                                title="Este contato está na blacklist e é ignorado pelas automações"
+                              >
+                                <ShieldOff className="size-3" /> Ignorado
+                              </Badge>
+                            )}
+                          </span>
                           {c.aiPersonaSummary && (
                             <span
                               className="text-[11px] text-muted-foreground block truncate max-w-[260px]"

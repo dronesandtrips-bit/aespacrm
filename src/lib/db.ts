@@ -23,6 +23,8 @@ export type Contact = {
   aiPersonaSummary?: string | null;
   urgencyLevel?: UrgencyLevel | null;
   lastAiSync?: string | null;
+  /** Marcado pelo trigger quando o telefone está na blacklist do usuário. */
+  isIgnored?: boolean;
 };
 export type BulkSend = {
   id: string;
@@ -179,11 +181,12 @@ function rowToContact(r: any): Contact {
     aiPersonaSummary: r.ai_persona_summary ?? null,
     urgencyLevel: (r.urgency_level ?? null) as UrgencyLevel | null,
     lastAiSync: r.last_ai_sync ?? null,
+    isIgnored: Boolean(r.is_ignored),
   };
 }
 
 const CONTACT_COLUMNS =
-  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync";
+  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,is_ignored";
 
 /**
  * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
@@ -1167,6 +1170,109 @@ export const userSettingsDb = {
     const { error } = await c
       .from("crm_user_settings")
       .upsert(row, { onConflict: "user_id" });
+    if (error) throw error;
+  },
+};
+
+// ===================== Blacklist (números ignorados) =====================
+
+export type IgnoredPhone = {
+  id: string;
+  phoneNorm: string;
+  reason: string | null;
+  createdAt: string;
+};
+
+function normalizePhoneStr(p: string): string {
+  return String(p ?? "").replace(/\D/g, "");
+}
+
+/**
+ * Faz o parse de um textarea contendo telefones (um por linha ou separados
+ * por vírgula/;) e devolve a lista de phone_norm únicos e válidos (6–20 dígitos).
+ */
+export function parseBlacklistInput(raw: string): string[] {
+  const tokens = raw.split(/[\s,;]+/);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of tokens) {
+    const n = normalizePhoneStr(t);
+    if (!n) continue;
+    if (n.length < 6 || n.length > 20) continue;
+    if (seen.has(n)) continue;
+    seen.add(n);
+    out.push(n);
+  }
+  return out;
+}
+
+export const ignoredPhonesDb = {
+  async list(): Promise<IgnoredPhone[]> {
+    const c = await client();
+    const { data, error } = await c
+      .from("crm_ignored_phones")
+      .select("id,phone_norm,reason,created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((r: any) => ({
+      id: r.id,
+      phoneNorm: r.phone_norm,
+      reason: r.reason ?? null,
+      createdAt: r.created_at,
+    }));
+  },
+  /** Substitui toda a blacklist do usuário pela lista enviada (replace). */
+  async replaceAll(phoneNorms: string[], reason?: string | null): Promise<{ added: number; removed: number; kept: number }> {
+    const c = await client();
+    const user_id = await uid();
+    const wanted = new Set(phoneNorms.filter(Boolean));
+    const { data: current, error: curErr } = await c
+      .from("crm_ignored_phones")
+      .select("id,phone_norm")
+      .eq("user_id", user_id);
+    if (curErr) throw curErr;
+    const currentMap = new Map<string, string>(
+      (current ?? []).map((r: any) => [r.phone_norm, r.id]),
+    );
+    const toRemove = [...currentMap.entries()]
+      .filter(([norm]) => !wanted.has(norm))
+      .map(([, id]) => id);
+    const toAdd = [...wanted].filter((n) => !currentMap.has(n));
+
+    if (toRemove.length) {
+      const { error } = await c
+        .from("crm_ignored_phones")
+        .delete()
+        .in("id", toRemove);
+      if (error) throw error;
+    }
+    if (toAdd.length) {
+      const rows = toAdd.map((phone_norm) => ({
+        user_id,
+        phone_norm,
+        reason: reason || null,
+      }));
+      const { error } = await c.from("crm_ignored_phones").insert(rows);
+      if (error) throw error;
+    }
+    return { added: toAdd.length, removed: toRemove.length, kept: currentMap.size - toRemove.length };
+  },
+  async addOne(phone: string, reason?: string | null): Promise<void> {
+    const c = await client();
+    const user_id = await uid();
+    const phone_norm = normalizePhoneStr(phone);
+    if (phone_norm.length < 6) throw new Error("Telefone inválido");
+    const { error } = await c
+      .from("crm_ignored_phones")
+      .upsert({ user_id, phone_norm, reason: reason || null }, { onConflict: "user_id,phone_norm" });
+    if (error) throw error;
+  },
+  async removeOne(phoneNorm: string): Promise<void> {
+    const c = await client();
+    const { error } = await c
+      .from("crm_ignored_phones")
+      .delete()
+      .eq("phone_norm", phoneNorm);
     if (error) throw error;
   },
 };
