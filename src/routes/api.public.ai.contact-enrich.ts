@@ -317,8 +317,26 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
           },
         };
 
-        // Fecha log de enriquecimento, se fornecido
-        if (log_id) {
+        // Fecha log de enriquecimento. Se o n8n perder o log_id no caminho,
+        // usa o último disparo pendente desse contato como fallback.
+        let targetLogId = log_id ?? null;
+        if (!targetLogId) {
+          const { data: latestLog, error: findLogErr } = await sb
+            .from("crm_ai_enrichment_logs")
+            .select("id")
+            .eq("user_id", ownerUserId)
+            .eq("contact_id", contactId)
+            .eq("status", "dispatched")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (findLogErr) {
+            console.warn("contact-enrich find pending log error", findLogErr);
+          }
+          targetLogId = latestLog?.id ?? null;
+        }
+
+        if (targetLogId) {
           const { error: logErr } = await sb
             .from("crm_ai_enrichment_logs")
             .update({
@@ -326,7 +344,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
               response_payload: responsePayload,
               completed_at: new Date().toISOString(),
             })
-            .eq("id", log_id)
+            .eq("id", targetLogId)
             .eq("user_id", ownerUserId);
           if (logErr) {
             console.warn("contact-enrich update log error", logErr);
