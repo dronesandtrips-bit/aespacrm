@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, RefreshCw, CheckCircle2, XCircle, Loader2, Clock } from "lucide-react";
+import { Sparkles, RefreshCw, CheckCircle2, XCircle, Loader2, Clock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,7 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listEnrichmentLogs } from "@/server/ai-enrichment-logs.functions";
+import {
+  listEnrichmentLogs,
+  deleteEnrichmentLogs,
+} from "@/server/ai-enrichment-logs.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/historico-ia")({
