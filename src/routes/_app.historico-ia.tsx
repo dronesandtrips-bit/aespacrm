@@ -147,12 +147,13 @@ function HistoricoIaPage() {
               <TableHead>Conclusão</TableHead>
               <TableHead>Duração</TableHead>
               <TableHead>Detalhes</TableHead>
+              <TableHead className="w-[60px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && logs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
                   <Loader2 className="size-5 animate-spin inline mr-2" /> Carregando…
                 </TableCell>
               </TableRow>
