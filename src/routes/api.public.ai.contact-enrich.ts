@@ -440,6 +440,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             categories_removed: categoriesRemoved,
             final_category_ids: finalCategoryIds,
             created_categories: createdCategories,
+            dropped_hallucinations: droppedHallucinations,
           },
         };
 
