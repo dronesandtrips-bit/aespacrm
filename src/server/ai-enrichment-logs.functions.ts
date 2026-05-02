@@ -75,6 +75,21 @@ export const listEnrichmentLogs = createServerFn({ method: "GET" })
       throw new Error("EVOLUTION_OWNER_USER_ID não configurado");
     }
     const sb = getSupabaseAdmin();
+
+    // Auto-fail: marca como erro qualquer log "dispatched" há mais de 5 minutos.
+    // Evita ficar "Disparado" pra sempre quando o n8n quebra antes de avisar.
+    const cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    await sb
+      .from("crm_ai_enrichment_logs")
+      .update({
+        status: "error",
+        error_message: "Timeout: pipeline n8n não respondeu em 5min (auto-fail)",
+        completed_at: new Date().toISOString(),
+      })
+      .eq("user_id", ownerUserId)
+      .eq("status", "dispatched")
+      .lt("triggered_at", cutoff);
+
     const { data: rows, error } = await sb
       .from("crm_ai_enrichment_logs")
       .select(
