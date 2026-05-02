@@ -112,7 +112,9 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
         }
 
         const messageId: string | null = evData?.key?.id ?? null;
-        const remoteJid: string | null = evData?.key?.remoteJid ?? `${contact.phone_norm}@s.whatsapp.net`;
+        const remoteJid: string | null =
+          evData?.key?.remoteJid ??
+          (contact.is_group ? contact.wa_jid : `${contact.phone_norm}@s.whatsapp.net`);
 
         // Insert simples. O índice único de message_id é parcial (where message_id is not null)
         // e o Postgres não aceita esse índice em ON CONFLICT, então tratamos duplicata como sucesso.
