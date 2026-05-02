@@ -95,7 +95,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               .in("sequence_id", seqIds),
             admin
               .from("crm_contacts")
-              .select("id,name,phone,email,category_id")
+              .select("id,name,phone,email,category_id,is_ignored")
               .in("id", contactIds),
           ]);
           if (seqsRes.error) throw seqsRes.error;
@@ -118,6 +118,8 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               const seq = seqMap.get(d.sequence_id) as any;
               const contact = contactMap.get(d.contact_id) as any;
               if (!seq || !contact || !seq.is_active) return null;
+              // Cinto-e-suspensório: nunca dispara para contato na blacklist.
+              if (contact.is_ignored) return null;
               if (!inWindow(seq)) return null;
               const steps = (stepsBySeq.get(d.sequence_id) ?? []).sort(
                 (a: any, b: any) => a.order - b.order,
