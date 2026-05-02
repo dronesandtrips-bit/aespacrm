@@ -86,3 +86,33 @@ export const listEnrichmentLogs = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     return { logs: rows ?? [] };
   });
+
+const DeleteSchema = z
+  .object({
+    log_id: z.string().uuid().optional(),
+    contact_id: z.string().uuid().optional(),
+    all: z.boolean().optional(),
+  })
+  .refine((d) => !!(d.log_id || d.contact_id || d.all), {
+    message: "log_id, contact_id ou all=true é obrigatório",
+  });
+
+export const deleteEnrichmentLogs = createServerFn({ method: "POST" })
+  .inputValidator((data) => DeleteSchema.parse(data))
+  .handler(async ({ data }) => {
+    const ownerUserId = process.env.EVOLUTION_OWNER_USER_ID?.trim();
+    if (!ownerUserId) {
+      throw new Error("EVOLUTION_OWNER_USER_ID não configurado");
+    }
+    const sb = getSupabaseAdmin();
+    let q = sb
+      .from("crm_ai_enrichment_logs")
+      .delete()
+      .eq("user_id", ownerUserId);
+    if (data.log_id) q = q.eq("id", data.log_id);
+    else if (data.contact_id) q = q.eq("contact_id", data.contact_id);
+    // se all=true sem outros filtros, deleta todos do owner
+    const { error, count } = await q.select("id", { count: "exact" });
+    if (error) throw new Error(error.message);
+    return { ok: true, deleted: count ?? 0 };
+  });

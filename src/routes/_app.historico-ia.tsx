@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, RefreshCw, CheckCircle2, XCircle, Loader2, Clock } from "lucide-react";
+import { Sparkles, RefreshCw, CheckCircle2, XCircle, Loader2, Clock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,7 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listEnrichmentLogs } from "@/server/ai-enrichment-logs.functions";
+import {
+  listEnrichmentLogs,
+  deleteEnrichmentLogs,
+} from "@/server/ai-enrichment-logs.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/historico-ia")({
@@ -61,6 +64,8 @@ function HistoricoIaPage() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [busy, setBusy] = useState<string | null>(null);
+
   const refresh = async () => {
     setLoading(true);
     try {
@@ -70,6 +75,25 @@ function HistoricoIaPage() {
       toast.error(`Erro ao carregar: ${e.message ?? e}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteForContact = async (contactId: string | null, name: string | null) => {
+    if (!contactId) {
+      toast.error("Log sem contact_id — não é possível filtrar");
+      return;
+    }
+    const label = name ?? "este contato";
+    if (!confirm(`Remover TODOS os logs de "${label}" do histórico?`)) return;
+    setBusy(contactId);
+    try {
+      const r = await deleteEnrichmentLogs({ data: { contact_id: contactId } });
+      toast.success(`${r.deleted} log(s) removido(s)`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(`Erro ao remover: ${e.message ?? e}`);
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -123,18 +147,19 @@ function HistoricoIaPage() {
               <TableHead>Conclusão</TableHead>
               <TableHead>Duração</TableHead>
               <TableHead>Detalhes</TableHead>
+              <TableHead className="w-[60px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && logs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
                   <Loader2 className="size-5 animate-spin inline mr-2" /> Carregando…
                 </TableCell>
               </TableRow>
             ) : logs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
                   <Clock className="size-5 inline mr-2 opacity-50" />
                   Nenhum enriquecimento disparado ainda. Use o botão ✨ na lista de contatos.
                 </TableCell>
@@ -179,6 +204,22 @@ function HistoricoIaPage() {
                     </TableCell>
                     <TableCell className="max-w-[260px] truncate text-xs text-muted-foreground">
                       {l.error_message ?? ""}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title={`Limpar todos os logs de ${l.contact_name ?? "este contato"}`}
+                        disabled={busy === l.contact_id || !l.contact_id}
+                        onClick={() => handleDeleteForContact(l.contact_id, l.contact_name)}
+                      >
+                        {busy === l.contact_id ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-4" />
+                        )}
+                      </Button>
                     </TableCell>
                   </TableRow>
                 );
