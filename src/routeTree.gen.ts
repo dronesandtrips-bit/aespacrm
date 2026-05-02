@@ -43,7 +43,6 @@ import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes
 import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api.public.evolution.bulk-dispatch'
 import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
-import { Route as ApiPublicAiLogEnrichRouteImport } from './routes/api.public.ai.log-enrich'
 import { Route as ApiPublicAiInterestTermsRouteImport } from './routes/api.public.ai.interest-terms'
 import { Route as ApiPublicAiContactEnrichRouteImport } from './routes/api.public.ai.contact-enrich'
 import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
@@ -227,11 +226,6 @@ const ApiPublicAiLovableProxyRoute = ApiPublicAiLovableProxyRouteImport.update({
   path: '/api/public/ai/lovable-proxy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicAiLogEnrichRoute = ApiPublicAiLogEnrichRouteImport.update({
-  id: '/api/public/ai/log-enrich',
-  path: '/api/public/ai/log-enrich',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicAiInterestTermsRoute =
   ApiPublicAiInterestTermsRouteImport.update({
     id: '/api/public/ai/interest-terms',
@@ -276,7 +270,6 @@ export interface FileRoutesByFullPath {
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
-  '/api/public/ai/log-enrich': typeof ApiPublicAiLogEnrichRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
@@ -316,7 +309,6 @@ export interface FileRoutesByTo {
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
-  '/api/public/ai/log-enrich': typeof ApiPublicAiLogEnrichRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
@@ -358,7 +350,6 @@ export interface FileRoutesById {
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
-  '/api/public/ai/log-enrich': typeof ApiPublicAiLogEnrichRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
@@ -400,7 +391,6 @@ export interface FileRouteTypes {
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/interest-terms'
-    | '/api/public/ai/log-enrich'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
@@ -440,7 +430,6 @@ export interface FileRouteTypes {
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/interest-terms'
-    | '/api/public/ai/log-enrich'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
@@ -481,7 +470,6 @@ export interface FileRouteTypes {
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/interest-terms'
-    | '/api/public/ai/log-enrich'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
@@ -511,7 +499,6 @@ export interface RootRouteChildren {
   WidgetFormIdRoute: typeof WidgetFormIdRoute
   ApiPublicAiContactEnrichRoute: typeof ApiPublicAiContactEnrichRoute
   ApiPublicAiInterestTermsRoute: typeof ApiPublicAiInterestTermsRoute
-  ApiPublicAiLogEnrichRoute: typeof ApiPublicAiLogEnrichRoute
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
   ApiPublicContactsCleanupRoute: typeof ApiPublicContactsCleanupRoute
   ApiPublicEvolutionBulkDispatchRoute: typeof ApiPublicEvolutionBulkDispatchRoute
@@ -772,13 +759,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAiLovableProxyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/ai/log-enrich': {
-      id: '/api/public/ai/log-enrich'
-      path: '/api/public/ai/log-enrich'
-      fullPath: '/api/public/ai/log-enrich'
-      preLoaderRoute: typeof ApiPublicAiLogEnrichRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/ai/interest-terms': {
       id: '/api/public/ai/interest-terms'
       path: '/api/public/ai/interest-terms'
@@ -851,7 +831,6 @@ const rootRouteChildren: RootRouteChildren = {
   WidgetFormIdRoute: WidgetFormIdRoute,
   ApiPublicAiContactEnrichRoute: ApiPublicAiContactEnrichRoute,
   ApiPublicAiInterestTermsRoute: ApiPublicAiInterestTermsRoute,
-  ApiPublicAiLogEnrichRoute: ApiPublicAiLogEnrichRoute,
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
   ApiPublicContactsCleanupRoute: ApiPublicContactsCleanupRoute,
   ApiPublicEvolutionBulkDispatchRoute: ApiPublicEvolutionBulkDispatchRoute,
