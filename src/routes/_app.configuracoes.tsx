@@ -13,7 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2, Code2, Copy, ExternalLink, Sparkles } from "lucide-react";
+import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2, Code2, Copy, ExternalLink, Sparkles, Check } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { categoriesDb, pipelineDb, sequencesDb, widgetsDb, userSettingsDb, type Category, type PipelineStage, type Sequence, type CaptureWidget } from "@/lib/db";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -221,12 +222,32 @@ function CategoriesTab() {
     }
   };
 
+  const approve = async (id: string) => {
+    try {
+      await categoriesDb.approve(id);
+      await refresh();
+      toast.success("Categoria aprovada");
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    }
+  };
+
+  const pendingCount = list.filter((c) => c.status === "pending").length;
+  const sortedList = [...list].sort((a, b) => {
+    if (a.status !== b.status) return a.status === "pending" ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-semibold">Categorias de contatos</h3>
-          <p className="text-xs text-muted-foreground">{loading ? "..." : `${list.length} categorias`}</p>
+          <p className="text-xs text-muted-foreground">
+            {loading
+              ? "..."
+              : `${list.length} categorias${pendingCount > 0 ? ` · ${pendingCount} pendente${pendingCount > 1 ? "s" : ""} de aprovação` : ""}`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -260,24 +281,48 @@ function CategoriesTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {list.map((c) => {
+          {sortedList.map((c) => {
             const seq = sequences.find((s) => s.id === c.sequenceId);
+            const isPending = c.status === "pending";
             return (
-              <div key={c.id} className="border rounded-lg p-3 flex items-center gap-3">
+              <div
+                key={c.id}
+                className={cn(
+                  "border rounded-lg p-3 flex items-center gap-3",
+                  isPending && "border-amber-400/60 bg-amber-50/40 dark:bg-amber-950/20",
+                )}
+              >
                 <div
                   className="size-10 rounded-lg shrink-0"
                   style={{ backgroundColor: c.color }}
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{c.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm truncate">{c.name}</p>
+                    {isPending && (
+                      <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-400 text-[10px] px-1.5 py-0">
+                        Sugerida pela IA
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-[11px] text-muted-foreground truncate">
                     {seq ? `→ ${seq.name}` : "sem sequência"}
                   </p>
                 </div>
+                {isPending && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Aprovar"
+                    onClick={() => approve(c.id)}
+                  >
+                    <Check className="size-4 text-emerald-600" />
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" onClick={() => { setEditing(c); setOpen(true); }}>
                   <Pencil className="size-4" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => remove(c.id)}>
+                <Button variant="ghost" size="icon" onClick={() => remove(c.id)} title={isPending ? "Rejeitar" : "Remover"}>
                   <Trash2 className="size-4 text-destructive" />
                 </Button>
               </div>
