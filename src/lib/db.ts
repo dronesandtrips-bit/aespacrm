@@ -114,7 +114,13 @@ async function uid(): Promise<string> {
 // ===================== Categorias =====================
 
 function rowToCategory(r: any): Category {
-  return { id: r.id, name: r.name, color: r.color, sequenceId: r.sequence_id ?? null };
+  return {
+    id: r.id,
+    name: r.name,
+    color: r.color,
+    sequenceId: r.sequence_id ?? null,
+    status: (r.status === "pending" ? "pending" : "approved") as CategoryStatus,
+  };
 }
 
 export const categoriesDb = {
@@ -122,7 +128,7 @@ export const categoriesDb = {
     const c = await client();
     const { data, error } = await c
       .from("crm_categories")
-      .select("id,name,color,sequence_id")
+      .select("id,name,color,sequence_id,status")
       .order("name", { ascending: true });
     if (error) throw error;
     return (data ?? []).map(rowToCategory);
@@ -132,20 +138,24 @@ export const categoriesDb = {
     const user_id = await uid();
     const { data, error } = await c
       .from("crm_categories")
-      .insert({ name, color, user_id, sequence_id: sequenceId ?? null })
-      .select("id,name,color,sequence_id")
+      .insert({ name, color, user_id, sequence_id: sequenceId ?? null, status: "approved" })
+      .select("id,name,color,sequence_id,status")
       .single();
     if (error) throw error;
     return rowToCategory(data);
   },
-  async update(id: string, patch: Partial<Pick<Category, "name" | "color" | "sequenceId">>) {
+  async update(id: string, patch: Partial<Pick<Category, "name" | "color" | "sequenceId" | "status">>) {
     const c = await client();
     const dbPatch: Record<string, unknown> = {};
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.color !== undefined) dbPatch.color = patch.color;
     if (patch.sequenceId !== undefined) dbPatch.sequence_id = patch.sequenceId;
+    if (patch.status !== undefined) dbPatch.status = patch.status;
     const { error } = await c.from("crm_categories").update(dbPatch).eq("id", id);
     if (error) throw error;
+  },
+  async approve(id: string) {
+    return this.update(id, { status: "approved" });
   },
   async remove(id: string) {
     const c = await client();
