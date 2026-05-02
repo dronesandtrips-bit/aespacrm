@@ -53,22 +53,35 @@ function InboxPage() {
     (async () => {
       try {
         const c = await getSupabaseClient();
-        const cs = await contactsDb.list();
+        const [cs, cats] = await Promise.all([
+          contactsDb.list(),
+          categoriesDb.list().catch(() => [] as Category[]),
+        ]);
         if (cancelled) return;
         setContacts(cs);
+        setCategories(cats);
 
         // Busca última msg de cada contato (uma query, ordenada)
         if (c && cs.length > 0) {
-          const { data } = await c
+          // Tenta com colunas de mídia; se falhar, faz fallback
+          let rows: any[] = [];
+          const full = await c
             .from("crm_messages")
-            .select("id,contact_id,body,from_me,at")
-            .in(
-              "contact_id",
-              cs.map((x) => x.id),
-            )
+            .select("id,contact_id,body,from_me,at,type,media_url,media_mime,media_caption")
+            .in("contact_id", cs.map((x) => x.id))
             .order("at", { ascending: false });
+          if (full.error) {
+            const fallback = await c
+              .from("crm_messages")
+              .select("id,contact_id,body,from_me,at")
+              .in("contact_id", cs.map((x) => x.id))
+              .order("at", { ascending: false });
+            rows = fallback.data ?? [];
+          } else {
+            rows = full.data ?? [];
+          }
           const map: LastMap = {};
-          (data ?? []).forEach((row: any) => {
+          rows.forEach((row: any) => {
             if (!map[row.contact_id]) {
               map[row.contact_id] = {
                 id: row.id,
@@ -76,6 +89,10 @@ function InboxPage() {
                 body: row.body,
                 fromMe: row.from_me,
                 at: row.at,
+                type: row.type ?? "text",
+                mediaUrl: row.media_url ?? null,
+                mediaMime: row.media_mime ?? null,
+                mediaCaption: row.media_caption ?? null,
               };
             }
           });
