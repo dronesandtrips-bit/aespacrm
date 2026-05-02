@@ -128,12 +128,12 @@ async function ensureContact(
 ): Promise<string | null> {
   if (!phone || !isValidE164(phone)) return null;
   const safeName = sanitizeContactName(fallbackName, phone);
-  // tenta achar
   const { data: existing } = await sb
     .from("crm_contacts")
     .select("id")
     .eq("user_id", userId)
     .eq("phone_norm", phone)
+    .eq("is_group", false)
     .maybeSingle();
   if (existing?.id) return existing.id;
 
@@ -143,11 +143,60 @@ async function ensureContact(
       user_id: userId,
       name: safeName,
       phone,
+      is_group: false,
     })
     .select("id")
     .single();
   if (error) {
     console.error("ensureContact insert error", error);
+    return null;
+  }
+  return created.id;
+}
+
+// Garante "contato" do tipo grupo. Não valida telefone.
+// Usa wa_jid (ex.: 120363xxx@g.us) como chave única por usuário.
+async function ensureGroupContact(
+  sb: any,
+  userId: string,
+  jid: string,
+  fallbackName: string,
+): Promise<string | null> {
+  if (!jid || !isGroupJid(jid)) return null;
+  const phoneLike = normalizePhone(jid) || "0";
+  const safeName =
+    ((fallbackName ?? "").toString().trim().slice(0, 120)) || "Grupo";
+
+  const { data: existing } = await sb
+    .from("crm_contacts")
+    .select("id,name")
+    .eq("user_id", userId)
+    .eq("wa_jid", jid)
+    .maybeSingle();
+  if (existing?.id) {
+    if (fallbackName && existing.name !== safeName) {
+      sb.from("crm_contacts")
+        .update({ name: safeName })
+        .eq("id", existing.id)
+        .then(() => {})
+        .catch(() => {});
+    }
+    return existing.id;
+  }
+
+  const { data: created, error } = await sb
+    .from("crm_contacts")
+    .insert({
+      user_id: userId,
+      name: safeName,
+      phone: phoneLike,
+      is_group: true,
+      wa_jid: jid,
+    })
+    .select("id")
+    .single();
+  if (error) {
+    console.error("ensureGroupContact insert error", error);
     return null;
   }
   return created.id;
