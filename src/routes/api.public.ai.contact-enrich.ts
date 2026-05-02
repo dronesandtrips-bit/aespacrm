@@ -87,6 +87,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
           );
         }
         const {
+          log_id,
           contact_id,
           phone,
           name,
