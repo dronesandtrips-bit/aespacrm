@@ -159,7 +159,7 @@ function HistoricoIaPage() {
               </TableRow>
             ) : logs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
                   <Clock className="size-5 inline mr-2 opacity-50" />
                   Nenhum enriquecimento disparado ainda. Use o botão ✨ na lista de contatos.
                 </TableCell>
