@@ -97,6 +97,29 @@ function HistoricoIaPage() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (logs.length === 0) {
+      toast.info("Nada para limpar");
+      return;
+    }
+    if (
+      !confirm(
+        `Remover TODOS os ${logs.length} logs do histórico de enriquecimento? Esta ação não pode ser desfeita.`,
+      )
+    )
+      return;
+    setBusy("__all__");
+    try {
+      const r = await deleteEnrichmentLogs({ data: { all: true } });
+      toast.success(`${r.deleted} log(s) removido(s)`);
+      await refresh();
+    } catch (e: any) {
+      toast.error(`Erro ao remover: ${e.message ?? e}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   useEffect(() => {
     refresh();
   }, []);
@@ -123,10 +146,26 @@ function HistoricoIaPage() {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
-          <RefreshCw className={`size-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={handleDeleteAll}
+            disabled={loading || busy === "__all__" || logs.length === 0}
+          >
+            {busy === "__all__" ? (
+              <Loader2 className="size-4 mr-2 animate-spin" />
+            ) : (
+              <Trash2 className="size-4 mr-2" />
+            )}
+            Limpar todos os logs
+          </Button>
+          <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
+            <RefreshCw className={`size-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
