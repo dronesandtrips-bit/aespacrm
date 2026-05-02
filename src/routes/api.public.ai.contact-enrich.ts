@@ -348,10 +348,31 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
           },
         };
 
-        // Fecha log de enriquecimento. Se o n8n perder o log_id no caminho,
+        // Fecha log de enriquecimento. Se o log_id não bater com nenhuma linha,
         // usa o último disparo pendente desse contato como fallback.
+        const completedAt = new Date().toISOString();
         let targetLogId = log_id ?? null;
-        if (!targetLogId) {
+        let logUpdated = false;
+
+        if (targetLogId) {
+          const { data: updatedRows, error: logErr } = await sb
+            .from("crm_ai_enrichment_logs")
+            .update({
+              status: "success",
+              response_payload: responsePayload,
+              completed_at: completedAt,
+            })
+            .eq("id", targetLogId)
+            .eq("user_id", ownerUserId)
+            .select("id");
+          if (logErr) {
+            console.warn("contact-enrich update log error", logErr);
+          } else {
+            logUpdated = (updatedRows?.length ?? 0) > 0;
+          }
+        }
+
+        if (!logUpdated) {
           const { data: latestLog, error: findLogErr } = await sb
             .from("crm_ai_enrichment_logs")
             .select("id")
@@ -364,25 +385,31 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
           if (findLogErr) {
             console.warn("contact-enrich find pending log error", findLogErr);
           }
-          targetLogId = latestLog?.id ?? null;
-        }
+          targetLogId = latestLog?.id ?? targetLogId;
 
-        if (targetLogId) {
-          const { error: logErr } = await sb
-            .from("crm_ai_enrichment_logs")
-            .update({
-              status: "success",
-              response_payload: responsePayload,
-              completed_at: new Date().toISOString(),
-            })
-            .eq("id", targetLogId)
-            .eq("user_id", ownerUserId);
-          if (logErr) {
-            console.warn("contact-enrich update log error", logErr);
+          if (latestLog?.id) {
+            const { data: fallbackRows, error: fallbackErr } = await sb
+              .from("crm_ai_enrichment_logs")
+              .update({
+                status: "success",
+                response_payload: responsePayload,
+                completed_at: completedAt,
+              })
+              .eq("id", latestLog.id)
+              .eq("user_id", ownerUserId)
+              .select("id");
+            if (fallbackErr) {
+              console.warn("contact-enrich fallback update log error", fallbackErr);
+            } else {
+              logUpdated = (fallbackRows?.length ?? 0) > 0;
+            }
           }
         }
 
-        return jsonResponse(responsePayload);
+        return jsonResponse({
+          ...responsePayload,
+          enrichment_log: { updated: logUpdated, log_id: targetLogId },
+        });
       },
     },
   },
