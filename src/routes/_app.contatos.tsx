@@ -730,6 +730,21 @@ function ContactsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        title={c.isIgnored ? "Restaurar (remover da blacklist)" : "Ignorar (adicionar à blacklist)"}
+                        disabled={togglingIgnore.has(c.id)}
+                        onClick={() => handleToggleIgnore(c)}
+                      >
+                        {togglingIgnore.has(c.id) ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : c.isIgnored ? (
+                          <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                          <ShieldOff className="size-4 text-amber-600 dark:text-amber-400" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => {
                           setEditing(c);
                           setOpen(true);
