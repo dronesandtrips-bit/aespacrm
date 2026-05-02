@@ -5,11 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, Download } from "lucide-react";
-import { contactsDb, messagesDb, sequencesDb, categoriesDb, type Contact, type ChatMessage, type Category } from "@/lib/db";
+import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck } from "lucide-react";
+import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { ContactDialog, EnrollDialog } from "@/components/contact-dialogs";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_app/inbox")({
   component: InboxPage,
