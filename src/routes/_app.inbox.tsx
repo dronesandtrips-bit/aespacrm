@@ -111,7 +111,7 @@ function InboxPage() {
 
   const refreshInbox = useCallback(async (options?: { initial?: boolean }) => {
     const [cs, cats] = await Promise.all([
-      contactsDb.list(),
+      contactsDb.listAll(),
       categoriesDb.list().catch(() => [] as Category[]),
     ]);
     const lastMap = await loadLastMessages();
