@@ -297,17 +297,17 @@ function CategoriesTab() {
                   style={{ backgroundColor: c.color }}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-sm truncate">{c.name}</p>
+                  <p className="font-medium text-sm truncate">{c.name}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
                     {isPending && (
-                      <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-400 text-[10px] px-1.5 py-0">
+                      <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-400 text-[10px] px-1.5 py-0 whitespace-nowrap">
                         Sugerida pela IA
                       </Badge>
                     )}
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {seq ? `→ ${seq.name}` : "sem sequência"}
+                    </p>
                   </div>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {seq ? `→ ${seq.name}` : "sem sequência"}
-                  </p>
                 </div>
                 {isPending && (
                   <Button
