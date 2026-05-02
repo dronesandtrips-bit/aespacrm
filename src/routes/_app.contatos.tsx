@@ -39,8 +39,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle, ArrowUp, ArrowDown, ArrowUpDown, ShieldOff } from "lucide-react";
-import { contactsDb, categoriesDb, sequencesDb, userSettingsDb, type Contact, type Category, type Sequence } from "@/lib/db";
+import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle, ArrowUp, ArrowDown, ArrowUpDown, ShieldOff, ShieldCheck } from "lucide-react";
+import { contactsDb, categoriesDb, sequencesDb, userSettingsDb, ignoredPhonesDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import { z } from "zod";
@@ -83,6 +83,56 @@ function ContactsPage() {
   const [cleaning, setCleaning] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkBlacklisting, setBulkBlacklisting] = useState(false);
+  const [togglingIgnore, setTogglingIgnore] = useState<Set<string>>(new Set());
+
+  const handleToggleIgnore = async (c: Contact) => {
+    if (togglingIgnore.has(c.id)) return;
+    setTogglingIgnore((prev) => new Set(prev).add(c.id));
+    try {
+      if (c.isIgnored) {
+        await ignoredPhonesDb.removeByPhone(c.phone);
+        toast.success(`${c.name} removido da blacklist`);
+      } else {
+        await ignoredPhonesDb.addOne(c.phone, "manual:contacts-list");
+        toast.success(`${c.name} adicionado à blacklist`);
+      }
+      await refresh();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setTogglingIgnore((prev) => {
+        const n = new Set(prev);
+        n.delete(c.id);
+        return n;
+      });
+    }
+  };
+
+  const handleBulkBlacklist = async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    const targets = contacts.filter((c) => ids.includes(c.id) && !c.isIgnored);
+    if (targets.length === 0) {
+      toast.info("Os contatos selecionados já estão na blacklist");
+      return;
+    }
+    if (!confirm(`Adicionar ${targets.length} contato${targets.length > 1 ? "s" : ""} à blacklist? Eles serão ignorados pelas automações e sequências em andamento serão pausadas.`)) return;
+    setBulkBlacklisting(true);
+    try {
+      const res = await ignoredPhonesDb.addMany(
+        targets.map((c) => c.phone),
+        "manual:contacts-bulk",
+      );
+      setSelected(new Set());
+      await refresh();
+      toast.success(`${res.added} adicionado${res.added !== 1 ? "s" : ""} à blacklist${res.skipped ? ` (${res.skipped} ignorado${res.skipped !== 1 ? "s" : ""})` : ""}`);
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setBulkBlacklisting(false);
+    }
+  };
 
   const handleCleanInvalid = async () => {
     try {
@@ -487,6 +537,16 @@ function ContactsPage() {
             </button>
           </div>
           <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleBulkBlacklist}
+            disabled={bulkBlacklisting}
+          >
+            {bulkBlacklisting ? <Loader2 className="size-4 animate-spin" /> : <ShieldOff className="size-4" />}
+            Adicionar à blacklist
+          </Button>
+          <Button
             variant="destructive"
             size="sm"
             className="gap-2"
@@ -666,6 +726,21 @@ function ContactsPage() {
                         onClick={() => setEnrollContact(c)}
                       >
                         <GitBranch className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={c.isIgnored ? "Restaurar (remover da blacklist)" : "Ignorar (adicionar à blacklist)"}
+                        disabled={togglingIgnore.has(c.id)}
+                        onClick={() => handleToggleIgnore(c)}
+                      >
+                        {togglingIgnore.has(c.id) ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : c.isIgnored ? (
+                          <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                          <ShieldOff className="size-4 text-amber-600 dark:text-amber-400" />
+                        )}
                       </Button>
                       <Button
                         variant="ghost"
