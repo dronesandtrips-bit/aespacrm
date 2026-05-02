@@ -325,7 +325,34 @@ async function loadContactCategoriesMap(): Promise<Map<string, string[]>> {
 }
 
 export const contactsDb = {
+  /**
+   * Lista contatos individuais. NÃO inclui conversas de grupo (is_group=true)
+   * — grupos só aparecem na aba WhatsWeb (Inbox), via {@link listAll}.
+   */
   async list(): Promise<Contact[]> {
+    const c = await client();
+    const [contactsRes, tagsMap] = await Promise.all([
+      c
+        .from("crm_contacts")
+        .select(CONTACT_COLUMNS)
+        .eq("is_group", false)
+        .order("created_at", { ascending: false }),
+      loadContactCategoriesMap(),
+    ]);
+    if (contactsRes.error) throw contactsRes.error;
+    return (contactsRes.data ?? []).map((r: any) => {
+      const base = rowToContact(r);
+      const tags = tagsMap.get(base.id);
+      if (tags && tags.length) base.categoryIds = tags;
+      else if (base.categoryId) base.categoryIds = [base.categoryId];
+      return base;
+    });
+  },
+  /**
+   * Igual a {@link list}, mas inclui também conversas de grupo.
+   * Usar APENAS na aba WhatsWeb (Inbox).
+   */
+  async listAll(): Promise<Contact[]> {
     const c = await client();
     const [contactsRes, tagsMap] = await Promise.all([
       c.from("crm_contacts").select(CONTACT_COLUMNS).order("created_at", { ascending: false }),
