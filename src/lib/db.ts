@@ -25,6 +25,10 @@ export type Contact = {
   lastAiSync?: string | null;
   /** Marcado pelo trigger quando o telefone está na blacklist do usuário. */
   isIgnored?: boolean;
+  /** True se este "contato" é, na verdade, uma conversa de grupo do WhatsApp. */
+  isGroup?: boolean;
+  /** JID completo do WhatsApp (ex.: 120363xxx@g.us). Só preenchido para grupos. */
+  waJid?: string | null;
 };
 export type BulkSend = {
   id: string;
