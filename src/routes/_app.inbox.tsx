@@ -615,8 +615,15 @@ function InboxPage() {
                     {active.name[0]}
                   </div>
                   <div>
-                    <p className="font-medium text-sm">{active.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{active.phone}</p>
+                    <p className="font-medium text-sm flex items-center gap-2">
+                      {active.name}
+                      {active.isGroup && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Grupo</Badge>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {active.isGroup ? "Conversa em grupo" : active.phone}
+                    </p>
                   </div>
                   {active && replyPauseByContact[active.id] && (
                     <TooltipProvider delayDuration={150}>
