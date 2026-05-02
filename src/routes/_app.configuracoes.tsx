@@ -243,7 +243,11 @@ function CategoriesTab() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="font-semibold">Categorias de contatos</h3>
-          <p className="text-xs text-muted-foreground">{loading ? "..." : `${list.length} categorias`}</p>
+          <p className="text-xs text-muted-foreground">
+            {loading
+              ? "..."
+              : `${list.length} categorias${pendingCount > 0 ? ` · ${pendingCount} pendente${pendingCount > 1 ? "s" : ""} de aprovação` : ""}`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
