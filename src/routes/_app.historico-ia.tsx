@@ -266,6 +266,9 @@ function HistoricoIaPage() {
                         ),
                       )
                     : null;
+                const isStuck =
+                  l.status === "dispatched" &&
+                  Date.now() - new Date(l.triggered_at).getTime() > STUCK_THRESHOLD_MS;
                 return (
                   <TableRow key={l.id}>
                     <TableCell className="font-medium">
@@ -284,7 +287,7 @@ function HistoricoIaPage() {
                       {l.contact_phone ?? "—"}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge s={l.status} />
+                      <StatusBadge s={l.status} stuck={isStuck} />
                     </TableCell>
                     <TableCell className="text-sm">{fmt(l.triggered_at)}</TableCell>
                     <TableCell className="text-sm">{fmt(l.completed_at)}</TableCell>
@@ -295,20 +298,38 @@ function HistoricoIaPage() {
                       {l.error_message ?? ""}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        title={`Limpar todos os logs de ${l.contact_name ?? "este contato"}`}
-                        disabled={busy === l.contact_id || !l.contact_id}
-                        onClick={() => handleDeleteForContact(l.contact_id, l.contact_name)}
-                      >
-                        {busy === l.contact_id ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="size-4" />
+                      <div className="flex items-center gap-1">
+                        {isStuck && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                            title="Marcar como erro (n8n não respondeu)"
+                            disabled={busy === l.id}
+                            onClick={() => handleMarkAsError(l.id, l.contact_name)}
+                          >
+                            {busy === l.id ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <AlertTriangle className="size-4" />
+                            )}
+                          </Button>
                         )}
-                      </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          title={`Limpar todos os logs de ${l.contact_name ?? "este contato"}`}
+                          disabled={busy === l.contact_id || !l.contact_id}
+                          onClick={() => handleDeleteForContact(l.contact_id, l.contact_name)}
+                        >
+                          {busy === l.contact_id ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="size-4" />
+                          )}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
