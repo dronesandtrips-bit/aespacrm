@@ -610,3 +610,109 @@ function UrgencyBadge({ level }: { level: "Baixa" | "Média" | "Alta" }) {
     </Badge>
   );
 }
+
+function ContactTags({ contact, categories }: { contact: Contact; categories: Category[] }) {
+  const ids = contact.categoryIds && contact.categoryIds.length
+    ? contact.categoryIds
+    : contact.categoryId
+      ? [contact.categoryId]
+      : [];
+  if (ids.length === 0) {
+    return <p className="text-xs text-muted-foreground italic">Sem tags</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {ids.map((id) => {
+        const cat = categories.find((c) => c.id === id);
+        if (!cat) return null;
+        return (
+          <Badge
+            key={id}
+            variant="outline"
+            className="text-[11px] gap-1"
+            style={{ borderColor: `${cat.color}80`, backgroundColor: `${cat.color}15`, color: cat.color }}
+          >
+            {cat.name}
+          </Badge>
+        );
+      })}
+    </div>
+  );
+}
+
+function MessageContent({ m }: { m: ChatMessage }) {
+  const type = m.type ?? "text";
+  const caption = m.mediaCaption ?? m.body;
+
+  if (type === "image" && m.mediaUrl) {
+    return (
+      <div className="space-y-1.5">
+        <a href={m.mediaUrl} target="_blank" rel="noreferrer" className="block">
+          <img
+            src={m.mediaUrl}
+            alt={caption || "imagem"}
+            className="rounded-lg max-w-full max-h-72 object-contain bg-black/5"
+            loading="lazy"
+          />
+        </a>
+        {caption ? <p className="whitespace-pre-wrap break-words">{caption}</p> : null}
+      </div>
+    );
+  }
+
+  if (type === "video" && m.mediaUrl) {
+    return (
+      <div className="space-y-1.5">
+        <video
+          src={m.mediaUrl}
+          controls
+          className="rounded-lg max-w-full max-h-72 bg-black"
+          preload="metadata"
+        />
+        {caption ? <p className="whitespace-pre-wrap break-words">{caption}</p> : null}
+      </div>
+    );
+  }
+
+  if (type === "audio" && m.mediaUrl) {
+    return (
+      <div className="space-y-1.5 min-w-[220px]">
+        <audio src={m.mediaUrl} controls className="w-full max-w-xs" preload="metadata" />
+        {caption && caption !== m.body ? (
+          <p className="whitespace-pre-wrap break-words">{caption}</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (type === "document" && m.mediaUrl) {
+    const fileName = caption || m.mediaUrl.split("/").pop() || "documento";
+    return (
+      <a
+        href={m.mediaUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition"
+      >
+        <FileText className="size-5 shrink-0" />
+        <span className="flex-1 text-xs truncate">{fileName}</span>
+        <Download className="size-4 opacity-60" />
+      </a>
+    );
+  }
+
+  if (type === "sticker" && m.mediaUrl) {
+    return <img src={m.mediaUrl} alt="sticker" className="size-32 object-contain" />;
+  }
+
+  if ((type === "image" || type === "video" || type === "audio" || type === "document") && !m.mediaUrl) {
+    return (
+      <p className="italic opacity-70 flex items-center gap-1.5">
+        <ImageIcon className="size-3.5" />
+        Mídia indisponível
+      </p>
+    );
+  }
+
+  return <p className="whitespace-pre-wrap break-words">{m.body}</p>;
+}
