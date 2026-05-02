@@ -49,6 +49,147 @@ function InboxPage() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  // Ações sobre o contato ativo (espelho dos botões da aba Contatos)
+  const [sequences, setSequences] = useState<Sequence[]>([]);
+  const [enriching, setEnriching] = useState<Set<string>>(new Set());
+  const [togglingIgnore, setTogglingIgnore] = useState<Set<string>>(new Set());
+  const [editOpen, setEditOpen] = useState(false);
+  const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
+
+  useEffect(() => {
+    sequencesDb.list().then(setSequences).catch(() => {});
+  }, []);
+
+  const refreshContacts = async () => {
+    try {
+      const cs = await contactsDb.list();
+      setContacts(cs);
+    } catch (e: any) {
+      toast.error(`Erro ao recarregar: ${e.message ?? e}`);
+    }
+  };
+
+  const handleEnrich = async (c: Contact) => {
+    if (enriching.has(c.id)) return;
+    let webhookUrl: string | null = null;
+    try {
+      const s = await userSettingsDb.get();
+      webhookUrl = s.rescanWebhookUrl;
+    } catch (e: any) {
+      toast.error(`Erro ao ler configurações: ${e.message ?? e}`);
+      return;
+    }
+    if (!webhookUrl) {
+      toast.error("Configure a URL de varredura em Configurações → IA");
+      return;
+    }
+    setEnriching((prev) => new Set(prev).add(c.id));
+    let logId: string | null = null;
+    const requestPayload = {
+      action: "enrich_contact",
+      contact_id: c.id,
+      phone: c.phone,
+      triggered_at: new Date().toISOString(),
+    };
+    try {
+      try {
+        const { logEnrichmentStart } = await import("@/server/ai-enrichment-logs.functions");
+        const r = await logEnrichmentStart({
+          data: {
+            contact_id: c.id,
+            contact_name: c.name,
+            contact_phone: c.phone,
+            request_payload: requestPayload,
+          },
+        });
+        logId = r.log_id;
+      } catch (e) {
+        console.warn("Falha ao registrar log de enriquecimento", e);
+      }
+      const res = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...requestPayload, log_id: logId }),
+      });
+      if (!res.ok) {
+        toast.error(`Webhook respondeu ${res.status}`);
+        if (logId) {
+          try {
+            const { logEnrichmentFailure } = await import("@/server/ai-enrichment-logs.functions");
+            await logEnrichmentFailure({ data: { log_id: logId, error_message: `Webhook ${res.status}` } });
+          } catch {}
+        }
+        return;
+      }
+      toast.success(`Enriquecimento disparado para ${c.name}. Atualizando em 8s…`);
+      setTimeout(() => { refreshContacts(); }, 8000);
+    } catch (e: any) {
+      toast.error(`Falha ao chamar webhook: ${e.message ?? e}`);
+      if (logId) {
+        try {
+          const { logEnrichmentFailure } = await import("@/server/ai-enrichment-logs.functions");
+          await logEnrichmentFailure({ data: { log_id: logId, error_message: String(e?.message ?? e) } });
+        } catch {}
+      }
+    } finally {
+      setEnriching((prev) => {
+        const n = new Set(prev);
+        n.delete(c.id);
+        return n;
+      });
+    }
+  };
+
+  const handleToggleIgnore = async (c: Contact) => {
+    if (togglingIgnore.has(c.id)) return;
+    setTogglingIgnore((prev) => new Set(prev).add(c.id));
+    try {
+      if (c.isIgnored) {
+        await ignoredPhonesDb.removeByPhone(c.phone);
+        toast.success(`${c.name} removido da blacklist`);
+      } else {
+        await ignoredPhonesDb.addOne(c.phone, "manual:whatsweb");
+        toast.success(`${c.name} adicionado à blacklist`);
+      }
+      await refreshContacts();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setTogglingIgnore((prev) => {
+        const n = new Set(prev);
+        n.delete(c.id);
+        return n;
+      });
+    }
+  };
+
+  const handleSaveContact = async (data: Omit<Contact, "id" | "createdAt">) => {
+    if (!active) return;
+    try {
+      await contactsDb.update(active.id, data);
+      toast.success("Contato atualizado");
+      await refreshContacts();
+      setEditOpen(false);
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    }
+  };
+
+  const handleDeleteContact = async (c: Contact) => {
+    if (!confirm(`Remover o contato ${c.name}? Mensagens e sequências vinculadas também serão apagadas.`)) return;
+    try {
+      await contactsDb.remove(c.id);
+      toast.success("Contato removido");
+      const remaining = contacts.filter((x) => x.id !== c.id);
+      setContacts(remaining);
+      setActiveId(remaining[0]?.id ?? "");
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    }
+  };
+
 
   // Carrega contatos + última mensagem de cada um
   useEffect(() => {
