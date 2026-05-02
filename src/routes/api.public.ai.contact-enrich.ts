@@ -36,6 +36,7 @@ import {
 
 const BodySchema = z
   .object({
+    log_id: z.string().uuid().optional().nullable(),
     contact_id: z.string().uuid().optional().nullable(),
     phone: z.string().min(6).max(32).optional().nullable(),
     name: z.string().min(1).max(200).optional().nullable(),
@@ -86,6 +87,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
           );
         }
         const {
+          log_id,
           contact_id,
           phone,
           name,
@@ -294,7 +296,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
           }
         }
 
-        return jsonResponse({
+        const responsePayload = {
           ok: true,
           contact_id: contactId,
           mode,
@@ -308,7 +310,25 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             final_category_ids: finalCategoryIds,
             created_categories: createdCategories,
           },
-        });
+        };
+
+        // Fecha log de enriquecimento, se fornecido
+        if (log_id) {
+          const { error: logErr } = await sb
+            .from("crm_ai_enrichment_logs")
+            .update({
+              status: "success",
+              response_payload: responsePayload,
+              completed_at: new Date().toISOString(),
+            })
+            .eq("id", log_id)
+            .eq("user_id", ownerUserId);
+          if (logErr) {
+            console.warn("contact-enrich update log error", logErr);
+          }
+        }
+
+        return jsonResponse(responsePayload);
       },
     },
   },

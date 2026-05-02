@@ -15,6 +15,7 @@ import {
   Activity,
   BarChart3,
   FileText,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,6 +30,7 @@ const items = [
   { to: "/sequencias", label: "Sequências", icon: GitBranch },
   { to: "/sequencias-dashboard", label: "Métricas Seq.", icon: BarChart3 },
   { to: "/templates", label: "Templates", icon: FileText },
+  { to: "/historico-ia", label: "Histórico IA", icon: Sparkles },
   { to: "/logs", label: "Logs", icon: Activity },
   { to: "/inbox", label: "Inbox", icon: Inbox },
   { to: "/pipeline", label: "Pipeline", icon: Kanban },
