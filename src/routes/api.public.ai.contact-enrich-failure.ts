@@ -61,7 +61,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich-failure")({
         const parsed = BodySchema.safeParse(raw);
         if (!parsed.success) {
           return jsonResponse(
-            { ok: false, error: parsed.error.errors[0]?.message ?? "bad input" },
+            { ok: false, error: parsed.error.issues[0]?.message ?? "bad input" },
             400,
           );
         }
