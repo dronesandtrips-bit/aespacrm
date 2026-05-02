@@ -418,7 +418,7 @@ function InboxPage() {
 
           {/* Chat */}
           {active ? (
-            <div className="flex flex-col bg-[oklch(0.97_0.01_150)]">
+            <div className="flex flex-col bg-[oklch(0.97_0.01_150)] min-h-0 h-full overflow-hidden">
               <div className="h-16 border-b bg-card flex items-center justify-between px-5">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-full bg-primary/10 grid place-items-center text-primary font-semibold">
