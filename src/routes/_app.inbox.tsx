@@ -196,6 +196,11 @@ function InboxPage() {
               body: row.body,
               fromMe: row.from_me,
               at: row.at,
+              type: (row.type ?? "text") as ChatMessage["type"],
+              mediaUrl: row.media_url ?? null,
+              mediaMime: row.media_mime ?? null,
+              mediaCaption: row.media_caption ?? null,
+              status: row.status ?? null,
             };
             setLastByContact((prev) => ({ ...prev, [msg.contactId]: msg }));
             if (msg.contactId === activeId) {
