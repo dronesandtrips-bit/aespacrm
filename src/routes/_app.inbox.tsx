@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,7 @@ function InboxPage() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const activeIdRef = useRef("");
   
 
   // Ações sobre o contato ativo (espelho dos botões da aba Contatos)
@@ -62,10 +63,74 @@ function InboxPage() {
     sequencesDb.list().then(setSequences).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
+
+  const loadLastMessages = useCallback(async (contactIds: string[]) => {
+    const c = await getSupabaseClient();
+    if (!c || contactIds.length === 0) return {} as LastMap;
+
+    let rows: any[] = [];
+    const full = await c
+      .from("crm_messages")
+      .select("id,contact_id,body,from_me,at,type,media_url,media_mime,media_caption,status")
+      .in("contact_id", contactIds)
+      .order("at", { ascending: false });
+
+    if (full.error) {
+      const fallback = await c
+        .from("crm_messages")
+        .select("id,contact_id,body,from_me,at")
+        .in("contact_id", contactIds)
+        .order("at", { ascending: false });
+      rows = fallback.data ?? [];
+    } else {
+      rows = full.data ?? [];
+    }
+
+    const map: LastMap = {};
+    rows.forEach((row: any) => {
+      if (!map[row.contact_id]) {
+        map[row.contact_id] = {
+          id: row.id,
+          contactId: row.contact_id,
+          body: row.body,
+          fromMe: row.from_me,
+          at: row.at,
+          type: row.type ?? "text",
+          mediaUrl: row.media_url ?? null,
+          mediaMime: row.media_mime ?? null,
+          mediaCaption: row.media_caption ?? null,
+          status: row.status ?? null,
+        };
+      }
+    });
+    return map;
+  }, []);
+
+  const refreshInbox = useCallback(async (options?: { initial?: boolean }) => {
+    const [cs, cats] = await Promise.all([
+      contactsDb.list(),
+      categoriesDb.list().catch(() => [] as Category[]),
+    ]);
+    const lastMap = await loadLastMessages(cs.map((x) => x.id));
+
+    setContacts(cs);
+    setCategories(cats);
+    setLastByContact(lastMap);
+
+    if (options?.initial || !activeIdRef.current) {
+      const sorted = cs
+        .filter((x) => lastMap[x.id])
+        .sort((a, b) => lastMap[b.id]!.at.localeCompare(lastMap[a.id]!.at));
+      setActiveId(sorted[0]?.id ?? cs[0]?.id ?? "");
+    }
+  }, [loadLastMessages]);
+
   const refreshContacts = async () => {
     try {
-      const cs = await contactsDb.list();
-      setContacts(cs);
+      await refreshInbox();
     } catch (e: any) {
       toast.error(`Erro ao recarregar: ${e.message ?? e}`);
     }
