@@ -49,7 +49,7 @@ function InboxPage() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
+  
 
   // Ações sobre o contato ativo (espelho dos botões da aba Contatos)
   const [sequences, setSequences] = useState<Sequence[]>([]);
