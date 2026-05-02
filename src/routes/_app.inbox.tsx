@@ -321,10 +321,12 @@ function InboxPage() {
     };
   }, [activeId]);
 
-  // Realtime: escuta novas mensagens do usuário
+  // Realtime: escuta novas mensagens (e dispara refresh de contatos quando o
+  // contact_id ainda não está na lista — caso de conversa nova).
   useEffect(() => {
     let channel: any;
     let cancelled = false;
+    let refreshTimer: number | null = null;
     const channelName = `crm_messages_inbox_${Math.random().toString(36).slice(2)}`;
     (async () => {
       const c = await getSupabaseClient();
@@ -354,12 +356,36 @@ function InboxPage() {
                 prev.find((m) => m.id === msg.id) ? prev : [...prev, msg],
               );
             }
+            // Se o contato ainda não está na lista, recarrega contatos.
+            setContacts((prev) => {
+              if (prev.some((x) => x.id === msg.contactId)) return prev;
+              if (refreshTimer == null) {
+                refreshTimer = window.setTimeout(() => {
+                  refreshTimer = null;
+                  refreshContacts();
+                }, 500);
+              }
+              return prev;
+            });
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "aespacrm", table: "crm_contacts" },
+          () => {
+            if (refreshTimer == null) {
+              refreshTimer = window.setTimeout(() => {
+                refreshTimer = null;
+                refreshContacts();
+              }, 500);
+            }
           },
         )
         .subscribe();
     })();
     return () => {
       cancelled = true;
+      if (refreshTimer != null) window.clearTimeout(refreshTimer);
       const c = getSupabaseClientSync();
       if (c && channel) c.removeChannel(channel);
     };
