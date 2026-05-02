@@ -21,6 +21,7 @@ import { Route as AppSequenciasRouteImport } from './routes/_app.sequencias'
 import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
 import { Route as AppLogsRouteImport } from './routes/_app.logs'
 import { Route as AppInboxRouteImport } from './routes/_app.inbox'
+import { Route as AppHistoricoIaRouteImport } from './routes/_app.historico-ia'
 import { Route as AppExplorarRouteImport } from './routes/_app.explorar'
 import { Route as AppDisparosRouteImport } from './routes/_app.disparos'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
@@ -105,6 +106,11 @@ const AppLogsRoute = AppLogsRouteImport.update({
 const AppInboxRoute = AppInboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHistoricoIaRoute = AppHistoricoIaRouteImport.update({
+  id: '/historico-ia',
+  path: '/historico-ia',
   getParentRoute: () => AppRoute,
 } as any)
 const AppExplorarRoute = AppExplorarRouteImport.update({
@@ -260,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/disparos': typeof AppDisparosRoute
   '/explorar': typeof AppExplorarRoute
+  '/historico-ia': typeof AppHistoricoIaRoute
   '/inbox': typeof AppInboxRoute
   '/logs': typeof AppLogsRoute
   '/pipeline': typeof AppPipelineRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/disparos': typeof AppDisparosRoute
   '/explorar': typeof AppExplorarRoute
+  '/historico-ia': typeof AppHistoricoIaRoute
   '/inbox': typeof AppInboxRoute
   '/logs': typeof AppLogsRoute
   '/pipeline': typeof AppPipelineRoute
@@ -340,6 +348,7 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/disparos': typeof AppDisparosRoute
   '/_app/explorar': typeof AppExplorarRoute
+  '/_app/historico-ia': typeof AppHistoricoIaRoute
   '/_app/inbox': typeof AppInboxRoute
   '/_app/logs': typeof AppLogsRoute
   '/_app/pipeline': typeof AppPipelineRoute
@@ -381,6 +390,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/disparos'
     | '/explorar'
+    | '/historico-ia'
     | '/inbox'
     | '/logs'
     | '/pipeline'
@@ -420,6 +430,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/disparos'
     | '/explorar'
+    | '/historico-ia'
     | '/inbox'
     | '/logs'
     | '/pipeline'
@@ -460,6 +471,7 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/disparos'
     | '/_app/explorar'
+    | '/_app/historico-ia'
     | '/_app/inbox'
     | '/_app/logs'
     | '/_app/pipeline'
@@ -603,6 +615,13 @@ declare module '@tanstack/react-router' {
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof AppInboxRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/historico-ia': {
+      id: '/_app/historico-ia'
+      path: '/historico-ia'
+      fullPath: '/historico-ia'
+      preLoaderRoute: typeof AppHistoricoIaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/explorar': {
@@ -796,6 +815,7 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppDisparosRoute: typeof AppDisparosRoute
   AppExplorarRoute: typeof AppExplorarRoute
+  AppHistoricoIaRoute: typeof AppHistoricoIaRoute
   AppInboxRoute: typeof AppInboxRoute
   AppLogsRoute: typeof AppLogsRoute
   AppPipelineRoute: typeof AppPipelineRoute
@@ -811,6 +831,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppDisparosRoute: AppDisparosRoute,
   AppExplorarRoute: AppExplorarRoute,
+  AppHistoricoIaRoute: AppHistoricoIaRoute,
   AppInboxRoute: AppInboxRoute,
   AppLogsRoute: AppLogsRoute,
   AppPipelineRoute: AppPipelineRoute,
