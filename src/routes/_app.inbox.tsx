@@ -568,23 +568,6 @@ function InboxPage() {
         </div>
       </Card>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Total de contatos", value: contacts.length.toString() },
-          { label: "Conversas ativas", value: activeCount.toString() },
-          { label: "Mensagens nesta conversa", value: messages.length.toString() },
-          {
-            label: "Você enviou",
-            value: messages.filter((m) => m.fromMe).length.toString(),
-          },
-        ].map((s) => (
-          <Card key={s.label} className="p-4">
-            <p className="text-xs text-muted-foreground">{s.label}</p>
-            <p className="text-xl font-bold mt-1">{s.value}</p>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }
