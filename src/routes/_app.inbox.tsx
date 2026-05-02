@@ -5,11 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, Download } from "lucide-react";
-import { contactsDb, messagesDb, sequencesDb, categoriesDb, type Contact, type ChatMessage, type Category } from "@/lib/db";
+import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck } from "lucide-react";
+import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Dialog } from "@/components/ui/dialog";
+import { ContactDialog, EnrollDialog } from "@/components/contact-dialogs";
+
 
 export const Route = createFileRoute("/_app/inbox")({
   component: InboxPage,
@@ -46,6 +49,147 @@ function InboxPage() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+
+  // Ações sobre o contato ativo (espelho dos botões da aba Contatos)
+  const [sequences, setSequences] = useState<Sequence[]>([]);
+  const [enriching, setEnriching] = useState<Set<string>>(new Set());
+  const [togglingIgnore, setTogglingIgnore] = useState<Set<string>>(new Set());
+  const [editOpen, setEditOpen] = useState(false);
+  const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
+
+  useEffect(() => {
+    sequencesDb.list().then(setSequences).catch(() => {});
+  }, []);
+
+  const refreshContacts = async () => {
+    try {
+      const cs = await contactsDb.list();
+      setContacts(cs);
+    } catch (e: any) {
+      toast.error(`Erro ao recarregar: ${e.message ?? e}`);
+    }
+  };
+
+  const handleEnrich = async (c: Contact) => {
+    if (enriching.has(c.id)) return;
+    let webhookUrl: string | null = null;
+    try {
+      const s = await userSettingsDb.get();
+      webhookUrl = s.rescanWebhookUrl;
+    } catch (e: any) {
+      toast.error(`Erro ao ler configurações: ${e.message ?? e}`);
+      return;
+    }
+    if (!webhookUrl) {
+      toast.error("Configure a URL de varredura em Configurações → IA");
+      return;
+    }
+    setEnriching((prev) => new Set(prev).add(c.id));
+    let logId: string | null = null;
+    const requestPayload = {
+      action: "enrich_contact",
+      contact_id: c.id,
+      phone: c.phone,
+      triggered_at: new Date().toISOString(),
+    };
+    try {
+      try {
+        const { logEnrichmentStart } = await import("@/server/ai-enrichment-logs.functions");
+        const r = await logEnrichmentStart({
+          data: {
+            contact_id: c.id,
+            contact_name: c.name,
+            contact_phone: c.phone,
+            request_payload: requestPayload,
+          },
+        });
+        logId = r.log_id;
+      } catch (e) {
+        console.warn("Falha ao registrar log de enriquecimento", e);
+      }
+      const res = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...requestPayload, log_id: logId }),
+      });
+      if (!res.ok) {
+        toast.error(`Webhook respondeu ${res.status}`);
+        if (logId) {
+          try {
+            const { logEnrichmentFailure } = await import("@/server/ai-enrichment-logs.functions");
+            await logEnrichmentFailure({ data: { log_id: logId, error_message: `Webhook ${res.status}` } });
+          } catch {}
+        }
+        return;
+      }
+      toast.success(`Enriquecimento disparado para ${c.name}. Atualizando em 8s…`);
+      setTimeout(() => { refreshContacts(); }, 8000);
+    } catch (e: any) {
+      toast.error(`Falha ao chamar webhook: ${e.message ?? e}`);
+      if (logId) {
+        try {
+          const { logEnrichmentFailure } = await import("@/server/ai-enrichment-logs.functions");
+          await logEnrichmentFailure({ data: { log_id: logId, error_message: String(e?.message ?? e) } });
+        } catch {}
+      }
+    } finally {
+      setEnriching((prev) => {
+        const n = new Set(prev);
+        n.delete(c.id);
+        return n;
+      });
+    }
+  };
+
+  const handleToggleIgnore = async (c: Contact) => {
+    if (togglingIgnore.has(c.id)) return;
+    setTogglingIgnore((prev) => new Set(prev).add(c.id));
+    try {
+      if (c.isIgnored) {
+        await ignoredPhonesDb.removeByPhone(c.phone);
+        toast.success(`${c.name} removido da blacklist`);
+      } else {
+        await ignoredPhonesDb.addOne(c.phone, "manual:whatsweb");
+        toast.success(`${c.name} adicionado à blacklist`);
+      }
+      await refreshContacts();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setTogglingIgnore((prev) => {
+        const n = new Set(prev);
+        n.delete(c.id);
+        return n;
+      });
+    }
+  };
+
+  const handleSaveContact = async (data: Omit<Contact, "id" | "createdAt">) => {
+    if (!active) return;
+    try {
+      await contactsDb.update(active.id, data);
+      toast.success("Contato atualizado");
+      await refreshContacts();
+      setEditOpen(false);
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    }
+  };
+
+  const handleDeleteContact = async (c: Contact) => {
+    if (!confirm(`Remover o contato ${c.name}? Mensagens e sequências vinculadas também serão apagadas.`)) return;
+    try {
+      await contactsDb.remove(c.id);
+      toast.success("Contato removido");
+      const remaining = contacts.filter((x) => x.id !== c.id);
+      setContacts(remaining);
+      setActiveId(remaining[0]?.id ?? "");
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    }
+  };
+
 
   // Carrega contatos + última mensagem de cada um
   useEffect(() => {
@@ -451,6 +595,82 @@ function InboxPage() {
                     </TooltipProvider>
                   )}
                 </div>
+
+                {/* Ações sobre o contato (espelho da aba Contatos) */}
+                <TooltipProvider delayDuration={150}>
+                  <div className="flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={enriching.has(active.id)}
+                          onClick={() => handleEnrich(active)}
+                        >
+                          {enriching.has(active.id) ? (
+                            <Loader2 className="size-4 animate-spin text-primary" />
+                          ) : (
+                            <Sparkles className="size-4 text-primary" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Enriquecer com IA</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEnrollContact(active)}
+                        >
+                          <GitBranch className="size-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Adicionar a uma sequência</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={togglingIgnore.has(active.id)}
+                          onClick={() => handleToggleIgnore(active)}
+                        >
+                          {togglingIgnore.has(active.id) ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : active.isIgnored ? (
+                            <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                          ) : (
+                            <ShieldOff className="size-4 text-amber-600 dark:text-amber-400" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {active.isIgnored ? "Restaurar (remover da blacklist)" : "Ignorar (blacklist)"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={() => setEditOpen(true)}>
+                          <Pencil className="size-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Editar contato</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteContact(active)}
+                        >
+                          <Trash2 className="size-4 text-destructive" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Excluir contato</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
               </div>
 
 
@@ -568,6 +788,27 @@ function InboxPage() {
         </div>
       </Card>
 
+      {/* Dialog: editar contato ativo */}
+      <Dialog
+        open={editOpen}
+        onOpenChange={(v) => setEditOpen(v)}
+      >
+        {active && (
+          <ContactDialog
+            key={active.id}
+            initial={active}
+            categories={categories}
+            onSubmit={handleSaveContact}
+          />
+        )}
+      </Dialog>
+
+      {/* Dialog: inscrever em sequência */}
+      <EnrollDialog
+        contact={enrollContact}
+        sequences={sequences}
+        onClose={() => setEnrollContact(null)}
+      />
     </div>
   );
 }
