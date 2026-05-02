@@ -124,6 +124,17 @@ function HistoricoIaPage() {
     refresh();
   }, []);
 
+  // Auto-refresh enquanto houver enriquecimentos em andamento.
+  // Faz polling a cada 3s e para sozinho quando todos saem de "dispatched".
+  const hasPending = logs.some((l) => l.status === "dispatched");
+  useEffect(() => {
+    if (!hasPending) return;
+    const id = window.setInterval(() => {
+      refresh();
+    }, 3000);
+    return () => window.clearInterval(id);
+  }, [hasPending]);
+
   const counts = logs.reduce(
     (acc, l) => {
       acc[l.status] = (acc[l.status] ?? 0) + 1;
