@@ -27,10 +27,13 @@ export const Route = createFileRoute("/api/public/evolution/configure-webhook")(
           );
         }
 
-        // URL pública estável do ZapCRM (production)
+        // URL pública estável do ZapCRM (production).
+        // Importante: usar o domínio customizado evita redirect 302 do
+        // aespacrm.lovable.app para crm.aespa.com.br, que faz a Evolution
+        // reenviar como GET e perder o payload do webhook.
         const publicUrl =
           process.env.ZAPCRM_PUBLIC_URL?.trim().replace(/\/+$/, "") ??
-          "https://aespacrm.lovable.app";
+          "https://crm.aespa.com.br";
         const webhookUrl = `${publicUrl}/api/public/evolution/webhook`;
 
         const res = await fetch(`${apiUrl}/webhook/set/${INSTANCE}`, {
