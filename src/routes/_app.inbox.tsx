@@ -345,7 +345,7 @@ function InboxPage() {
       <Card className="overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-[280px_1fr_260px] h-[calc(100vh-180px)] min-h-[600px]">
           {/* Lista */}
-          <div className="border-r flex flex-col">
+          <div className="border-r flex flex-col min-h-0 h-full overflow-hidden">
             <div className="p-3 border-b">
               <div className="relative">
                 <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
