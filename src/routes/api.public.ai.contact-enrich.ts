@@ -107,10 +107,12 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
 
         // -------- Localiza contato (por id ou phone) --------
         let contactId: string | null = null;
+        let contactIsIgnored = false;
+        let contactPhoneNorm: string | null = null;
         if (contact_id) {
           const { data, error } = await sb
             .from("crm_contacts")
-            .select("id")
+            .select("id,is_ignored,phone_norm")
             .eq("id", contact_id)
             .eq("user_id", ownerUserId)
             .maybeSingle();
@@ -119,14 +121,17 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             return jsonResponse({ ok: false, error: error.message }, 500);
           }
           contactId = data?.id ?? null;
+          contactIsIgnored = Boolean(data?.is_ignored);
+          contactPhoneNorm = data?.phone_norm ?? null;
         } else if (phone) {
           const phoneNorm = normalizePhone(phone);
           if (!phoneNorm) {
             return jsonResponse({ ok: false, error: "phone inválido" }, 400);
           }
+          contactPhoneNorm = phoneNorm;
           const { data, error } = await sb
             .from("crm_contacts")
-            .select("id")
+            .select("id,is_ignored")
             .eq("user_id", ownerUserId)
             .eq("phone_norm", phoneNorm)
             .maybeSingle();
@@ -135,10 +140,36 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             return jsonResponse({ ok: false, error: error.message }, 500);
           }
           contactId = data?.id ?? null;
+          contactIsIgnored = Boolean(data?.is_ignored);
         }
         if (!contactId) {
           return jsonResponse({ ok: false, error: "contato não encontrado" }, 404);
         }
+
+        // -------- Blacklist guard (cinto-e-suspensório) --------
+        // 1) flag derivada no contato
+        // 2) revalida na tabela fonte da verdade caso o trigger esteja atrasado
+        if (!contactIsIgnored && contactPhoneNorm) {
+          const { data: blk } = await sb
+            .from("crm_ignored_phones")
+            .select("id")
+            .eq("user_id", ownerUserId)
+            .eq("phone_norm", contactPhoneNorm)
+            .maybeSingle();
+          if (blk?.id) contactIsIgnored = true;
+        }
+        if (contactIsIgnored) {
+          return jsonResponse(
+            {
+              ok: false,
+              error: "ignored_contact",
+              message: "Contato está na blacklist do usuário e não será enriquecido.",
+              contact_id: contactId,
+            },
+            409,
+          );
+        }
+
 
         // -------- Resolve nomes de categorias → IDs (criando as inexistentes) --------
         const incomingNames: string[] = [];
