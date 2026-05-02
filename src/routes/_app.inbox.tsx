@@ -67,23 +67,23 @@ function InboxPage() {
     activeIdRef.current = activeId;
   }, [activeId]);
 
-  const loadLastMessages = useCallback(async (contactIds: string[]) => {
+  const loadLastMessages = useCallback(async () => {
     const c = await getSupabaseClient();
-    if (!c || contactIds.length === 0) return {} as LastMap;
+    if (!c) return {} as LastMap;
 
     let rows: any[] = [];
     const full = await c
       .from("crm_messages")
       .select("id,contact_id,body,from_me,at,type,media_url,media_mime,media_caption,status")
-      .in("contact_id", contactIds)
-      .order("at", { ascending: false });
+      .order("at", { ascending: false })
+      .limit(1000);
 
     if (full.error) {
       const fallback = await c
         .from("crm_messages")
         .select("id,contact_id,body,from_me,at")
-        .in("contact_id", contactIds)
-        .order("at", { ascending: false });
+        .order("at", { ascending: false })
+        .limit(1000);
       rows = fallback.data ?? [];
     } else {
       rows = full.data ?? [];
@@ -114,7 +114,7 @@ function InboxPage() {
       contactsDb.list(),
       categoriesDb.list().catch(() => [] as Category[]),
     ]);
-    const lastMap = await loadLastMessages(cs.map((x) => x.id));
+    const lastMap = await loadLastMessages();
 
     setContacts(cs);
     setCategories(cats);
