@@ -68,6 +68,7 @@ function SettingsPage() {
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
           <TabsTrigger value="widgets">Widgets</TabsTrigger>
           <TabsTrigger value="ia">IA</TabsTrigger>
+          <TabsTrigger value="blacklist">Blacklist</TabsTrigger>
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
           <TabsTrigger value="conta">Conta</TabsTrigger>
         </TabsList>
@@ -82,6 +83,9 @@ function SettingsPage() {
         </TabsContent>
         <TabsContent value="ia" className="mt-5">
           <AiTermsTab />
+        </TabsContent>
+        <TabsContent value="blacklist" className="mt-5">
+          <BlacklistTab />
         </TabsContent>
         <TabsContent value="integracoes" className="mt-5">
           <IntegrationsTab />
