@@ -222,6 +222,22 @@ function CategoriesTab() {
     }
   };
 
+  const approve = async (id: string) => {
+    try {
+      await categoriesDb.approve(id);
+      await refresh();
+      toast.success("Categoria aprovada");
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    }
+  };
+
+  const pendingCount = list.filter((c) => c.status === "pending").length;
+  const sortedList = [...list].sort((a, b) => {
+    if (a.status !== b.status) return a.status === "pending" ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between mb-4">
