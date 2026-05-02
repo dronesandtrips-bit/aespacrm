@@ -532,6 +532,12 @@ function InboxPage() {
               ) : (
                 <>
                   <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5 flex items-center gap-1">
+                      <Tag className="size-3" /> Tags
+                    </p>
+                    <ContactTags contact={active} categories={categories} />
+                  </div>
+                  <div>
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
                       Urgência
                     </p>
