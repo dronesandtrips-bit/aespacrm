@@ -261,7 +261,6 @@ function InboxPage() {
     let cancelled = false;
     (async () => {
       try {
-        const [cs] = await Promise.all([contactsDb.list()]);
         if (cancelled) return;
         await refreshInbox({ initial: true });
       } catch (e: any) {
