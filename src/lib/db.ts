@@ -25,6 +25,10 @@ export type Contact = {
   lastAiSync?: string | null;
   /** Marcado pelo trigger quando o telefone está na blacklist do usuário. */
   isIgnored?: boolean;
+  /** True se este "contato" é, na verdade, uma conversa de grupo do WhatsApp. */
+  isGroup?: boolean;
+  /** JID completo do WhatsApp (ex.: 120363xxx@g.us). Só preenchido para grupos. */
+  waJid?: string | null;
 };
 export type BulkSend = {
   id: string;
@@ -198,11 +202,13 @@ function rowToContact(r: any): Contact {
     urgencyLevel: (r.urgency_level ?? null) as UrgencyLevel | null,
     lastAiSync: r.last_ai_sync ?? null,
     isIgnored: Boolean(r.is_ignored),
+    isGroup: Boolean(r.is_group),
+    waJid: r.wa_jid ?? null,
   };
 }
 
 const CONTACT_COLUMNS =
-  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,is_ignored";
+  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,is_ignored,is_group,wa_jid";
 
 /**
  * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
@@ -319,7 +325,34 @@ async function loadContactCategoriesMap(): Promise<Map<string, string[]>> {
 }
 
 export const contactsDb = {
+  /**
+   * Lista contatos individuais. NÃO inclui conversas de grupo (is_group=true)
+   * — grupos só aparecem na aba WhatsWeb (Inbox), via {@link listAll}.
+   */
   async list(): Promise<Contact[]> {
+    const c = await client();
+    const [contactsRes, tagsMap] = await Promise.all([
+      c
+        .from("crm_contacts")
+        .select(CONTACT_COLUMNS)
+        .eq("is_group", false)
+        .order("created_at", { ascending: false }),
+      loadContactCategoriesMap(),
+    ]);
+    if (contactsRes.error) throw contactsRes.error;
+    return (contactsRes.data ?? []).map((r: any) => {
+      const base = rowToContact(r);
+      const tags = tagsMap.get(base.id);
+      if (tags && tags.length) base.categoryIds = tags;
+      else if (base.categoryId) base.categoryIds = [base.categoryId];
+      return base;
+    });
+  },
+  /**
+   * Igual a {@link list}, mas inclui também conversas de grupo.
+   * Usar APENAS na aba WhatsWeb (Inbox).
+   */
+  async listAll(): Promise<Contact[]> {
     const c = await client();
     const [contactsRes, tagsMap] = await Promise.all([
       c.from("crm_contacts").select(CONTACT_COLUMNS).order("created_at", { ascending: false }),

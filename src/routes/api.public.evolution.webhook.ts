@@ -18,13 +18,23 @@ import { isStrictValidPhone } from "@/server/phone-validation";
 
 const INSTANCE = "zapcrm";
 
-// Aceita apenas JIDs de contatos individuais do WhatsApp.
-// Rejeita grupos (@g.us), broadcast (@broadcast), status, lid (@lid) e qualquer outro.
+// Aceita JIDs de contatos individuais do WhatsApp.
 function isIndividualJid(jid: string | undefined | null): boolean {
   if (!jid) return false;
   const s = String(jid).toLowerCase();
   if (!s.includes("@")) return false; // sem domínio, não confiamos
   return s.endsWith("@s.whatsapp.net") || s.endsWith("@c.us");
+}
+
+// Aceita JIDs de grupos do WhatsApp (@g.us).
+function isGroupJid(jid: string | undefined | null): boolean {
+  if (!jid) return false;
+  return String(jid).toLowerCase().endsWith("@g.us");
+}
+
+// Aceita individual OU grupo. Continua rejeitando broadcast/status/lid/etc.
+function isAcceptedJid(jid: string | undefined | null): boolean {
+  return isIndividualJid(jid) || isGroupJid(jid);
 }
 
 function normalizePhone(jid: string | undefined | null): string {
@@ -118,12 +128,12 @@ async function ensureContact(
 ): Promise<string | null> {
   if (!phone || !isValidE164(phone)) return null;
   const safeName = sanitizeContactName(fallbackName, phone);
-  // tenta achar
   const { data: existing } = await sb
     .from("crm_contacts")
     .select("id")
     .eq("user_id", userId)
     .eq("phone_norm", phone)
+    .eq("is_group", false)
     .maybeSingle();
   if (existing?.id) return existing.id;
 
@@ -133,11 +143,60 @@ async function ensureContact(
       user_id: userId,
       name: safeName,
       phone,
+      is_group: false,
     })
     .select("id")
     .single();
   if (error) {
     console.error("ensureContact insert error", error);
+    return null;
+  }
+  return created.id;
+}
+
+// Garante "contato" do tipo grupo. Não valida telefone.
+// Usa wa_jid (ex.: 120363xxx@g.us) como chave única por usuário.
+async function ensureGroupContact(
+  sb: any,
+  userId: string,
+  jid: string,
+  fallbackName: string,
+): Promise<string | null> {
+  if (!jid || !isGroupJid(jid)) return null;
+  const phoneLike = normalizePhone(jid) || "0";
+  const safeName =
+    ((fallbackName ?? "").toString().trim().slice(0, 120)) || "Grupo";
+
+  const { data: existing } = await sb
+    .from("crm_contacts")
+    .select("id,name")
+    .eq("user_id", userId)
+    .eq("wa_jid", jid)
+    .maybeSingle();
+  if (existing?.id) {
+    if (fallbackName && existing.name !== safeName) {
+      sb.from("crm_contacts")
+        .update({ name: safeName })
+        .eq("id", existing.id)
+        .then(() => {})
+        .catch(() => {});
+    }
+    return existing.id;
+  }
+
+  const { data: created, error } = await sb
+    .from("crm_contacts")
+    .insert({
+      user_id: userId,
+      name: safeName,
+      phone: phoneLike,
+      is_group: true,
+      wa_jid: jid,
+    })
+    .select("id")
+    .single();
+  if (error) {
+    console.error("ensureGroupContact insert error", error);
     return null;
   }
   return created.id;
@@ -191,30 +250,45 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
             const arr = Array.isArray(payload?.data) ? payload.data : [payload?.data].filter(Boolean);
             for (const msg of arr) {
               const remoteJid: string = msg?.key?.remoteJid ?? "";
-              // só contatos individuais — ignora grupos, broadcast, status, lid
-              if (!isIndividualJid(remoteJid)) continue;
-              const phone = normalizePhone(remoteJid);
-              if (!isValidE164(phone)) continue;
+              if (!isAcceptedJid(remoteJid)) continue;
+
+              const isGroup = isGroupJid(remoteJid);
               const fromMe: boolean = !!msg?.key?.fromMe;
               const messageId: string = msg?.key?.id ?? "";
-              // IMPORTANTE: quando fromMe=true, pushName é o nome do DONO da instância
-              // (você), não do destinatário. Ignorar nesse caso para não poluir contatos
-              // novos com "Jones Hahn". A IA preenche o nome real depois via enrich.
+              // pushName: para 1:1 e fromMe=true é o dono da instância (ignorar);
+              // para grupos, é o nome do PARTICIPANTE — também não usamos como
+              // "nome do contato" (o nome do contato é o nome do GRUPO).
               const pushName: string = fromMe ? "" : (msg?.pushName ?? "");
               const ts = msg?.messageTimestamp
                 ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
                 : new Date().toISOString();
 
-              const contactId = await ensureContact(sb, ownerUserId, phone, pushName);
+              let contactId: string | null = null;
+              if (isGroup) {
+                const groupName: string =
+                  msg?.groupMetadata?.subject ??
+                  msg?.pushName ?? // fallback fraco
+                  "Grupo";
+                contactId = await ensureGroupContact(sb, ownerUserId, remoteJid, groupName);
+              } else {
+                const phone = normalizePhone(remoteJid);
+                if (!isValidE164(phone)) continue;
+                contactId = await ensureContact(sb, ownerUserId, phone, pushName);
+              }
               if (!contactId) continue;
 
               const parsed = detectMessageType(msg);
+              // Em grupos, prefixa o autor para dar contexto na inbox quando não é fromMe
+              const bodyForGroup =
+                isGroup && !fromMe && pushName
+                  ? `${pushName}: ${parsed.body}`
+                  : parsed.body;
 
               await sb.from("crm_messages").upsert(
                 {
                   user_id: ownerUserId,
                   contact_id: contactId,
-                  body: parsed.body,
+                  body: bodyForGroup,
                   from_me: fromMe,
                   at: ts,
                   message_id: messageId || null,
@@ -229,8 +303,8 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                 { onConflict: "user_id,message_id", ignoreDuplicates: false },
               );
 
-              // Pausa sequências ativas se for resposta inbound
-              if (!fromMe) {
+              // Pausa sequências ativas só para 1:1 (grupos não participam de sequências).
+              if (!fromMe && !isGroup) {
                 await sb
                   .from("crm_contact_sequences")
                   .update({

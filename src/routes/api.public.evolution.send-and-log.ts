@@ -60,22 +60,34 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
         const sbAdmin = getSupabaseAdmin();
         const { data: contact, error: contactErr } = await sbAdmin
           .from("crm_contacts")
-          .select("id, phone_norm, name")
+          .select("id, phone_norm, name, is_group, wa_jid")
           .eq("id", parsed.contactId)
           .eq("user_id", userId)
           .maybeSingle();
         if (contactErr || !contact) {
           return jsonResponse({ ok: false, error: "contato não encontrado" }, 404);
         }
-        if (!contact.phone_norm) {
-          return jsonResponse({ ok: false, error: "contato sem telefone válido" }, 400);
+
+        // Para grupos, o "number" enviado à Evolution é o JID completo (@g.us).
+        // Para 1:1, usamos o phone_norm.
+        let sendNumber: string;
+        if (contact.is_group) {
+          if (!contact.wa_jid) {
+            return jsonResponse({ ok: false, error: "grupo sem JID" }, 400);
+          }
+          sendNumber = contact.wa_jid;
+        } else {
+          if (!contact.phone_norm) {
+            return jsonResponse({ ok: false, error: "contato sem telefone válido" }, 400);
+          }
+          sendNumber = contact.phone_norm;
         }
 
         // Envia via Evolution
         const evRes = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
           method: "POST",
           headers: { apikey: apiKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ number: contact.phone_norm, text: parsed.text }),
+          body: JSON.stringify({ number: sendNumber, text: parsed.text }),
         });
         const evText = await evRes.text();
         let evData: any = evText;
@@ -100,7 +112,9 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
         }
 
         const messageId: string | null = evData?.key?.id ?? null;
-        const remoteJid: string | null = evData?.key?.remoteJid ?? `${contact.phone_norm}@s.whatsapp.net`;
+        const remoteJid: string | null =
+          evData?.key?.remoteJid ??
+          (contact.is_group ? contact.wa_jid : `${contact.phone_norm}@s.whatsapp.net`);
 
         // Insert simples. O índice único de message_id é parcial (where message_id is not null)
         // e o Postgres não aceita esse índice em ON CONFLICT, então tratamos duplicata como sucesso.

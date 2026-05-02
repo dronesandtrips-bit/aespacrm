@@ -111,7 +111,7 @@ function InboxPage() {
 
   const refreshInbox = useCallback(async (options?: { initial?: boolean }) => {
     const [cs, cats] = await Promise.all([
-      contactsDb.list(),
+      contactsDb.listAll(),
       categoriesDb.list().catch(() => [] as Category[]),
     ]);
     const lastMap = await loadLastMessages();
@@ -584,7 +584,14 @@ function InboxPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline gap-2">
-                          <p className="font-medium text-sm truncate">{contact.name}</p>
+                          <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                            {contact.name}
+                            {contact.isGroup && (
+                              <Badge variant="secondary" className="text-[9px] px-1 py-0 leading-tight">
+                                Grupo
+                              </Badge>
+                            )}
+                          </p>
                           <span className="text-[10px] text-muted-foreground shrink-0">
                             {last && timeAgo(last.at)}
                           </span>
@@ -615,8 +622,15 @@ function InboxPage() {
                     {active.name[0]}
                   </div>
                   <div>
-                    <p className="font-medium text-sm">{active.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{active.phone}</p>
+                    <p className="font-medium text-sm flex items-center gap-2">
+                      {active.name}
+                      {active.isGroup && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Grupo</Badge>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {active.isGroup ? "Conversa em grupo" : active.phone}
+                    </p>
                   </div>
                   {active && replyPauseByContact[active.id] && (
                     <TooltipProvider delayDuration={150}>
@@ -645,56 +659,60 @@ function InboxPage() {
                 {/* Ações sobre o contato (espelho da aba Contatos) */}
                 <TooltipProvider delayDuration={150}>
                   <div className="flex items-center gap-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          disabled={enriching.has(active.id)}
-                          onClick={() => handleEnrich(active)}
-                        >
-                          {enriching.has(active.id) ? (
-                            <Loader2 className="size-4 animate-spin text-primary" />
-                          ) : (
-                            <Sparkles className="size-4 text-primary" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Enriquecer com IA</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setEnrollContact(active)}
-                        >
-                          <GitBranch className="size-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Adicionar a uma sequência</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          disabled={togglingIgnore.has(active.id)}
-                          onClick={() => handleToggleIgnore(active)}
-                        >
-                          {togglingIgnore.has(active.id) ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : active.isIgnored ? (
-                            <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
-                          ) : (
-                            <ShieldOff className="size-4 text-amber-600 dark:text-amber-400" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {active.isIgnored ? "Restaurar (remover da blacklist)" : "Ignorar (blacklist)"}
-                      </TooltipContent>
-                    </Tooltip>
+                    {!active.isGroup && (
+                      <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={enriching.has(active.id)}
+                              onClick={() => handleEnrich(active)}
+                            >
+                              {enriching.has(active.id) ? (
+                                <Loader2 className="size-4 animate-spin text-primary" />
+                              ) : (
+                                <Sparkles className="size-4 text-primary" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Enriquecer com IA</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEnrollContact(active)}
+                            >
+                              <GitBranch className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Adicionar a uma sequência</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={togglingIgnore.has(active.id)}
+                              onClick={() => handleToggleIgnore(active)}
+                            >
+                              {togglingIgnore.has(active.id) ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : active.isIgnored ? (
+                                <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                              ) : (
+                                <ShieldOff className="size-4 text-amber-600 dark:text-amber-400" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {active.isIgnored ? "Restaurar (remover da blacklist)" : "Ignorar (blacklist)"}
+                          </TooltipContent>
+                        </Tooltip>
+                      </>
+                    )}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={() => setEditOpen(true)}>

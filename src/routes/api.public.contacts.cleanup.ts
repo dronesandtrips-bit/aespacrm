@@ -32,7 +32,8 @@ export const Route = createFileRoute("/api/public/contacts/cleanup")({
         // Busca todos os contatos e filtra em JS (postgrest não tem regex fácil em todas as instâncias).
         const { data: all, error } = await sb
           .from("crm_contacts")
-          .select("id,name,phone,phone_norm");
+          .select("id,name,phone,phone_norm")
+          .eq("is_group", false);
         if (error) {
           return jsonResponse({ ok: false, error: error.message }, 500);
         }

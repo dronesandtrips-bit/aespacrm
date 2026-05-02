@@ -47,6 +47,7 @@ async function runDispatch(opts: {
     .from("crm_contacts")
     .select("id, name, phone_norm")
     .eq("user_id", userId)
+    .eq("is_group", false)
     .in("id", contactIds);
 
   const validContacts = (contacts ?? []).filter((c: any) => c.phone_norm);

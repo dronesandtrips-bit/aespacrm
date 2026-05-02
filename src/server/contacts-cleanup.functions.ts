@@ -15,7 +15,8 @@ export const previewInvalidContacts = createServerFn({ method: "GET" }).handler(
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("crm_contacts")
-    .select("id,name,phone,phone_norm");
+    .select("id,name,phone,phone_norm")
+    .eq("is_group", false);
   if (error) throw new Error(error.message);
   const trash = classify((data ?? []) as any);
   return {
@@ -29,7 +30,8 @@ export const deleteInvalidContacts = createServerFn({ method: "POST" }).handler(
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("crm_contacts")
-    .select("id,name,phone,phone_norm");
+    .select("id,name,phone,phone_norm")
+    .eq("is_group", false);
   if (error) throw new Error(error.message);
   const trash = classify((data ?? []) as any);
   if (trash.length === 0) return { deleted: 0, remaining: data?.length ?? 0 };
