@@ -250,30 +250,45 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
             const arr = Array.isArray(payload?.data) ? payload.data : [payload?.data].filter(Boolean);
             for (const msg of arr) {
               const remoteJid: string = msg?.key?.remoteJid ?? "";
-              // só contatos individuais — ignora grupos, broadcast, status, lid
-              if (!isIndividualJid(remoteJid)) continue;
-              const phone = normalizePhone(remoteJid);
-              if (!isValidE164(phone)) continue;
+              if (!isAcceptedJid(remoteJid)) continue;
+
+              const isGroup = isGroupJid(remoteJid);
               const fromMe: boolean = !!msg?.key?.fromMe;
               const messageId: string = msg?.key?.id ?? "";
-              // IMPORTANTE: quando fromMe=true, pushName é o nome do DONO da instância
-              // (você), não do destinatário. Ignorar nesse caso para não poluir contatos
-              // novos com "Jones Hahn". A IA preenche o nome real depois via enrich.
+              // pushName: para 1:1 e fromMe=true é o dono da instância (ignorar);
+              // para grupos, é o nome do PARTICIPANTE — também não usamos como
+              // "nome do contato" (o nome do contato é o nome do GRUPO).
               const pushName: string = fromMe ? "" : (msg?.pushName ?? "");
               const ts = msg?.messageTimestamp
                 ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
                 : new Date().toISOString();
 
-              const contactId = await ensureContact(sb, ownerUserId, phone, pushName);
+              let contactId: string | null = null;
+              if (isGroup) {
+                const groupName: string =
+                  msg?.groupMetadata?.subject ??
+                  msg?.pushName ?? // fallback fraco
+                  "Grupo";
+                contactId = await ensureGroupContact(sb, ownerUserId, remoteJid, groupName);
+              } else {
+                const phone = normalizePhone(remoteJid);
+                if (!isValidE164(phone)) continue;
+                contactId = await ensureContact(sb, ownerUserId, phone, pushName);
+              }
               if (!contactId) continue;
 
               const parsed = detectMessageType(msg);
+              // Em grupos, prefixa o autor para dar contexto na inbox quando não é fromMe
+              const bodyForGroup =
+                isGroup && !fromMe && pushName
+                  ? `${pushName}: ${parsed.body}`
+                  : parsed.body;
 
               await sb.from("crm_messages").upsert(
                 {
                   user_id: ownerUserId,
                   contact_id: contactId,
-                  body: parsed.body,
+                  body: bodyForGroup,
                   from_me: fromMe,
                   at: ts,
                   message_id: messageId || null,
@@ -288,8 +303,8 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                 { onConflict: "user_id,message_id", ignoreDuplicates: false },
               );
 
-              // Pausa sequências ativas se for resposta inbound
-              if (!fromMe) {
+              // Pausa sequências ativas só para 1:1 (grupos não participam de sequências).
+              if (!fromMe && !isGroup) {
                 await sb
                   .from("crm_contact_sequences")
                   .update({
