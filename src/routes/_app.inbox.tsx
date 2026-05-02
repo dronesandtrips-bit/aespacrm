@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog } from "@/components/ui/dialog";
 import { ContactDialog, EnrollDialog } from "@/components/contact-dialogs";
-import { useNavigate } from "@tanstack/react-router";
+
 
 export const Route = createFileRoute("/_app/inbox")({
   component: InboxPage,
