@@ -44,12 +44,28 @@ export type PipelineStage = {
   sequenceId?: string | null;
 };
 export type PipelinePlacement = { contactId: string; stageId: string };
+export type ChatMessageType =
+  | "text"
+  | "image"
+  | "video"
+  | "audio"
+  | "document"
+  | "sticker"
+  | "location"
+  | "contact"
+  | "reaction"
+  | "unknown";
 export type ChatMessage = {
   id: string;
   contactId: string;
   body: string;
   fromMe: boolean;
   at: string;
+  type?: ChatMessageType;
+  mediaUrl?: string | null;
+  mediaMime?: string | null;
+  mediaCaption?: string | null;
+  status?: string | null;
 };
 
 export type Sequence = {
@@ -597,9 +613,36 @@ export const pipelineDb = {
 
 // ===================== Mensagens (Inbox) =====================
 
+const MESSAGE_COLUMNS =
+  "id,contact_id,body,from_me,at,type,media_url,media_mime,media_caption,status";
+
+function rowToMessage(r: any): ChatMessage {
+  return {
+    id: r.id,
+    contactId: r.contact_id,
+    body: r.body,
+    fromMe: r.from_me,
+    at: r.at,
+    type: (r.type ?? "text") as ChatMessageType,
+    mediaUrl: r.media_url ?? null,
+    mediaMime: r.media_mime ?? null,
+    mediaCaption: r.media_caption ?? null,
+    status: r.status ?? null,
+  };
+}
+
 export const messagesDb = {
+  rowToMessage,
   async list(contactId: string): Promise<ChatMessage[]> {
     const c = await client();
+    // Tenta com as colunas novas; se falhar (schema cache antigo), faz fallback.
+    const full = await c
+      .from("crm_messages")
+      .select(MESSAGE_COLUMNS)
+      .eq("contact_id", contactId)
+      .order("at", { ascending: true });
+    if (!full.error) return (full.data ?? []).map(rowToMessage);
+    console.warn("[messagesDb] fallback sem colunas de mídia:", full.error.message);
     const { data, error } = await c
       .from("crm_messages")
       .select("id,contact_id,body,from_me,at")
@@ -612,6 +655,7 @@ export const messagesDb = {
       body: r.body,
       fromMe: r.from_me,
       at: r.at,
+      type: "text" as ChatMessageType,
     }));
   },
   async send(contactId: string, body: string): Promise<ChatMessage> {
@@ -619,17 +663,11 @@ export const messagesDb = {
     const user_id = await uid();
     const { data, error } = await c
       .from("crm_messages")
-      .insert({ user_id, contact_id: contactId, body, from_me: true })
-      .select("id,contact_id,body,from_me,at")
+      .insert({ user_id, contact_id: contactId, body, from_me: true, type: "text" })
+      .select(MESSAGE_COLUMNS)
       .single();
     if (error) throw error;
-    return {
-      id: data.id,
-      contactId: data.contact_id,
-      body: data.body,
-      fromMe: data.from_me,
-      at: data.at,
-    };
+    return rowToMessage(data);
   },
 };
 

@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, Phone, MoreVertical, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle } from "lucide-react";
-import { contactsDb, messagesDb, sequencesDb, type Contact, type ChatMessage } from "@/lib/db";
+import { Search, Send, Phone, MoreVertical, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, Download } from "lucide-react";
+import { contactsDb, messagesDb, sequencesDb, categoriesDb, type Contact, type ChatMessage, type Category } from "@/lib/db";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -35,6 +35,7 @@ type PauseMap = Record<string, ReplyPause | undefined>;
 
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [lastByContact, setLastByContact] = useState<LastMap>({});
   const [replyPauseByContact, setReplyPauseByContact] = useState<PauseMap>({});
   const [loading, setLoading] = useState(true);
@@ -52,22 +53,35 @@ function InboxPage() {
     (async () => {
       try {
         const c = await getSupabaseClient();
-        const cs = await contactsDb.list();
+        const [cs, cats] = await Promise.all([
+          contactsDb.list(),
+          categoriesDb.list().catch(() => [] as Category[]),
+        ]);
         if (cancelled) return;
         setContacts(cs);
+        setCategories(cats);
 
         // Busca última msg de cada contato (uma query, ordenada)
         if (c && cs.length > 0) {
-          const { data } = await c
+          // Tenta com colunas de mídia; se falhar, faz fallback
+          let rows: any[] = [];
+          const full = await c
             .from("crm_messages")
-            .select("id,contact_id,body,from_me,at")
-            .in(
-              "contact_id",
-              cs.map((x) => x.id),
-            )
+            .select("id,contact_id,body,from_me,at,type,media_url,media_mime,media_caption")
+            .in("contact_id", cs.map((x) => x.id))
             .order("at", { ascending: false });
+          if (full.error) {
+            const fallback = await c
+              .from("crm_messages")
+              .select("id,contact_id,body,from_me,at")
+              .in("contact_id", cs.map((x) => x.id))
+              .order("at", { ascending: false });
+            rows = fallback.data ?? [];
+          } else {
+            rows = full.data ?? [];
+          }
           const map: LastMap = {};
-          (data ?? []).forEach((row: any) => {
+          rows.forEach((row: any) => {
             if (!map[row.contact_id]) {
               map[row.contact_id] = {
                 id: row.id,
@@ -75,6 +89,10 @@ function InboxPage() {
                 body: row.body,
                 fromMe: row.from_me,
                 at: row.at,
+                type: row.type ?? "text",
+                mediaUrl: row.media_url ?? null,
+                mediaMime: row.media_mime ?? null,
+                mediaCaption: row.media_caption ?? null,
               };
             }
           });
@@ -178,6 +196,11 @@ function InboxPage() {
               body: row.body,
               fromMe: row.from_me,
               at: row.at,
+              type: (row.type ?? "text") as ChatMessage["type"],
+              mediaUrl: row.media_url ?? null,
+              mediaMime: row.media_mime ?? null,
+              mediaCaption: row.media_caption ?? null,
+              status: row.status ?? null,
             };
             setLastByContact((prev) => ({ ...prev, [msg.contactId]: msg }));
             if (msg.contactId === activeId) {
@@ -448,16 +471,16 @@ function InboxPage() {
                     <div
                       key={m.id}
                       className={cn(
-                        "max-w-[75%] rounded-2xl px-4 py-2 text-sm shadow-sm",
+                        "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                         m.fromMe
                           ? "bg-primary text-primary-foreground ml-auto rounded-br-sm"
                           : "bg-card mr-auto rounded-bl-sm",
                       )}
                     >
-                      <p>{m.body}</p>
+                      <MessageContent m={m} />
                       <p
                         className={cn(
-                          "text-[10px] mt-1",
+                          "text-[10px] mt-1 text-right",
                           m.fromMe ? "text-primary-foreground/70" : "text-muted-foreground",
                         )}
                       >
@@ -508,6 +531,12 @@ function InboxPage() {
                 </p>
               ) : (
                 <>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5 flex items-center gap-1">
+                      <Tag className="size-3" /> Tags
+                    </p>
+                    <ContactTags contact={active} categories={categories} />
+                  </div>
                   <div>
                     <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">
                       Urgência
@@ -580,4 +609,110 @@ function UrgencyBadge({ level }: { level: "Baixa" | "Média" | "Alta" }) {
       {level}
     </Badge>
   );
+}
+
+function ContactTags({ contact, categories }: { contact: Contact; categories: Category[] }) {
+  const ids = contact.categoryIds && contact.categoryIds.length
+    ? contact.categoryIds
+    : contact.categoryId
+      ? [contact.categoryId]
+      : [];
+  if (ids.length === 0) {
+    return <p className="text-xs text-muted-foreground italic">Sem tags</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {ids.map((id) => {
+        const cat = categories.find((c) => c.id === id);
+        if (!cat) return null;
+        return (
+          <Badge
+            key={id}
+            variant="outline"
+            className="text-[11px] gap-1"
+            style={{ borderColor: `${cat.color}80`, backgroundColor: `${cat.color}15`, color: cat.color }}
+          >
+            {cat.name}
+          </Badge>
+        );
+      })}
+    </div>
+  );
+}
+
+function MessageContent({ m }: { m: ChatMessage }) {
+  const type = m.type ?? "text";
+  const caption = m.mediaCaption ?? m.body;
+
+  if (type === "image" && m.mediaUrl) {
+    return (
+      <div className="space-y-1.5">
+        <a href={m.mediaUrl} target="_blank" rel="noreferrer" className="block">
+          <img
+            src={m.mediaUrl}
+            alt={caption || "imagem"}
+            className="rounded-lg max-w-full max-h-72 object-contain bg-black/5"
+            loading="lazy"
+          />
+        </a>
+        {caption ? <p className="whitespace-pre-wrap break-words">{caption}</p> : null}
+      </div>
+    );
+  }
+
+  if (type === "video" && m.mediaUrl) {
+    return (
+      <div className="space-y-1.5">
+        <video
+          src={m.mediaUrl}
+          controls
+          className="rounded-lg max-w-full max-h-72 bg-black"
+          preload="metadata"
+        />
+        {caption ? <p className="whitespace-pre-wrap break-words">{caption}</p> : null}
+      </div>
+    );
+  }
+
+  if (type === "audio" && m.mediaUrl) {
+    return (
+      <div className="space-y-1.5 min-w-[220px]">
+        <audio src={m.mediaUrl} controls className="w-full max-w-xs" preload="metadata" />
+        {caption && caption !== m.body ? (
+          <p className="whitespace-pre-wrap break-words">{caption}</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (type === "document" && m.mediaUrl) {
+    const fileName = caption || m.mediaUrl.split("/").pop() || "documento";
+    return (
+      <a
+        href={m.mediaUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition"
+      >
+        <FileText className="size-5 shrink-0" />
+        <span className="flex-1 text-xs truncate">{fileName}</span>
+        <Download className="size-4 opacity-60" />
+      </a>
+    );
+  }
+
+  if (type === "sticker" && m.mediaUrl) {
+    return <img src={m.mediaUrl} alt="sticker" className="size-32 object-contain" />;
+  }
+
+  if ((type === "image" || type === "video" || type === "audio" || type === "document") && !m.mediaUrl) {
+    return (
+      <p className="italic opacity-70 flex items-center gap-1.5">
+        <ImageIcon className="size-3.5" />
+        Mídia indisponível
+      </p>
+    );
+  }
+
+  return <p className="whitespace-pre-wrap break-words">{m.body}</p>;
 }
