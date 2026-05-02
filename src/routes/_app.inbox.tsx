@@ -451,15 +451,8 @@ function InboxPage() {
                     </TooltipProvider>
                   )}
                 </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon">
-                    <Phone className="size-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon">
-                    <MoreVertical className="size-4" />
-                  </Button>
-                </div>
               </div>
+
 
               <div ref={scrollRef} className="flex-1 overflow-auto p-5 space-y-2">
                 {messages.length === 0 ? (
