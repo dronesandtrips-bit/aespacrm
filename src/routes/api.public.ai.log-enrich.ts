@@ -16,7 +16,7 @@ const BodySchema = z.object({
   contact_id: z.string().uuid(),
   contact_name: z.string().max(200).optional().nullable(),
   contact_phone: z.string().max(32).optional().nullable(),
-  request_payload: z.record(z.any()).optional().nullable(),
+  request_payload: z.record(z.string(), z.any()).optional().nullable(),
 });
 
 export const Route = createFileRoute("/api/public/ai/log-enrich")({
