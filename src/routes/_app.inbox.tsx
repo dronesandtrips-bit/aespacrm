@@ -343,7 +343,7 @@ function InboxPage() {
   return (
     <div className="space-y-4 max-w-[1400px]">
       <Card className="overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-[300px_1fr_280px] h-[calc(100vh-220px)] min-h-[500px]">
+        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr_260px] h-[calc(100vh-180px)] min-h-[600px]">
           {/* Lista */}
           <div className="border-r flex flex-col">
             <div className="p-3 border-b">
