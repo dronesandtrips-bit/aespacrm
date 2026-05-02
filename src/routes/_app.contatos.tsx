@@ -139,19 +139,50 @@ function ContactsPage() {
       return;
     }
     setEnriching((prev) => new Set(prev).add(c.id));
+    let logId: string | null = null;
+    const requestPayload = {
+      action: "enrich_contact",
+      contact_id: c.id,
+      phone: c.phone,
+      triggered_at: new Date().toISOString(),
+    };
     try {
+      // 1) registra disparo no histórico
+      try {
+        const { logEnrichmentStart } = await import(
+          "@/server/ai-enrichment-logs.functions"
+        );
+        const r = await logEnrichmentStart({
+          data: {
+            contact_id: c.id,
+            contact_name: c.name,
+            contact_phone: c.phone,
+            request_payload: requestPayload,
+          },
+        });
+        logId = r.log_id;
+      } catch (e) {
+        console.warn("Falha ao registrar log de enriquecimento", e);
+      }
+
+      // 2) chama webhook do n8n com log_id
       const res = await fetch(webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "enrich_contact",
-          contact_id: c.id,
-          phone: c.phone,
-          triggered_at: new Date().toISOString(),
-        }),
+        body: JSON.stringify({ ...requestPayload, log_id: logId }),
       });
       if (!res.ok) {
         toast.error(`Webhook respondeu ${res.status}`);
+        if (logId) {
+          try {
+            const { logEnrichmentFailure } = await import(
+              "@/server/ai-enrichment-logs.functions"
+            );
+            await logEnrichmentFailure({
+              data: { log_id: logId, error_message: `Webhook ${res.status}` },
+            });
+          } catch {}
+        }
         return;
       }
       toast.success(`Enriquecimento disparado para ${c.name}. Atualizando em 8s…`);
@@ -160,6 +191,16 @@ function ContactsPage() {
       }, 8000);
     } catch (e: any) {
       toast.error(`Falha ao chamar webhook: ${e.message ?? e}`);
+      if (logId) {
+        try {
+          const { logEnrichmentFailure } = await import(
+            "@/server/ai-enrichment-logs.functions"
+          );
+          await logEnrichmentFailure({
+            data: { log_id: logId, error_message: String(e?.message ?? e) },
+          });
+        } catch {}
+      }
     } finally {
       setEnriching((prev) => {
         const n = new Set(prev);
