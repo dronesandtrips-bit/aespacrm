@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search, Send, Phone, MoreVertical, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle } from "lucide-react";
-import { contactsDb, messagesDb, sequencesDb, type Contact, type ChatMessage } from "@/lib/db";
+import { contactsDb, messagesDb, sequencesDb, categoriesDb, type Contact, type ChatMessage, type Category } from "@/lib/db";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -35,6 +35,7 @@ type PauseMap = Record<string, ReplyPause | undefined>;
 
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [lastByContact, setLastByContact] = useState<LastMap>({});
   const [replyPauseByContact, setReplyPauseByContact] = useState<PauseMap>({});
   const [loading, setLoading] = useState(true);
