@@ -130,9 +130,49 @@ function HistoricoIaPage() {
     }
   };
 
+  const handleMarkAsError = async (logId: string, contactName: string | null) => {
+    const label = contactName ?? "este disparo";
+    if (
+      !confirm(
+        `Marcar disparo de "${label}" como erro? Use isso quando o n8n travou e nunca retornou. O contato pode ser re-disparado depois.`,
+      )
+    )
+      return;
+    setBusy(logId);
+    try {
+      await logEnrichmentFailure({
+        data: {
+          log_id: logId,
+          error_message: "Cancelado manualmente — n8n não respondeu (timeout)",
+        },
+      });
+      toast.success("Log marcado como erro");
+      await refresh();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // Tick a cada 10s para reavaliar quais logs viraram "travado" sem precisar refazer fetch
+  const [, setNowTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((n) => n + 1), 10_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Auto-refresh enquanto houver logs em andamento
   useEffect(() => {
     refresh();
   }, []);
+
+  useEffect(() => {
+    const hasPending = logs.some((l) => l.status === "dispatched");
+    if (!hasPending) return;
+    const id = setInterval(refresh, 15_000);
+    return () => clearInterval(id);
+  }, [logs]);
 
   const counts = logs.reduce(
     (acc, l) => {
