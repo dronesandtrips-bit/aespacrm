@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, RefreshCw, CheckCircle2, XCircle, Loader2, Clock, Trash2 } from "lucide-react";
+import { Sparkles, RefreshCw, CheckCircle2, XCircle, Loader2, Clock, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,7 +41,7 @@ function fmt(dt: string | null) {
   return new Date(dt).toLocaleString("pt-BR");
 }
 
-function StatusBadge({ s }: { s: Log["status"] }) {
+function StatusBadge({ s, stuck }: { s: Log["status"]; stuck?: boolean }) {
   if (s === "success") {
     return (
       <Badge className="bg-green-500/15 text-green-700 dark:text-green-400 border-green-500/30 gap-1">
@@ -53,6 +53,13 @@ function StatusBadge({ s }: { s: Log["status"] }) {
     return (
       <Badge variant="destructive" className="gap-1">
         <XCircle className="size-3" /> Erro
+      </Badge>
+    );
+  }
+  if (stuck) {
+    return (
+      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1">
+        <AlertTriangle className="size-3" /> Travado
       </Badge>
     );
   }
