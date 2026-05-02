@@ -1313,3 +1313,159 @@ function WidgetDialog({
     </Dialog>
   );
 }
+
+// ===================== Blacklist Tab =====================
+
+function BlacklistTab() {
+  const [items, setItems] = useState<IgnoredPhone[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  async function load() {
+    setLoading(true);
+    try {
+      const list = await ignoredPhonesDb.list();
+      setItems(list);
+      setDraft(list.map((i) => i.phoneNorm).join("\n"));
+    } catch (e: any) {
+      toast.error("Não foi possível carregar a blacklist", { description: e?.message });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const parsed = parseBlacklistInput(draft);
+  const currentSet = new Set(items.map((i) => i.phoneNorm));
+  const draftSet = new Set(parsed);
+  const willAdd = parsed.filter((n) => !currentSet.has(n)).length;
+  const willRemove = items.filter((i) => !draftSet.has(i.phoneNorm)).length;
+  const dirty = willAdd > 0 || willRemove > 0;
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const result = await ignoredPhonesDb.replaceAll(parsed);
+      toast.success(
+        `Blacklist atualizada: +${result.added} adicionado(s), -${result.removed} removido(s)`,
+      );
+      await load();
+    } catch (e: any) {
+      toast.error("Falha ao salvar blacklist", { description: e?.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRemoveOne(phoneNorm: string) {
+    try {
+      await ignoredPhonesDb.removeOne(phoneNorm);
+      toast.success("Número removido da blacklist");
+      await load();
+    } catch (e: any) {
+      toast.error("Falha ao remover", { description: e?.message });
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <Card className="p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="size-10 rounded-full bg-muted grid place-items-center shrink-0">
+            <ShieldOff className="size-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1">
+            <h2 className="font-semibold">Números Ignorados (Blacklist)</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Números nesta lista são <strong>completamente ignorados</strong> pelas
+              automações: não são enriquecidos pela IA e nunca recebem mensagens
+              de sequências. Contatos novos com esses números entram já marcados
+              como ignorados.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="blacklist-input">
+            Telefones (um por linha, ou separados por vírgula)
+          </Label>
+          <Textarea
+            id="blacklist-input"
+            placeholder={"5511999999999\n5511888888888"}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={8}
+            className="font-mono text-sm"
+            disabled={loading}
+          />
+          <p className="text-xs text-muted-foreground">
+            Espaços, parênteses e traços são removidos automaticamente. Apenas
+            dígitos válidos (6 a 20) são salvos.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">
+            {parsed.length} válido(s){" "}
+            {dirty && (
+              <span className="text-foreground">
+                · {willAdd > 0 && `+${willAdd}`} {willRemove > 0 && `−${willRemove}`}
+              </span>
+            )}
+          </div>
+          <Button
+            onClick={handleSave}
+            disabled={saving || loading || !dirty}
+            className="gap-2"
+          >
+            {saving && <Loader2 className="size-4 animate-spin" />}
+            <Save className="size-4" />
+            Salvar blacklist
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold">Lista atual ({items.length})</h3>
+        </div>
+        {loading ? (
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="size-4 animate-spin" /> Carregando…
+          </div>
+        ) : items.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nenhum número na blacklist.
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {items.map((it) => (
+              <li key={it.id} className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2">
+                  <ShieldOff className="size-4 text-muted-foreground" />
+                  <span className="font-mono text-sm">{it.phoneNorm}</span>
+                  {it.reason && (
+                    <span className="text-xs text-muted-foreground">— {it.reason}</span>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemoveOne(it.phoneNorm)}
+                  className="gap-1"
+                >
+                  <X className="size-4" /> Remover
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </div>
+  );
+}
+
