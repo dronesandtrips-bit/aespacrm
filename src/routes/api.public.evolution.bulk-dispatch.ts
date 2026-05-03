@@ -211,6 +211,10 @@ export const Route = createFileRoute("/api/public/evolution/bulk-dispatch")({
           intervalSeconds: parsed.intervalSeconds,
           message: "Disparo iniciado em background",
         });
+        } catch (err: any) {
+          console.error("[bulk-dispatch] unhandled", err);
+          return jsonResponse({ ok: false, error: err?.message ?? String(err), stack: err?.stack }, 500);
+        }
       },
     },
   },
