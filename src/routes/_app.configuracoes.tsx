@@ -197,14 +197,14 @@ function CategoriesTab() {
     refresh().finally(() => setLoading(false));
   }, []);
 
-  const save = async (name: string, color: string, sequenceId: string | null) => {
+  const save = async (name: string, color: string, sequenceId: string | null, keywords: string[]) => {
     if (!name.trim()) return toast.error("Nome obrigatório");
     try {
       if (editing) {
-        await categoriesDb.update(editing.id, { name: name.trim(), color, sequenceId });
+        await categoriesDb.update(editing.id, { name: name.trim(), color, sequenceId, keywords });
         toast.success("Categoria atualizada");
       } else {
-        await categoriesDb.create(name.trim(), color, sequenceId);
+        await categoriesDb.create(name.trim(), color, sequenceId, keywords);
         toast.success("Categoria criada");
       }
       await refresh();
