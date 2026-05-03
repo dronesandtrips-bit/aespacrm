@@ -210,12 +210,19 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
               .toLowerCase();
           // Concatena só o que o CLIENTE escreveu (from_me=false). O que o
           // atendente disse não conta — a marca pode ter sido sugerida pelo bot.
-          const transcript = norm(
+          // IMPORTANTE: normalizamos pontuação (hífens, barras, pontos…) para
+          // espaço, igual ao que fazemos com a marca abaixo. Sem isso, marcas
+          // tipo "WD-MOB" / "Wi-Fi" nunca casam, porque o cliente escreve
+          // "wd-mob" no chat e a marca normalizada vira "wd mob".
+          const rawTranscript = norm(
             (msgsRaw ?? [])
               .filter((m: any) => !m.from_me)
               .map((m: any) => String(m.body ?? ""))
               .join(" \n "),
           );
+          const transcript = rawTranscript
+            .replace(/[^a-z0-9\s]/g, " ")
+            .replace(/\s+/g, " ");
 
           // Categorias genéricas que SEMPRE podem passar (não são marca específica)
           const GENERIC = new Set(
