@@ -131,6 +131,7 @@ export const Route = createFileRoute("/api/public/evolution/bulk-dispatch")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        try {
         const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
         const apiKey = process.env.EVOLUTION_API_KEY?.trim();
         const supaUrl = process.env.AESPACRM_SUPA_URL?.trim().replace(/\/+$/, "");
