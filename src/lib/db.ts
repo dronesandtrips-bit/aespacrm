@@ -1052,6 +1052,15 @@ export const sequencesDb = {
     if (error) throw error;
   },
 
+  async removeContact(contactSequenceId: string) {
+    const c = await client();
+    const { error } = await c
+      .from("crm_contact_sequences")
+      .delete()
+      .eq("id", contactSequenceId);
+    if (error) throw error;
+  },
+
   /**
    * Pausa todas as sequências ativas de um contato (exceto a indicada).
    * Usada antes de inscrever em uma nova sequência via gatilho automático.
