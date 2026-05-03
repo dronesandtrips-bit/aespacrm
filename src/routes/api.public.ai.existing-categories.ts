@@ -49,13 +49,13 @@ export const Route = createFileRoute("/api/public/ai/existing-categories")({
               ? (r.keywords as any[]).map((k) => String(k ?? "").trim()).filter(Boolean)
               : [],
           }))
-          .filter((r) => r.name);
+          .filter((r: { name: string }) => r.name);
 
         // `categories`: lista plana (compat com workflows antigos do n8n).
         // `categories_detailed`: nome + keywords (novo, para a IA priorizar).
         return jsonResponse({
           ok: true,
-          categories: rows.map((r) => r.name),
+          categories: rows.map((r: { name: string }) => r.name),
           categories_detailed: rows,
         });
       },
