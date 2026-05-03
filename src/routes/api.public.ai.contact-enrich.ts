@@ -224,38 +224,39 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             .replace(/[^a-z0-9\s]/g, " ")
             .replace(/\s+/g, " ");
 
-          // Categorias genéricas que SEMPRE podem passar (não são marca específica)
+          // Categorias genéricas que SEMPRE podem passar (não são marca específica).
+          // Aceita com OU sem prefixo "cliente " (legado + novo formato puro).
           const GENERIC = new Set(
             [
-              "cliente cameras",
-              "cliente cameras wi-fi",
-              "cliente cameras wifi",
-              "cliente alarme",
-              "cliente alarmes",
-              "cliente cerca eletrica",
-              "cliente cftv",
-              "cliente geral",
-              "cliente automacao",
-              "cliente controle de acesso",
-              "cliente interfone",
-              "cliente portao",
-              "cliente suporte",
-            ].map((s) => s),
+              "cameras",
+              "cameras wi-fi",
+              "cameras wifi",
+              "alarme",
+              "alarmes",
+              "cerca eletrica",
+              "cftv",
+              "geral",
+              "automacao",
+              "controle de acesso",
+              "interfone",
+              "portao",
+              "suporte",
+            ],
           );
 
           const filtered: string[] = [];
           for (const original of orderedNames) {
             const n = norm(original);
-            if (!n.startsWith("cliente ")) {
+            // Remove prefixo "cliente " se existir (compat com formato antigo)
+            const stripped = n.startsWith("cliente ")
+              ? n.slice("cliente ".length).trim()
+              : n;
+            if (GENERIC.has(stripped)) {
               filtered.push(original);
               continue;
             }
-            if (GENERIC.has(n)) {
-              filtered.push(original);
-              continue;
-            }
-            // Extrai a "marca" depois de "cliente "
-            const brand = n.slice("cliente ".length).trim();
+            // "brand" = nome da categoria sem o prefixo legado
+            const brand = stripped;
             if (!brand) {
               filtered.push(original);
               continue;
