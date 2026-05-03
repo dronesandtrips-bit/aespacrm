@@ -907,6 +907,13 @@ function IntegrationsTab() {
         <Label htmlFor="webhook">Webhook URL</Label>
         <Input
           id="webhook"
+          type="url"
+          inputMode="url"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          name="n8n-webhook-url"
           placeholder="https://seu-n8n.com/webhook/zapcrm-extrair-leads"
           value={webhook}
           onChange={(e) => setWebhook(e.target.value)}
