@@ -188,6 +188,71 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
           orderedNames.push(t);
         }
 
+        // -------- Transcrição do cliente (usada por keyword-match e anti-alucinação) --------
+        const norm = (s: string) =>
+          s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const { data: msgsRaw } = await sb
+          .from("crm_messages")
+          .select("body, from_me")
+          .eq("user_id", ownerUserId)
+          .eq("contact_id", contactId)
+          .order("at", { ascending: false })
+          .limit(80);
+        const rawTranscript = norm(
+          (msgsRaw ?? [])
+            .filter((m: any) => !m.from_me)
+            .map((m: any) => String(m.body ?? ""))
+            .join(" \n "),
+        );
+        const transcript = rawTranscript
+          .replace(/[^a-z0-9\s]/g, " ")
+          .replace(/\s+/g, " ");
+
+        // -------- Auto-classificação por palavras-chave (PRIORIDADE) --------
+        // Para cada categoria do tenant que tem `keywords`, se qualquer
+        // keyword aparecer na transcrição do cliente, a categoria é
+        // PREPENDADA em orderedNames. Isso garante que ela:
+        //  1) entra mesmo se a IA não sugeriu;
+        //  2) tem prioridade sobre o que a IA mandou;
+        //  3) escapa da trava anti-alucinação (já está antes, e o filtro
+        //     abaixo tem GENERIC + lookup por nome real existente).
+        const keywordMatched: string[] = [];
+        try {
+          const { data: catsKw } = await sb
+            .from("crm_categories")
+            .select("name, keywords")
+            .eq("user_id", ownerUserId);
+          const matched: string[] = [];
+          for (const row of catsKw ?? []) {
+            const kws: string[] = Array.isArray((row as any).keywords)
+              ? ((row as any).keywords as any[]).map((x) => String(x ?? "")).filter(Boolean)
+              : [];
+            if (kws.length === 0) continue;
+            const hit = kws.some((kw) => {
+              const n = norm(kw).replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+              if (!n) return false;
+              if (n.includes(" ")) {
+                return transcript.includes(n);
+              }
+              const re = new RegExp(`(^|[^a-z0-9])${n}([^a-z0-9]|$)`);
+              return re.test(transcript);
+            });
+            if (hit) matched.push(String((row as any).name));
+          }
+          // Prepend (ordem reversa para preservar a ordem natural das categorias)
+          for (let i = matched.length - 1; i >= 0; i--) {
+            const nm = matched[i];
+            const k = nm.toLowerCase();
+            if (seen.has(k)) continue;
+            seen.add(k);
+            orderedNames.unshift(nm);
+            keywordMatched.push(nm);
+          }
+        } catch (kwErr) {
+          console.warn("[contact-enrich] keyword match failed", kwErr);
+        }
+
+
         // -------- Trava anti-alucinação de marcas --------
         // A IA às vezes inventa marcas que o cliente NUNCA citou (ex: cliente
         // pediu "icsee" e veio "Cliente Mibo Smart" + "Cliente Multi Giga Admin").
