@@ -252,10 +252,11 @@ function SequenceEditorDialog({
     let cancelled = false;
     (async () => {
       try {
-        const [s, c, st] = await Promise.all([
+        const [s, c, st, all] = await Promise.all([
           sequencesDb.listSteps(sequence.id),
           contactsDb.list(),
           pipelineDb.listStages(),
+          sequencesDb.listContactSequences(),
         ]);
         if (cancelled) return;
         setSteps(
@@ -269,6 +270,7 @@ function SequenceEditorDialog({
         );
         setContacts(c);
         setStages(st);
+        setEnrolled(all.filter((x) => x.sequenceId === sequence.id));
       } catch (e: any) {
         toast.error(`Erro: ${e.message ?? e}`);
       } finally {
