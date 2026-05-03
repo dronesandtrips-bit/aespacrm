@@ -65,6 +65,7 @@ function DisparosPage() {
   const [interval, setInterval] = useState(3);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
     try {
