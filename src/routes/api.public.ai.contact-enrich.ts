@@ -188,44 +188,78 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
           orderedNames.push(t);
         }
 
+        // -------- Transcrição do cliente (usada por keyword-match e anti-alucinação) --------
+        const norm = (s: string) =>
+          s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const { data: msgsRaw } = await sb
+          .from("crm_messages")
+          .select("body, from_me")
+          .eq("user_id", ownerUserId)
+          .eq("contact_id", contactId)
+          .order("at", { ascending: false })
+          .limit(80);
+        const rawTranscript = norm(
+          (msgsRaw ?? [])
+            .filter((m: any) => !m.from_me)
+            .map((m: any) => String(m.body ?? ""))
+            .join(" \n "),
+        );
+        const transcript = rawTranscript
+          .replace(/[^a-z0-9\s]/g, " ")
+          .replace(/\s+/g, " ");
+
+        // -------- Auto-classificação por palavras-chave (PRIORIDADE) --------
+        // Para cada categoria do tenant que tem `keywords`, se qualquer
+        // keyword aparecer na transcrição do cliente, a categoria é
+        // PREPENDADA em orderedNames. Isso garante que ela:
+        //  1) entra mesmo se a IA não sugeriu;
+        //  2) tem prioridade sobre o que a IA mandou;
+        //  3) escapa da trava anti-alucinação (já está antes, e o filtro
+        //     abaixo tem GENERIC + lookup por nome real existente).
+        const keywordMatched: string[] = [];
+        try {
+          const { data: catsKw } = await sb
+            .from("crm_categories")
+            .select("name, keywords")
+            .eq("user_id", ownerUserId);
+          const matched: string[] = [];
+          for (const row of catsKw ?? []) {
+            const kws: string[] = Array.isArray((row as any).keywords)
+              ? ((row as any).keywords as any[]).map((x) => String(x ?? "")).filter(Boolean)
+              : [];
+            if (kws.length === 0) continue;
+            const hit = kws.some((kw) => {
+              const n = norm(kw).replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+              if (!n) return false;
+              if (n.includes(" ")) {
+                return transcript.includes(n);
+              }
+              const re = new RegExp(`(^|[^a-z0-9])${n}([^a-z0-9]|$)`);
+              return re.test(transcript);
+            });
+            if (hit) matched.push(String((row as any).name));
+          }
+          // Prepend (ordem reversa para preservar a ordem natural das categorias)
+          for (let i = matched.length - 1; i >= 0; i--) {
+            const nm = matched[i];
+            const k = nm.toLowerCase();
+            if (seen.has(k)) continue;
+            seen.add(k);
+            orderedNames.unshift(nm);
+            keywordMatched.push(nm);
+          }
+        } catch (kwErr) {
+          console.warn("[contact-enrich] keyword match failed", kwErr);
+        }
+
+
         // -------- Trava anti-alucinação de marcas --------
-        // A IA às vezes inventa marcas que o cliente NUNCA citou (ex: cliente
-        // pediu "icsee" e veio "Cliente Mibo Smart" + "Cliente Multi Giga Admin").
-        // Para cada categoria do formato "Cliente <Marca>", verificamos se a
-        // marca aparece literalmente no histórico de mensagens do contato.
-        // Categorias genéricas (Câmeras, Alarme, etc.) passam sem checagem.
+        // A IA às vezes inventa marcas que o cliente NUNCA citou.
+        // Categorias genéricas (Câmeras, Alarme, etc.) e categorias que já
+        // bateram por keyword passam sem checagem.
         const droppedHallucinations: string[] = [];
         if (orderedNames.length > 0) {
-          const { data: msgsRaw } = await sb
-            .from("crm_messages")
-            .select("body, from_me")
-            .eq("user_id", ownerUserId)
-            .eq("contact_id", contactId)
-            .order("at", { ascending: false })
-            .limit(80);
-          const norm = (s: string) =>
-            s
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "")
-              .toLowerCase();
-          // Concatena só o que o CLIENTE escreveu (from_me=false). O que o
-          // atendente disse não conta — a marca pode ter sido sugerida pelo bot.
-          // IMPORTANTE: normalizamos pontuação (hífens, barras, pontos…) para
-          // espaço, igual ao que fazemos com a marca abaixo. Sem isso, marcas
-          // tipo "WD-MOB" / "Wi-Fi" nunca casam, porque o cliente escreve
-          // "wd-mob" no chat e a marca normalizada vira "wd mob".
-          const rawTranscript = norm(
-            (msgsRaw ?? [])
-              .filter((m: any) => !m.from_me)
-              .map((m: any) => String(m.body ?? ""))
-              .join(" \n "),
-          );
-          const transcript = rawTranscript
-            .replace(/[^a-z0-9\s]/g, " ")
-            .replace(/\s+/g, " ");
-
           // Categorias genéricas que SEMPRE podem passar (não são marca específica).
-          // Aceita com OU sem prefixo "cliente " (legado + novo formato puro).
           const GENERIC = new Set(
             [
               "cameras",
@@ -244,10 +278,16 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             ],
           );
 
+          const kwSet = new Set(keywordMatched.map((s) => s.toLowerCase()));
+
           const filtered: string[] = [];
           for (const original of orderedNames) {
+            // Categorias matched por keyword têm prioridade absoluta — passam.
+            if (kwSet.has(original.toLowerCase())) {
+              filtered.push(original);
+              continue;
+            }
             const n = norm(original);
-            // Remove prefixo "cliente " se existir (compat com formato antigo)
             const stripped = n.startsWith("cliente ")
               ? n.slice("cliente ".length).trim()
               : n;
@@ -255,21 +295,11 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
               filtered.push(original);
               continue;
             }
-            // "brand" = nome da categoria sem o prefixo legado
             const brand = stripped;
             if (!brand) {
               filtered.push(original);
               continue;
             }
-            // Regra reforçada (anti-cardápio do n8n):
-            // - Marca multi-token (ex: "multi giga admin", "mibo smart"): exige
-            //   a FRASE COMPLETA da marca como substring na transcrição. Se não
-            //   estiver inteira, exige pelo menos UM bigrama adjacente
-            //   (ex: "mibo smart" OU "multi giga"). Tokens soltos NÃO bastam,
-            //   porque "multi", "smart", "admin" são palavras genéricas que
-            //   aparecem em qualquer conversa.
-            // - Marca single-token (ex: "hikvision", "icsee"): exige a palavra
-            //   inteira (word boundary), não substring solta.
             const cleanBrand = brand.replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
             const tokens = cleanBrand
               .split(" ")
@@ -286,11 +316,9 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             if (tokens.length <= 1) {
               ok = matchWord(tokens[0] ?? brand);
             } else {
-              // 1) frase completa
               if (transcript.includes(cleanBrand)) {
                 ok = true;
               } else {
-                // 2) algum bigrama adjacente (token[i] + " " + token[i+1])
                 for (let i = 0; i < tokens.length - 1; i++) {
                   const bigram = `${tokens[i]} ${tokens[i + 1]}`;
                   if (transcript.includes(bigram)) { ok = true; break; }
@@ -313,6 +341,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
           orderedNames.length = 0;
           orderedNames.push(...filtered);
         }
+
 
         const orderedIds: string[] = [];
         const createdCategories: string[] = [];
@@ -494,6 +523,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             final_category_ids: finalCategoryIds,
             created_categories: createdCategories,
             dropped_hallucinations: droppedHallucinations,
+            keyword_matched: keywordMatched,
           },
         };
 

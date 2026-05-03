@@ -197,14 +197,14 @@ function CategoriesTab() {
     refresh().finally(() => setLoading(false));
   }, []);
 
-  const save = async (name: string, color: string, sequenceId: string | null) => {
+  const save = async (name: string, color: string, sequenceId: string | null, keywords: string[]) => {
     if (!name.trim()) return toast.error("Nome obrigatório");
     try {
       if (editing) {
-        await categoriesDb.update(editing.id, { name: name.trim(), color, sequenceId });
+        await categoriesDb.update(editing.id, { name: name.trim(), color, sequenceId, keywords });
         toast.success("Categoria atualizada");
       } else {
-        await categoriesDb.create(name.trim(), color, sequenceId);
+        await categoriesDb.create(name.trim(), color, sequenceId, keywords);
         toast.success("Categoria criada");
       }
       await refresh();
@@ -362,17 +362,28 @@ function CategoryDialog({
 }: {
   initial: Category | null;
   sequences: Sequence[];
-  onSubmit: (name: string, color: string, sequenceId: string | null) => void;
+  onSubmit: (name: string, color: string, sequenceId: string | null, keywords: string[]) => void;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [color, setColor] = useState(initial?.color ?? COLORS[0]);
   const [sequenceId, setSequenceId] = useState<string | null>(initial?.sequenceId ?? null);
+  const [keywordsText, setKeywordsText] = useState<string>((initial?.keywords ?? []).join(", "));
   return (
     <DialogContent className="max-w-sm">
       <DialogHeader>
         <DialogTitle>{initial ? "Editar categoria" : "Nova categoria"}</DialogTitle>
       </DialogHeader>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit(name, color, sequenceId); }} className="space-y-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const kws = keywordsText
+            .split(/[,\n;]+/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+          onSubmit(name, color, sequenceId, kws);
+        }}
+        className="space-y-4"
+      >
         <div className="space-y-1.5">
           <Label htmlFor="cn">Nome</Label>
           <Input id="cn" value={name} onChange={(e) => setName(e.target.value)} />
@@ -393,6 +404,20 @@ function CategoryDialog({
               />
             ))}
           </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="ck">Palavras-chave</Label>
+          <textarea
+            id="ck"
+            value={keywordsText}
+            onChange={(e) => setKeywordsText(e.target.value)}
+            rows={3}
+            placeholder="alarme, sensor de presença, central de alarme"
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Separe por vírgula. Se qualquer uma aparecer no que o cliente escreveu, esta categoria é aplicada automaticamente (prioridade sobre a IA).
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label>Sequência automática</Label>

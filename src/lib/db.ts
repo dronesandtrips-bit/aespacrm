@@ -7,7 +7,7 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
 // ===================== Tipos =====================
 
 export type CategoryStatus = "approved" | "pending";
-export type Category = { id: string; name: string; color: string; sequenceId?: string | null; status: CategoryStatus };
+export type Category = { id: string; name: string; color: string; sequenceId?: string | null; status: CategoryStatus; keywords: string[] };
 export type UrgencyLevel = "Baixa" | "Média" | "Alta";
 export type Contact = {
   id: string;
@@ -142,6 +142,7 @@ function rowToCategory(r: any): Category {
     color: r.color,
     sequenceId: r.sequence_id ?? null,
     status: (r.status === "pending" ? "pending" : "approved") as CategoryStatus,
+    keywords: Array.isArray(r.keywords) ? r.keywords.filter(Boolean) : [],
   };
 }
 
@@ -150,18 +151,21 @@ export const categoriesDb = {
     const c = await client();
     const { data, error } = await c
       .from("crm_categories")
-      .select("id,name,color,sequence_id,status")
+      .select("id,name,color,sequence_id,status,keywords")
       .order("name", { ascending: true });
     if (error) throw error;
     return (data ?? []).map(rowToCategory);
   },
-  async create(name: string, color: string, sequenceId?: string | null): Promise<Category> {
+  async create(
+    name: string,
+    color: string,
+    sequenceId?: string | null,
+    keywords?: string[],
+  ): Promise<Category> {
     const c = await client();
     const user_id = await uid();
     const cleanName = name.trim().replace(/\s+/g, " ");
     if (!cleanName) throw new Error("Nome da categoria é obrigatório.");
-    // Trava de duplicata (case-insensitive). O banco também tem índice único,
-    // mas checamos aqui pra dar uma mensagem amigável.
     const { data: dup } = await c
       .from("crm_categories")
       .select("id,name")
@@ -173,8 +177,15 @@ export const categoriesDb = {
     }
     const { data, error } = await c
       .from("crm_categories")
-      .insert({ name: cleanName, color, user_id, sequence_id: sequenceId ?? null, status: "approved" })
-      .select("id,name,color,sequence_id,status")
+      .insert({
+        name: cleanName,
+        color,
+        user_id,
+        sequence_id: sequenceId ?? null,
+        status: "approved",
+        keywords: normalizeKeywords(keywords),
+      })
+      .select("id,name,color,sequence_id,status,keywords")
       .single();
     if (error) {
       if ((error as any).code === "23505") {
@@ -184,7 +195,10 @@ export const categoriesDb = {
     }
     return rowToCategory(data);
   },
-  async update(id: string, patch: Partial<Pick<Category, "name" | "color" | "sequenceId" | "status">>) {
+  async update(
+    id: string,
+    patch: Partial<Pick<Category, "name" | "color" | "sequenceId" | "status" | "keywords">>,
+  ) {
     const c = await client();
     const dbPatch: Record<string, unknown> = {};
     if (patch.name !== undefined) {
@@ -206,6 +220,7 @@ export const categoriesDb = {
     if (patch.color !== undefined) dbPatch.color = patch.color;
     if (patch.sequenceId !== undefined) dbPatch.sequence_id = patch.sequenceId;
     if (patch.status !== undefined) dbPatch.status = patch.status;
+    if (patch.keywords !== undefined) dbPatch.keywords = normalizeKeywords(patch.keywords);
     const { error } = await c.from("crm_categories").update(dbPatch).eq("id", id);
     if (error) {
       if ((error as any).code === "23505") {
@@ -223,6 +238,21 @@ export const categoriesDb = {
     if (error) throw error;
   },
 };
+
+function normalizeKeywords(raw: string[] | undefined | null): string[] {
+  if (!raw) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const k of raw) {
+    const t = String(k ?? "").trim().replace(/\s+/g, " ");
+    if (!t) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out;
+}
 
 // ===================== Contatos =====================
 
