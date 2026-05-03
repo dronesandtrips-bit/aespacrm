@@ -134,7 +134,10 @@ export const Route = createFileRoute("/api/public/evolution/bulk-dispatch")({
         try {
         const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
         const apiKey = process.env.EVOLUTION_API_KEY?.trim();
-        const supaUrl = process.env.AESPACRM_SUPA_URL?.trim().replace(/\/+$/, "");
+        const rawSupa = process.env.AESPACRM_SUPA_URL?.trim() ?? "";
+        const supaUrl = rawSupa
+          ? (/^https?:\/\//i.test(rawSupa) ? rawSupa : `https://${rawSupa}`).replace(/\/+$/, "")
+          : "";
         const anonKey = process.env.AESPACRM_SUPA_ANON_KEY?.trim();
         if (!apiUrl || !apiKey || !supaUrl || !anonKey) {
           return jsonResponse({ ok: false, error: "config faltando no servidor" }, 500);
