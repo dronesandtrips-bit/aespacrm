@@ -39,8 +39,10 @@ import {
   type Sequence,
   type SequenceStep,
   type Contact,
+  type ContactSequence,
   type PipelineStage,
 } from "@/lib/db";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/sequencias")({
