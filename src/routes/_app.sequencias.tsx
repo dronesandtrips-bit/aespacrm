@@ -334,18 +334,35 @@ function SequenceEditorDialog({
     }
   };
 
-  const enrollOne = async () => {
-    if (!enrollContactId) return;
+  const enrollMany = async () => {
+    if (enrollIds.length === 0) return;
     setEnrolling(true);
     try {
-      const r = await sequencesDb.enroll(sequence.id, [enrollContactId]);
+      const r = await sequencesDb.enroll(sequence.id, enrollIds);
       toast.success(`${r.enrolled} contato(s) inscrito(s)`);
-      setEnrollContactId("");
+      setEnrollIds([]);
+      setEnrollSearch("");
+      await reloadEnrolled();
     } catch (e: any) {
       toast.error(`Erro: ${e.message ?? e}`);
     } finally {
       setEnrolling(false);
     }
+  };
+
+  const removeEnrolled = async (csId: string) => {
+    if (!confirm("Remover este contato da sequência?")) return;
+    try {
+      await sequencesDb.removeContact(csId);
+      toast.success("Removido");
+      await reloadEnrolled();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    }
+  };
+
+  const toggleEnrollId = (id: string) => {
+    setEnrollIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   };
 
   const toggleDay = (d: number) => {
