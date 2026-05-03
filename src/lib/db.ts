@@ -158,23 +158,61 @@ export const categoriesDb = {
   async create(name: string, color: string, sequenceId?: string | null): Promise<Category> {
     const c = await client();
     const user_id = await uid();
+    const cleanName = name.trim().replace(/\s+/g, " ");
+    if (!cleanName) throw new Error("Nome da categoria é obrigatório.");
+    // Trava de duplicata (case-insensitive). O banco também tem índice único,
+    // mas checamos aqui pra dar uma mensagem amigável.
+    const { data: dup } = await c
+      .from("crm_categories")
+      .select("id,name")
+      .eq("user_id", user_id)
+      .ilike("name", cleanName)
+      .maybeSingle();
+    if (dup) {
+      throw new Error(`Já existe uma categoria com o nome "${dup.name}".`);
+    }
     const { data, error } = await c
       .from("crm_categories")
-      .insert({ name, color, user_id, sequence_id: sequenceId ?? null, status: "approved" })
+      .insert({ name: cleanName, color, user_id, sequence_id: sequenceId ?? null, status: "approved" })
       .select("id,name,color,sequence_id,status")
       .single();
-    if (error) throw error;
+    if (error) {
+      if ((error as any).code === "23505") {
+        throw new Error(`Já existe uma categoria com o nome "${cleanName}".`);
+      }
+      throw error;
+    }
     return rowToCategory(data);
   },
   async update(id: string, patch: Partial<Pick<Category, "name" | "color" | "sequenceId" | "status">>) {
     const c = await client();
     const dbPatch: Record<string, unknown> = {};
-    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.name !== undefined) {
+      const cleanName = patch.name.trim().replace(/\s+/g, " ");
+      if (!cleanName) throw new Error("Nome da categoria é obrigatório.");
+      const user_id = await uid();
+      const { data: dup } = await c
+        .from("crm_categories")
+        .select("id,name")
+        .eq("user_id", user_id)
+        .ilike("name", cleanName)
+        .neq("id", id)
+        .maybeSingle();
+      if (dup) {
+        throw new Error(`Já existe uma categoria com o nome "${dup.name}".`);
+      }
+      dbPatch.name = cleanName;
+    }
     if (patch.color !== undefined) dbPatch.color = patch.color;
     if (patch.sequenceId !== undefined) dbPatch.sequence_id = patch.sequenceId;
     if (patch.status !== undefined) dbPatch.status = patch.status;
     const { error } = await c.from("crm_categories").update(dbPatch).eq("id", id);
-    if (error) throw error;
+    if (error) {
+      if ((error as any).code === "23505") {
+        throw new Error("Já existe uma categoria com esse nome.");
+      }
+      throw error;
+    }
   },
   async approve(id: string) {
     return this.update(id, { status: "approved" });
