@@ -142,6 +142,7 @@ function rowToCategory(r: any): Category {
     color: r.color,
     sequenceId: r.sequence_id ?? null,
     status: (r.status === "pending" ? "pending" : "approved") as CategoryStatus,
+    keywords: Array.isArray(r.keywords) ? r.keywords.filter(Boolean) : [],
   };
 }
 
