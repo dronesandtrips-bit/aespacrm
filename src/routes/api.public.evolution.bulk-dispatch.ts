@@ -181,7 +181,9 @@ export const Route = createFileRoute("/api/public/evolution/bulk-dispatch")({
           );
         }
 
-        // Roda em background — não bloqueia a resposta
+        // Roda o disparo e garante que ele continue vivo mesmo quando o runtime
+        // não expõe waitUntil. Sem isso, a API retorna sucesso mas o envio pode
+        // ser cancelado antes de chamar a Evolution, deixando o card em "Enviando".
         const promise = runDispatch({
           userId,
           bulkId: parsed.bulkId,
@@ -198,13 +200,13 @@ export const Route = createFileRoute("/api/public/evolution/bulk-dispatch")({
             .eq("id", parsed.bulkId);
         });
 
-        // Cloudflare Workers: usa waitUntil se disponível
+        // Workers: usa waitUntil se disponível. No runtime atual, pode não estar
+        // exposto no global; nesse caso aguardamos o envio antes de responder.
         const ctx: any = (globalThis as any).__cloudflare_context__ ?? null;
         if (ctx?.waitUntil) {
           ctx.waitUntil(promise);
         } else {
-          // Fallback: deixa rodando (Node.js mantém o processo vivo)
-          void promise;
+          await promise;
         }
 
         return jsonResponse({
@@ -212,7 +214,7 @@ export const Route = createFileRoute("/api/public/evolution/bulk-dispatch")({
           bulkId: parsed.bulkId,
           contacts: parsed.contactIds.length,
           intervalSeconds: parsed.intervalSeconds,
-          message: "Disparo iniciado em background",
+          message: ctx?.waitUntil ? "Disparo iniciado em background" : "Disparo processado",
         });
         } catch (err: any) {
           console.error("[bulk-dispatch] unhandled", err);
