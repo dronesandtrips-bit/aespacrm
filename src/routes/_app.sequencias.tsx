@@ -39,8 +39,10 @@ import {
   type Sequence,
   type SequenceStep,
   type Contact,
+  type ContactSequence,
   type PipelineStage,
 } from "@/lib/db";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/sequencias")({
@@ -225,7 +227,9 @@ function SequenceEditorDialog({
   const [saving, setSaving] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [enrolling, setEnrolling] = useState(false);
-  const [enrollContactId, setEnrollContactId] = useState<string>("");
+  const [enrollIds, setEnrollIds] = useState<string[]>([]);
+  const [enrollSearch, setEnrollSearch] = useState("");
+  const [enrolled, setEnrolled] = useState<ContactSequence[]>([]);
   const [startHour, setStartHour] = useState<number>(sequence.windowStartHour);
   const [endHour, setEndHour] = useState<number>(sequence.windowEndHour);
   const [days, setDays] = useState<number[]>(sequence.windowDays);
@@ -235,14 +239,24 @@ function SequenceEditorDialog({
   const [autoResumeDays, setAutoResumeDays] = useState<number>(sequence.autoResumeAfterDays);
   const [savingRules, setSavingRules] = useState(false);
 
+  const reloadEnrolled = async () => {
+    try {
+      const all = await sequencesDb.listContactSequences();
+      setEnrolled(all.filter((x) => x.sequenceId === sequence.id));
+    } catch {
+      /* silent */
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [s, c, st] = await Promise.all([
+        const [s, c, st, all] = await Promise.all([
           sequencesDb.listSteps(sequence.id),
           contactsDb.list(),
           pipelineDb.listStages(),
+          sequencesDb.listContactSequences(),
         ]);
         if (cancelled) return;
         setSteps(
@@ -256,6 +270,7 @@ function SequenceEditorDialog({
         );
         setContacts(c);
         setStages(st);
+        setEnrolled(all.filter((x) => x.sequenceId === sequence.id));
       } catch (e: any) {
         toast.error(`Erro: ${e.message ?? e}`);
       } finally {
@@ -319,18 +334,35 @@ function SequenceEditorDialog({
     }
   };
 
-  const enrollOne = async () => {
-    if (!enrollContactId) return;
+  const enrollMany = async () => {
+    if (enrollIds.length === 0) return;
     setEnrolling(true);
     try {
-      const r = await sequencesDb.enroll(sequence.id, [enrollContactId]);
+      const r = await sequencesDb.enroll(sequence.id, enrollIds);
       toast.success(`${r.enrolled} contato(s) inscrito(s)`);
-      setEnrollContactId("");
+      setEnrollIds([]);
+      setEnrollSearch("");
+      await reloadEnrolled();
     } catch (e: any) {
       toast.error(`Erro: ${e.message ?? e}`);
     } finally {
       setEnrolling(false);
     }
+  };
+
+  const removeEnrolled = async (csId: string) => {
+    if (!confirm("Remover este contato da sequência?")) return;
+    try {
+      await sequencesDb.removeContact(csId);
+      toast.success("Removido");
+      await reloadEnrolled();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    }
+  };
+
+  const toggleEnrollId = (id: string) => {
+    setEnrollIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   };
 
   const toggleDay = (d: number) => {
@@ -658,27 +690,179 @@ function SequenceEditorDialog({
               )}
             </Card>
 
-            <Card className="p-3 space-y-2 bg-muted/30">
+            <Card className="p-3 space-y-3 bg-muted/30">
               <div className="text-sm font-medium flex items-center gap-2">
-                <Users className="size-3.5" /> Inscrever contato
+                <Users className="size-3.5" /> Inscrever contatos
+                {enrollIds.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {enrollIds.length} selecionado(s)
+                  </Badge>
+                )}
               </div>
+
+              <Input
+                placeholder="Buscar por nome ou telefone…"
+                value={enrollSearch}
+                onChange={(e) => setEnrollSearch(e.target.value)}
+              />
+
+              <div className="max-h-56 overflow-auto rounded border bg-background divide-y">
+                {(() => {
+                  const enrolledIds = new Set(enrolled.map((e) => e.contactId));
+                  const q = enrollSearch.trim().toLowerCase();
+                  const filtered = contacts.filter((c) => {
+                    if (enrolledIds.has(c.id)) return false;
+                    if (!q) return true;
+                    return (
+                      c.name.toLowerCase().includes(q) ||
+                      c.phone.toLowerCase().includes(q)
+                    );
+                  });
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="p-3 text-xs text-muted-foreground text-center">
+                        Nenhum contato disponível.
+                      </div>
+                    );
+                  }
+                  return filtered.map((c) => {
+                    const checked = enrollIds.includes(c.id);
+                    return (
+                      <label
+                        key={c.id}
+                        className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted/50"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggleEnrollId(c.id)}
+                        />
+                        <span className="flex-1 truncate">
+                          {c.name}{" "}
+                          <span className="text-xs text-muted-foreground">
+                            · {c.phone}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  });
+                })()}
+              </div>
+
               <div className="flex gap-2">
-                <Select value={enrollContactId} onValueChange={setEnrollContactId}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Escolha um contato" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contacts.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name} · {c.phone}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button onClick={enrollOne} disabled={!enrollContactId || enrolling}>
-                  {enrolling && <Loader2 className="size-4 mr-1 animate-spin" />} Inscrever
+                {enrollIds.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEnrollIds([])}
+                  >
+                    Limpar
+                  </Button>
+                )}
+                <Button
+                  className="ml-auto"
+                  onClick={enrollMany}
+                  disabled={enrollIds.length === 0 || enrolling}
+                >
+                  {enrolling && <Loader2 className="size-4 mr-1 animate-spin" />}
+                  Inscrever {enrollIds.length > 0 ? `(${enrollIds.length})` : ""}
                 </Button>
               </div>
+            </Card>
+
+            <Card className="p-3 space-y-2">
+              <div className="text-sm font-medium flex items-center gap-2">
+                <Users className="size-3.5" /> Contatos inscritos
+                <Badge variant="secondary" className="text-[10px]">
+                  {enrolled.length}
+                </Badge>
+              </div>
+              {enrolled.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2 text-center">
+                  Nenhum contato inscrito ainda.
+                </p>
+              ) : (
+                <div className="max-h-64 overflow-auto divide-y">
+                  {enrolled.map((cs) => {
+                    const ct = contacts.find((c) => c.id === cs.contactId);
+                    const statusBadge =
+                      cs.status === "active"
+                        ? { label: "ativo", variant: "default" as const }
+                        : cs.status === "paused"
+                          ? { label: "pausado", variant: "secondary" as const }
+                          : cs.status === "completed"
+                            ? { label: "concluído", variant: "outline" as const }
+                            : { label: "cancelado", variant: "outline" as const };
+                    return (
+                      <div
+                        key={cs.id}
+                        className="flex items-center gap-2 py-1.5 text-sm"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate">
+                            {ct ? ct.name : "(contato removido)"}
+                            {ct && (
+                              <span className="text-xs text-muted-foreground">
+                                {" "}
+                                · {ct.phone}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            passo {cs.currentStep + 1}
+                            {cs.nextSendAt && cs.status === "active"
+                              ? ` · próx: ${new Date(cs.nextSendAt).toLocaleString("pt-BR")}`
+                              : ""}
+                          </div>
+                        </div>
+                        <Badge variant={statusBadge.variant} className="text-[10px]">
+                          {statusBadge.label}
+                        </Badge>
+                        {cs.status === "active" ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Pausar"
+                            onClick={async () => {
+                              try {
+                                await sequencesDb.pauseContact(cs.id, "manual");
+                                await reloadEnrolled();
+                              } catch (e: any) {
+                                toast.error(`Erro: ${e.message ?? e}`);
+                              }
+                            }}
+                          >
+                            <Pause className="size-3.5" />
+                          </Button>
+                        ) : cs.status === "paused" ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Retomar"
+                            onClick={async () => {
+                              try {
+                                await sequencesDb.resumeContact(cs.id);
+                                await reloadEnrolled();
+                              } catch (e: any) {
+                                toast.error(`Erro: ${e.message ?? e}`);
+                              }
+                            }}
+                          >
+                            <Play className="size-3.5" />
+                          </Button>
+                        ) : null}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Remover"
+                          onClick={() => removeEnrolled(cs.id)}
+                        >
+                          <Trash2 className="size-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           </div>
         )}
