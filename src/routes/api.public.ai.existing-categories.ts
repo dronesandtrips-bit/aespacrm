@@ -33,7 +33,7 @@ export const Route = createFileRoute("/api/public/ai/existing-categories")({
         const sb = getSupabaseAdmin();
         const { data, error } = await sb
           .from("crm_categories")
-          .select("name")
+          .select("name, keywords")
           .eq("user_id", ownerUserId)
           .order("name", { ascending: true });
 
@@ -42,11 +42,22 @@ export const Route = createFileRoute("/api/public/ai/existing-categories")({
           return jsonResponse({ ok: false, error: error.message }, 500);
         }
 
-        const names = (data ?? [])
-          .map((r: any) => String(r?.name ?? "").trim())
-          .filter(Boolean);
+        const rows = (data ?? [])
+          .map((r: any) => ({
+            name: String(r?.name ?? "").trim(),
+            keywords: Array.isArray(r?.keywords)
+              ? (r.keywords as any[]).map((k) => String(k ?? "").trim()).filter(Boolean)
+              : [],
+          }))
+          .filter((r) => r.name);
 
-        return jsonResponse({ ok: true, categories: names });
+        // `categories`: lista plana (compat com workflows antigos do n8n).
+        // `categories_detailed`: nome + keywords (novo, para a IA priorizar).
+        return jsonResponse({
+          ok: true,
+          categories: rows.map((r) => r.name),
+          categories_detailed: rows,
+        });
       },
     },
   },
