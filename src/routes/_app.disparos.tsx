@@ -243,6 +243,14 @@ function DisparosPage() {
 
           <Separator className="my-3" />
 
+          <div className="mb-3">
+            <Input
+              placeholder="Buscar contato por nome ou telefone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
           {loading ? (
             <div className="py-10 text-center text-muted-foreground">
               <Loader2 className="size-6 mx-auto animate-spin opacity-60" />
@@ -253,7 +261,16 @@ function DisparosPage() {
             </div>
           ) : (
             <div className="max-h-[320px] overflow-auto space-y-1">
-              {contacts.map((c) => {
+              {contacts
+                .filter((c) => {
+                  const q = search.trim().toLowerCase();
+                  if (!q) return true;
+                  return (
+                    c.name.toLowerCase().includes(q) ||
+                    c.phone.toLowerCase().includes(q)
+                  );
+                })
+                .map((c) => {
                 const cat = categories.find((k) => k.id === c.categoryId);
                 const checked = selected.has(c.id);
                 return (
