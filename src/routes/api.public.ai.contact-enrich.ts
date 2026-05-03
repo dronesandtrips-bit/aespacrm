@@ -326,31 +326,53 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
             console.error("contact-enrich load categories", catErr);
             return jsonResponse({ ok: false, error: catErr.message }, 500);
           }
+          // Chave normalizada: lower + trim + colapso de espaços (igual ao
+          // índice único do banco). Garante que "Hikvision", "hikvision" e
+          // " Hikvision " sejam tratadas como a MESMA categoria.
+          const normKey = (s: string) =>
+            s.trim().toLowerCase().replace(/\s+/g, " ");
           const byName = new Map<string, string>(
-            (existing ?? []).map((c: any) => [String(c.name).trim().toLowerCase(), String(c.id)]),
+            (existing ?? []).map((c: any) => [normKey(String(c.name)), String(c.id)]),
           );
 
           for (const name of orderedNames) {
-            const key = name.toLowerCase();
+            const cleanName = name.trim().replace(/\s+/g, " ");
+            const key = normKey(cleanName);
             let id = byName.get(key);
             if (!id) {
               const { data: created, error: createErr } = await sb
                 .from("crm_categories")
                 .insert({
                   user_id: ownerUserId,
-                  name,
+                  name: cleanName,
                   color: "#94a3b8",
                   status: "pending",
                 })
                 .select("id")
                 .single();
               if (createErr) {
-                console.error("contact-enrich create category", name, createErr);
+                // Corrida com índice único: outra requisição criou no meio.
+                // Recarrega e tenta resolver pelo nome.
+                if ((createErr as any).code === "23505") {
+                  const { data: again } = await sb
+                    .from("crm_categories")
+                    .select("id, name")
+                    .eq("user_id", ownerUserId)
+                    .ilike("name", cleanName)
+                    .maybeSingle();
+                  if (again?.id) {
+                    id = String(again.id);
+                    byName.set(key, id);
+                    orderedIds.push(id);
+                    continue;
+                  }
+                }
+                console.error("contact-enrich create category", cleanName, createErr);
                 return jsonResponse({ ok: false, error: createErr.message }, 500);
               }
               id = String(created.id);
               byName.set(key, id);
-              createdCategories.push(name);
+              createdCategories.push(cleanName);
             }
             orderedIds.push(id);
           }
