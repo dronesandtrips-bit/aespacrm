@@ -227,7 +227,9 @@ function SequenceEditorDialog({
   const [saving, setSaving] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [enrolling, setEnrolling] = useState(false);
-  const [enrollContactId, setEnrollContactId] = useState<string>("");
+  const [enrollIds, setEnrollIds] = useState<string[]>([]);
+  const [enrollSearch, setEnrollSearch] = useState("");
+  const [enrolled, setEnrolled] = useState<ContactSequence[]>([]);
   const [startHour, setStartHour] = useState<number>(sequence.windowStartHour);
   const [endHour, setEndHour] = useState<number>(sequence.windowEndHour);
   const [days, setDays] = useState<number[]>(sequence.windowDays);
@@ -236,6 +238,15 @@ function SequenceEditorDialog({
   const [stopStageIds, setStopStageIds] = useState<string[]>(sequence.stopOnStageIds);
   const [autoResumeDays, setAutoResumeDays] = useState<number>(sequence.autoResumeAfterDays);
   const [savingRules, setSavingRules] = useState(false);
+
+  const reloadEnrolled = async () => {
+    try {
+      const all = await sequencesDb.listContactSequences();
+      setEnrolled(all.filter((x) => x.sequenceId === sequence.id));
+    } catch {
+      /* silent */
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
