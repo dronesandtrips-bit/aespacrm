@@ -217,7 +217,7 @@ export const Route = createFileRoute("/api/public/evolution/sync-messages")({
             const batch = targets.slice(i, i + CONTACT_BATCH_SIZE);
 
             await Promise.all(
-              batch.map(async (contact) => {
+              batch.map(async (contact: ContactRow & { wa_jid: string }) => {
                 if (messagesImported >= MAX_TOTAL_MESSAGES) return;
                 contactsScanned++;
                 const remoteJid = contact.wa_jid as string;
