@@ -1095,11 +1095,16 @@ function InboxPage() {
           {/* Painel IA — rail colapsado de 3rem; expande em overlay no hover */}
           <div className="hidden md:block relative w-12 h-full">
             <div
-              className="group/aipanel absolute top-0 right-0 h-full flex flex-col border-l bg-card shadow-sm overflow-hidden transition-[width] duration-200 ease-out w-12 hover:w-80 z-20"
+              className="group/aipanel absolute top-0 right-0 h-full flex flex-col overflow-hidden transition-[width] duration-200 ease-out w-12 hover:w-80 z-20"
               title="Contexto da IA"
+              style={{
+                backgroundColor: "var(--ww-sidebar)",
+                borderLeft: "1px solid var(--ww-border)",
+                color: "var(--ww-text)",
+              }}
             >
-            <div className="px-3 py-3 border-b flex items-center gap-2 h-12 shrink-0 w-80">
-              <Sparkles className="size-4 text-primary shrink-0" />
+            <div className="px-3 py-3 flex items-center gap-2 h-12 shrink-0 w-80" style={{ borderBottom: "1px solid var(--ww-border)" }}>
+              <Sparkles className="size-4 text-emerald-400 shrink-0" />
               <h4 className="text-sm font-semibold whitespace-nowrap">
                 Contexto da IA
               </h4>
