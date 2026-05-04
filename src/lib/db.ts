@@ -1419,6 +1419,7 @@ export const templatesDb = {
 export type UserSettings = {
   interestTerms: string[];
   rescanWebhookUrl: string | null;
+  testPhone: string | null;
   updatedAt: string | null;
 };
 
@@ -1428,22 +1429,28 @@ export const userSettingsDb = {
     const user_id = await uid();
     const { data, error } = await c
       .from("crm_user_settings")
-      .select("interest_terms,rescan_webhook_url,updated_at")
+      .select("interest_terms,rescan_webhook_url,test_phone,updated_at")
       .eq("user_id", user_id)
       .maybeSingle();
     if (error) throw error;
     return {
       interestTerms: Array.isArray(data?.interest_terms) ? (data!.interest_terms as string[]) : [],
       rescanWebhookUrl: data?.rescan_webhook_url ?? null,
+      testPhone: data?.test_phone ?? null,
       updatedAt: data?.updated_at ?? null,
     };
   },
-  async save(patch: { interestTerms?: string[]; rescanWebhookUrl?: string | null }): Promise<void> {
+  async save(patch: {
+    interestTerms?: string[];
+    rescanWebhookUrl?: string | null;
+    testPhone?: string | null;
+  }): Promise<void> {
     const c = await client();
     const user_id = await uid();
     const row: Record<string, unknown> = { user_id };
     if (patch.interestTerms !== undefined) row.interest_terms = patch.interestTerms;
     if (patch.rescanWebhookUrl !== undefined) row.rescan_webhook_url = patch.rescanWebhookUrl;
+    if (patch.testPhone !== undefined) row.test_phone = patch.testPhone;
     const { error } = await c
       .from("crm_user_settings")
       .upsert(row, { onConflict: "user_id" });
