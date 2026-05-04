@@ -1002,8 +1002,8 @@ function InboxPage() {
                   messages.map((m, index) => {
                     const status = (m.status ?? "").toLowerCase();
                     const hasLaterInboundReply = m.fromMe && messages.slice(index + 1).some((next) => !next.fromMe);
-                    const delivered = ["delivered", "delivery_ack", "read", "read_ack", "played", "played_ack"].includes(status) || hasLaterInboundReply;
-                    const read = ["read", "read_ack", "played", "played_ack"].includes(status) || hasLaterInboundReply;
+                    const delivered = isDeliveredStatus(status) || hasLaterInboundReply;
+                    const read = isReadStatus(status) || hasLaterInboundReply;
                     return (
                       <div
                         key={m.id}
