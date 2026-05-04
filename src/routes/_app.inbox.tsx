@@ -553,7 +553,7 @@ function InboxPage() {
   return (
     <div className="h-screen">
       <Card className="overflow-hidden h-full rounded-none border-0">
-        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr_3rem] h-full min-h-0 relative">
+        <div className="grid grid-cols-1 md:grid-cols-[380px_1fr_3rem] h-full min-h-0 relative">
           {/* Lista */}
           <div className="border-r flex flex-col min-h-0 h-full overflow-hidden">
             <div className="p-3 border-b">
