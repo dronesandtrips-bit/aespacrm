@@ -427,6 +427,7 @@ function SequenceEditorDialog({
     try {
       await sequencesDb.saveSteps(sequence.id, steps);
       toast.success("Passos salvos");
+      await reloadMetrics();
       onChange();
     } catch (e: any) {
       toast.error(`Erro: ${e.message ?? e}`);
