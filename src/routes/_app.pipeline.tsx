@@ -250,23 +250,46 @@ function StageColumn({
   contacts: Contact[];
   categories: Category[];
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: stage.id });
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: `drop:${stage.id}` });
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: `stage:${stage.id}` });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
   return (
     <div
-      ref={setNodeRef}
+      ref={setSortRef}
+      style={style}
       className={cn(
         "flex flex-col rounded-xl bg-muted/40 border min-w-[260px] w-[260px] transition-colors",
         isOver && "bg-primary/5 border-primary",
       )}
     >
       <div className="p-3 border-b flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="size-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
-          <h4 className="font-semibold text-sm">{stage.name}</h4>
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0"
+            aria-label="Arrastar etapa"
+            title="Arrastar para reordenar"
+          >
+            <GripVertical className="size-4" />
+          </button>
+          <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
+          <h4 className="font-semibold text-sm truncate">{stage.name}</h4>
         </div>
         <Badge variant="secondary" className="text-xs">{contacts.length}</Badge>
       </div>
-      <div className="p-2 space-y-2 flex-1 overflow-auto max-h-[calc(100vh-300px)]">
+      <div ref={setDropRef} className="p-2 space-y-2 flex-1 overflow-auto max-h-[calc(100vh-300px)]">
         {contacts.length === 0 ? (
           <div className="text-center text-xs text-muted-foreground py-6">
             Arraste contatos aqui
