@@ -839,7 +839,7 @@ function InboxPage() {
                       className={cn(
                         "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                         m.fromMe
-                          ? "bg-primary text-primary-foreground ml-auto rounded-br-sm"
+                          ? "bg-chat-bubble-out text-chat-bubble-out-foreground ml-auto rounded-br-sm"
                           : "bg-card mr-auto rounded-bl-sm",
                       )}
                     >
