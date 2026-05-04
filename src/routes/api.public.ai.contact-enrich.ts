@@ -57,6 +57,68 @@ function normalizePhone(p: string) {
   return p.replace(/\D/g, "");
 }
 
+async function closeEnrichmentLog(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  ownerUserId: string,
+  input: {
+    logId?: string | null;
+    contactId?: string | null;
+    status: "success" | "error";
+    responsePayload?: unknown;
+    errorMessage?: string;
+  },
+) {
+  const completedAt = new Date().toISOString();
+  let targetLogId = input.logId ?? null;
+  let updated = false;
+
+  if (targetLogId) {
+    const patch =
+      input.status === "success"
+        ? { status: "success", response_payload: input.responsePayload ?? null, completed_at: completedAt }
+        : { status: "error", error_message: input.errorMessage ?? "Falha no enriquecimento", completed_at: completedAt };
+    const { data: rows, error } = await sb
+      .from("crm_ai_enrichment_logs")
+      .update(patch)
+      .eq("id", targetLogId)
+      .eq("user_id", ownerUserId)
+      .select("id");
+    if (error) console.warn("contact-enrich update log error", error);
+    else updated = (rows?.length ?? 0) > 0;
+  }
+
+  if (!updated && input.contactId) {
+    const { data: latestLog, error: findLogErr } = await sb
+      .from("crm_ai_enrichment_logs")
+      .select("id")
+      .eq("user_id", ownerUserId)
+      .eq("contact_id", input.contactId)
+      .eq("status", "dispatched")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (findLogErr) console.warn("contact-enrich find pending log error", findLogErr);
+    targetLogId = latestLog?.id ?? targetLogId;
+
+    if (latestLog?.id) {
+      const patch =
+        input.status === "success"
+          ? { status: "success", response_payload: input.responsePayload ?? null, completed_at: completedAt }
+          : { status: "error", error_message: input.errorMessage ?? "Falha no enriquecimento", completed_at: completedAt };
+      const { data: rows, error } = await sb
+        .from("crm_ai_enrichment_logs")
+        .update(patch)
+        .eq("id", latestLog.id)
+        .eq("user_id", ownerUserId)
+        .select("id");
+      if (error) console.warn("contact-enrich fallback update log error", error);
+      else updated = (rows?.length ?? 0) > 0;
+    }
+  }
+
+  return { updated, logId: targetLogId };
+}
+
 export const Route = createFileRoute("/api/public/ai/contact-enrich")({
   server: {
     handlers: {
@@ -159,13 +221,21 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
           if (blk?.id) contactIsIgnored = true;
         }
         if (contactIsIgnored) {
+          const ignoredPayload = {
+            ok: false,
+            error: "ignored_contact",
+            message: "Contato está na blacklist do usuário e não será enriquecido.",
+            contact_id: contactId,
+          };
+          await closeEnrichmentLog(sb, ownerUserId, {
+            logId: log_id,
+            contactId,
+            status: "error",
+            responsePayload: ignoredPayload,
+            errorMessage: ignoredPayload.message,
+          });
           return jsonResponse(
-            {
-              ok: false,
-              error: "ignored_contact",
-              message: "Contato está na blacklist do usuário e não será enriquecido.",
-              contact_id: contactId,
-            },
+            ignoredPayload,
             409,
           );
         }
@@ -529,65 +599,16 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
 
         // Fecha log de enriquecimento. Se o log_id não bater com nenhuma linha,
         // usa o último disparo pendente desse contato como fallback.
-        const completedAt = new Date().toISOString();
-        let targetLogId = log_id ?? null;
-        let logUpdated = false;
-
-        if (targetLogId) {
-          const { data: updatedRows, error: logErr } = await sb
-            .from("crm_ai_enrichment_logs")
-            .update({
-              status: "success",
-              response_payload: responsePayload,
-              completed_at: completedAt,
-            })
-            .eq("id", targetLogId)
-            .eq("user_id", ownerUserId)
-            .select("id");
-          if (logErr) {
-            console.warn("contact-enrich update log error", logErr);
-          } else {
-            logUpdated = (updatedRows?.length ?? 0) > 0;
-          }
-        }
-
-        if (!logUpdated) {
-          const { data: latestLog, error: findLogErr } = await sb
-            .from("crm_ai_enrichment_logs")
-            .select("id")
-            .eq("user_id", ownerUserId)
-            .eq("contact_id", contactId)
-            .eq("status", "dispatched")
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (findLogErr) {
-            console.warn("contact-enrich find pending log error", findLogErr);
-          }
-          targetLogId = latestLog?.id ?? targetLogId;
-
-          if (latestLog?.id) {
-            const { data: fallbackRows, error: fallbackErr } = await sb
-              .from("crm_ai_enrichment_logs")
-              .update({
-                status: "success",
-                response_payload: responsePayload,
-                completed_at: completedAt,
-              })
-              .eq("id", latestLog.id)
-              .eq("user_id", ownerUserId)
-              .select("id");
-            if (fallbackErr) {
-              console.warn("contact-enrich fallback update log error", fallbackErr);
-            } else {
-              logUpdated = (fallbackRows?.length ?? 0) > 0;
-            }
-          }
-        }
+        const enrichmentLog = await closeEnrichmentLog(sb, ownerUserId, {
+          logId: log_id,
+          contactId,
+          status: "success",
+          responsePayload,
+        });
 
         return jsonResponse({
           ...responsePayload,
-          enrichment_log: { updated: logUpdated, log_id: targetLogId },
+          enrichment_log: { updated: enrichmentLog.updated, log_id: enrichmentLog.logId },
         });
       },
     },
