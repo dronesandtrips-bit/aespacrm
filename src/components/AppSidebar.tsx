@@ -101,16 +101,30 @@ export function AppSidebar({ inSheet = false, onNavigate, focusMode = false }: P
     localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0");
   };
 
-  const effectiveWidth = inSheet ? "100%" : collapsed ? COLLAPSED : width;
-  const isCollapsed = !inSheet && collapsed;
+  const focusExpanded = focusMode && hovered && !inSheet;
+  const effectiveCollapsed = !inSheet && (collapsed || (focusMode && !hovered));
+  const effectiveWidth = inSheet
+    ? "100%"
+    : focusMode
+      ? hovered ? width : COLLAPSED
+      : collapsed ? COLLAPSED : width;
+  const isCollapsed = effectiveCollapsed;
 
   return (
     <TooltipProvider delayDuration={0}>
+      {/* Spacer reserva o espaço da rail no focusMode para o conteúdo não pular */}
+      {focusMode && !inSheet && (
+        <div style={{ width: COLLAPSED }} className="shrink-0 hidden md:block" aria-hidden />
+      )}
       <aside
+        onMouseEnter={() => focusMode && setHovered(true)}
+        onMouseLeave={() => focusMode && setHovered(false)}
         style={{ width: effectiveWidth }}
         className={cn(
-          "shrink-0 flex flex-col border-r bg-card relative",
+          "shrink-0 flex flex-col border-r bg-card",
           inSheet ? "h-full" : "hidden md:flex",
+          focusMode && !inSheet && "fixed inset-y-0 left-0 z-40 shadow-lg transition-[width] duration-200",
+          !focusMode && "relative",
         )}
       >
         <div className={cn("flex items-center gap-2 h-16 border-b px-4", isCollapsed && "justify-center px-0")}>
