@@ -583,58 +583,38 @@ function SequenceEditorDialog({
         ) : (
           <div className="space-y-3">
             <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
-              Variáveis disponíveis: <code>{"{{nome}}"}</code>, <code>{"{{empresa}}"}</code>
+              Variáveis: <code>{"{{nome}}"}</code>, <code>{"{{primeiro_nome}}"}</code>,{" "}
+              <code>{"{{saudacao}}"}</code>, <code>{"{{empresa}}"}</code>
             </div>
 
-            {steps.map((s, i) => (
-              <Card key={i} className="p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium flex items-center gap-2">
-                    <Clock className="size-3.5" /> Passo {i + 1}
-                  </div>
-                  {steps.length > 1 && (
-                    <Button variant="ghost" size="sm" onClick={() => removeStep(i)}>
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  )}
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-1">
-                    <Label className="text-xs">Esperar</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={s.delayValue}
-                      onChange={(e) =>
-                        updateStep(i, { delayValue: Math.max(0, Number(e.target.value)) })
-                      }
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Unidade</Label>
-                    <Select
-                      value={s.delayUnit}
-                      onValueChange={(v) => updateStep(i, { delayUnit: v as "hours" | "days" })}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="hours">horas</SelectItem>
-                        <SelectItem value="days">dias</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Mensagem</Label>
-                  <Textarea
-                    value={s.message}
-                    onChange={(e) => updateStep(i, { message: e.target.value })}
-                    rows={3}
-                    placeholder="Olá {{nome}}, tudo bem?"
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={steps.map((s) => s.uid)}
+                strategy={verticalListSortingStrategy}
+              >
+                {steps.map((s, i) => (
+                  <SortableStepCard
+                    key={s.uid}
+                    step={s}
+                    index={i}
+                    canRemove={steps.length > 1}
+                    metric={metrics.find((m) => m.order === i)}
+                    templates={templates}
+                    testing={testingIdx === i}
+                    onRemove={() => removeStep(i)}
+                    onClone={() => cloneStep(i)}
+                    onUpdate={(patch) => updateStep(i, patch)}
+                    onLoadTemplate={(c) => loadTemplate(i, c)}
+                    onSendTest={() => sendTest(i)}
                   />
-                </div>
-              </Card>
-            ))}
+                ))}
+              </SortableContext>
+            </DndContext>
+
 
             {steps.length < MAX_STEPS && (
               <Button variant="outline" size="sm" onClick={addStep} className="w-full">
