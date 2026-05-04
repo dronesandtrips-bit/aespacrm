@@ -656,6 +656,40 @@ function StageDialog({
 function AccountTab() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [testPhone, setTestPhone] = useState("");
+  const [testPhoneLoaded, setTestPhoneLoaded] = useState(false);
+  const [savingTestPhone, setSavingTestPhone] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await userSettingsDb.get();
+        setTestPhone(s.testPhone ?? "");
+      } catch {
+        /* ignore */
+      } finally {
+        setTestPhoneLoaded(true);
+      }
+    })();
+  }, []);
+
+  const saveTestPhone = async () => {
+    const digits = testPhone.replace(/\D/g, "");
+    if (digits && digits.length < 10) {
+      toast.error("Telefone inválido (use DDI+DDD+número)");
+      return;
+    }
+    setSavingTestPhone(true);
+    try {
+      await userSettingsDb.save({ testPhone: digits || null });
+      toast.success("Telefone de teste salvo");
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setSavingTestPhone(false);
+    }
+  };
+
   return (
     <Card className="p-5 space-y-4">
       <div className="flex items-center gap-4">
