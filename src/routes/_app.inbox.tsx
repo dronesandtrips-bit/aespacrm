@@ -768,30 +768,58 @@ function InboxPage() {
 
           {/* Chat */}
           {active ? (
-            <div className="flex flex-col bg-[oklch(0.97_0.01_150)] min-h-0 h-full overflow-hidden">
-              <div className="h-16 border-b bg-card flex items-center justify-between px-5">
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-full bg-primary/10 grid place-items-center text-primary font-semibold">
+            <div
+              className="flex flex-col min-h-0 h-full overflow-hidden whatsweb-doodle"
+            >
+              {/* Header do chat */}
+              <div
+                className="h-16 flex items-center justify-between px-5 shrink-0"
+                style={{
+                  backgroundColor: "var(--ww-sidebar)",
+                  borderBottom: "1px solid var(--ww-border)",
+                }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="size-10 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0"
+                    style={{
+                      background: "linear-gradient(135deg,#334155,#1e293b)",
+                      border: "1px solid var(--ww-border-strong)",
+                    }}
+                  >
                     {active.name[0]}
                   </div>
-                  <div>
-                    <p className="font-medium text-sm flex items-center gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm flex items-center gap-2 text-[color:var(--ww-text)] truncate">
                       {active.name}
                       {active.isGroup && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Grupo</Badge>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-white/10 text-[color:var(--ww-text-muted)] border-0">Grupo</Badge>
                       )}
                     </p>
-                    <p className="text-xs text-muted-foreground font-mono">
+                    <p className="text-xs font-mono text-[color:var(--ww-text-muted)] truncate">
                       {active.isGroup ? "Conversa em grupo" : active.phone}
                     </p>
                   </div>
+                  {/* Badge de status (Novo / Em Atendimento) */}
+                  {!active.isGroup && (
+                    <Badge
+                      variant="outline"
+                      className="ml-2 gap-1 text-[10px] border-0"
+                      style={{
+                        backgroundColor: messages.length > 0 ? "rgba(16,185,129,0.15)" : "rgba(59,130,246,0.15)",
+                        color: messages.length > 0 ? "#34d399" : "#60a5fa",
+                      }}
+                    >
+                      {messages.length > 0 ? "Em atendimento" : "Novo"}
+                    </Badge>
+                  )}
                   {active && replyPauseByContact[active.id] && (
                     <TooltipProvider delayDuration={150}>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Badge
                             variant="outline"
-                            className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 gap-1 cursor-help"
+                            className="border-amber-500/40 bg-amber-500/10 text-amber-300 gap-1 cursor-help"
                           >
                             <PauseCircle className="size-3" />
                             Sequência pausada
@@ -811,7 +839,7 @@ function InboxPage() {
 
                 {/* Ações sobre o contato (espelho da aba Contatos) */}
                 <TooltipProvider delayDuration={150}>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5">
                     {!active.isGroup && (
                       <>
                         <Tooltip>
@@ -819,13 +847,14 @@ function InboxPage() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
                               disabled={enriching.has(active.id)}
                               onClick={() => handleEnrich(active)}
                             >
                               {enriching.has(active.id) ? (
-                                <Loader2 className="size-4 animate-spin text-primary" />
+                                <Loader2 className="size-4 animate-spin text-emerald-400" />
                               ) : (
-                                <Sparkles className="size-4 text-primary" />
+                                <Sparkles className="size-4 text-emerald-400" />
                               )}
                             </Button>
                           </TooltipTrigger>
@@ -836,6 +865,7 @@ function InboxPage() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
                               onClick={() => setEnrollContact(active)}
                             >
                               <GitBranch className="size-4" />
@@ -847,8 +877,8 @@ function InboxPage() {
                           <TooltipTrigger asChild>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <FolderPlus className="size-4 text-primary" />
+                                <Button variant="ghost" size="icon" className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5">
+                                  <FolderPlus className="size-4 text-emerald-400" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-64">
@@ -884,15 +914,16 @@ function InboxPage() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
                               disabled={togglingIgnore.has(active.id)}
                               onClick={() => handleToggleIgnore(active)}
                             >
                               {togglingIgnore.has(active.id) ? (
                                 <Loader2 className="size-4 animate-spin" />
                               ) : active.isIgnored ? (
-                                <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                                <ShieldCheck className="size-4 text-emerald-400" />
                               ) : (
-                                <ShieldOff className="size-4 text-amber-600 dark:text-amber-400" />
+                                <ShieldOff className="size-4 text-amber-400" />
                               )}
                             </Button>
                           </TooltipTrigger>
@@ -904,7 +935,7 @@ function InboxPage() {
                     )}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => setEditOpen(true)}>
+                        <Button variant="ghost" size="icon" className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5" onClick={() => setEditOpen(true)}>
                           <Pencil className="size-4" />
                         </Button>
                       </TooltipTrigger>
@@ -915,9 +946,10 @@ function InboxPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="size-8 text-[color:var(--ww-text-muted)] hover:bg-white/5"
                           onClick={() => handleDeleteContact(active)}
                         >
-                          <Trash2 className="size-4 text-destructive" />
+                          <Trash2 className="size-4 text-red-400" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Excluir contato</TooltipContent>
@@ -929,53 +961,129 @@ function InboxPage() {
 
               <div ref={scrollRef} className="flex-1 overflow-auto p-5 space-y-2">
                 {messages.length === 0 ? (
-                  <div className="text-center text-sm text-muted-foreground py-10">
+                  <div className="text-center text-sm text-[color:var(--ww-text-muted)] py-10">
                     Nenhuma mensagem ainda. Envie a primeira!
                   </div>
                 ) : (
-                  messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={cn(
-                        "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                        m.fromMe
-                          ? "bg-chat-bubble-out text-chat-bubble-out-foreground ml-auto rounded-br-sm"
-                          : "bg-card mr-auto rounded-bl-sm",
-                      )}
-                    >
-                      <MessageContent m={m} />
-                      <p
+                  messages.map((m) => {
+                    const status = (m.status ?? "").toLowerCase();
+                    const delivered = ["delivered", "read", "played"].includes(status);
+                    const read = ["read", "played"].includes(status);
+                    return (
+                      <div
+                        key={m.id}
                         className={cn(
-                          "text-[10px] mt-1 text-right",
-                          m.fromMe ? "text-chat-bubble-out-foreground/60" : "text-muted-foreground",
+                          "max-w-[75%] rounded-2xl px-3 py-2 text-sm",
+                          m.fromMe ? "ml-auto rounded-br-sm" : "mr-auto rounded-bl-sm",
                         )}
+                        style={{
+                          backgroundColor: m.fromMe ? "var(--ww-bubble-out)" : "var(--ww-bubble-in)",
+                          color: m.fromMe ? "var(--ww-bubble-out-text)" : "var(--ww-bubble-in-text)",
+                          boxShadow: "var(--ww-shadow-sm)",
+                        }}
                       >
-                        {new Date(m.at).toLocaleTimeString("pt-BR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                  ))
+                        <MessageContent m={m} />
+                        <div
+                          className={cn(
+                            "flex items-center gap-1 mt-1 text-[10px]",
+                            m.fromMe ? "justify-end opacity-80" : "justify-end opacity-60",
+                          )}
+                        >
+                          <span>
+                            {new Date(m.at).toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                          {m.fromMe && (
+                            delivered ? (
+                              <CheckCheck
+                                className="size-3.5"
+                                style={{ color: read ? "#60a5fa" : "currentColor" }}
+                              />
+                            ) : (
+                              <Check className="size-3.5" />
+                            )
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
 
-              <div className="p-3 border-t bg-card flex gap-2">
-                <Input
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !sending && handleSend()}
-                  placeholder="Digite uma mensagem..."
-                  disabled={sending}
-                />
-                <Button onClick={handleSend} disabled={!draft.trim() || sending}>
-                  {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-                </Button>
+              {/* Barra de digitação pill */}
+              <div
+                className="p-3 shrink-0"
+                style={{
+                  backgroundColor: "var(--ww-sidebar)",
+                  borderTop: "1px solid var(--ww-border)",
+                }}
+              >
+                <div
+                  className="flex items-center gap-2 rounded-full px-2 py-1"
+                  style={{ backgroundColor: "var(--ww-surface)" }}
+                >
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-9 rounded-full text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5 shrink-0"
+                    aria-label="Emoji"
+                  >
+                    <Smile className="size-5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-9 rounded-full text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5 shrink-0"
+                    aria-label="Anexar"
+                  >
+                    <Paperclip className="size-5" />
+                  </Button>
+                  <Input
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && !sending && handleSend()}
+                    placeholder="Digite uma mensagem..."
+                    disabled={sending}
+                    className="flex-1 border-0 bg-transparent shadow-none h-10 px-1 text-sm placeholder:text-[color:var(--ww-text-dim)] focus-visible:ring-0 text-[color:var(--ww-text)]"
+                  />
+                  {draft.trim() ? (
+                    <Button
+                      onClick={handleSend}
+                      disabled={sending}
+                      className="size-10 rounded-full p-0 shrink-0 text-white border-0"
+                      style={{
+                        background: "linear-gradient(135deg,#10b981,#059669)",
+                        boxShadow: "var(--ww-shadow-md)",
+                      }}
+                      aria-label="Enviar"
+                    >
+                      {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-10 rounded-full p-0 shrink-0 text-white border-0"
+                      style={{
+                        background: "linear-gradient(135deg,#10b981,#059669)",
+                        boxShadow: "var(--ww-shadow-md)",
+                      }}
+                      aria-label="Gravar áudio"
+                    >
+                      <Mic className="size-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
+            <div className="flex items-center justify-center whatsweb-doodle">
+              <div className="text-center text-[color:var(--ww-text-muted)]">
                 <MessageCircle className="size-12 mx-auto opacity-30 mb-2" />
                 <p className="text-sm">
                   {loading ? "Carregando..." : "Selecione uma conversa"}
