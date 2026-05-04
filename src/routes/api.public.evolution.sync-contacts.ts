@@ -198,11 +198,12 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
           const errorSamples: string[] = [];
 
           const existingPhones = new Set<string>();
+          const existingByPhone = new Map<string, { id: string; name: string | null; avatar_url: string | null }>();
           for (let i = 0; i < rows.length; i += BATCH_SIZE) {
             const phones = rows.slice(i, i + BATCH_SIZE).map((r) => r.phone);
             const { data: existing, error: existingErr } = await sbAdmin
               .from("crm_contacts")
-              .select("phone_norm,phone")
+              .select("id,name,avatar_url,phone_norm,phone")
               .eq("user_id", userId)
               .eq("is_group", false)
               .in("phone_norm", phones);
@@ -213,33 +214,53 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
             }
             for (const item of existing ?? []) {
               const phone = digitsOnly(item.phone_norm ?? item.phone ?? "");
-              if (phone) existingPhones.add(phone);
+              if (phone) {
+                existingPhones.add(phone);
+                existingByPhone.set(phone, {
+                  id: item.id,
+                  name: item.name ?? null,
+                  avatar_url: item.avatar_url ?? null,
+                });
+              }
             }
           }
 
           const rowsToInsert = rows.filter((r) => !existingPhones.has(r.phone));
           conflicts = rows.length - rowsToInsert.length;
 
-          // 3.1) Backfill de avatar_url em contatos JÁ existentes que ainda
-          //      não têm foto. Só toca em avatar_url — não mexe em nome,
-          //      tags, status etc. Pula linhas sem foto na Evolution.
+          // 3.1) Backfill em contatos JÁ existentes:
+          //   - avatar_url quando ainda for null
+          //   - name quando o atual estiver vazio OU for o fallback "+<phone>"
+          //     (ou seja, nunca recebeu pushName real). Não sobrescreve nomes
+          //     que o usuário já editou manualmente.
           let avatarsUpdated = 0;
-          const rowsWithAvatar = rows.filter(
-            (r) => existingPhones.has(r.phone) && r.avatar_url,
-          );
-          for (const r of rowsWithAvatar) {
-            const { data: upd, error: updErr } = await sbAdmin
+          let namesUpdated = 0;
+          for (const r of rows) {
+            const existing = existingByPhone.get(r.phone);
+            if (!existing) continue;
+
+            const patch: Record<string, string> = {};
+            if (!existing.avatar_url && r.avatar_url) {
+              patch.avatar_url = r.avatar_url;
+            }
+            const currentName = (existing.name ?? "").trim();
+            const isFallbackName = !currentName || currentName === `+${r.phone}` || currentName === r.phone;
+            const newName = r.name.trim();
+            const newIsRealName = newName && newName !== `+${r.phone}`;
+            if (isFallbackName && newIsRealName) {
+              patch.name = newName;
+            }
+            if (!Object.keys(patch).length) continue;
+
+            const { error: updErr } = await sbAdmin
               .from("crm_contacts")
-              .update({ avatar_url: r.avatar_url })
-              .eq("user_id", userId)
-              .eq("is_group", false)
-              .eq("phone_norm", r.phone)
-              .is("avatar_url", null)
-              .select("id");
+              .update(patch)
+              .eq("id", existing.id);
             if (updErr) {
               if (errorSamples.length < 3) errorSamples.push(updErr.message);
-            } else if (upd && upd.length) {
-              avatarsUpdated += upd.length;
+            } else {
+              if (patch.avatar_url) avatarsUpdated++;
+              if (patch.name) namesUpdated++;
             }
           }
 
