@@ -85,6 +85,7 @@ function ContactsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkBlacklisting, setBulkBlacklisting] = useState(false);
+  const [bulkMoving, setBulkMoving] = useState(false);
   const [togglingIgnore, setTogglingIgnore] = useState<Set<string>>(new Set());
 
   const handleToggleIgnore = async (c: Contact) => {
@@ -132,6 +133,33 @@ function ContactsPage() {
       toast.error(`Erro: ${e.message ?? e}`);
     } finally {
       setBulkBlacklisting(false);
+    }
+  };
+
+  const handleBulkMoveToCategory = async (categoryId: string) => {
+    const ids = Array.from(selected);
+    if (ids.length === 0 || !categoryId) return;
+    const cat = categories.find((c) => c.id === categoryId);
+    if (!cat) return;
+    if (!confirm(`Mover ${ids.length} contato${ids.length > 1 ? "s" : ""} para a categoria "${cat.name}"?`)) return;
+    setBulkMoving(true);
+    let ok = 0;
+    let fail = 0;
+    try {
+      for (const id of ids) {
+        try {
+          await contactsDb.update(id, { categoryIds: [categoryId] });
+          ok++;
+        } catch {
+          fail++;
+        }
+      }
+      await refresh();
+      setSelected(new Set());
+      if (fail === 0) toast.success(`${ok} contato${ok > 1 ? "s" : ""} movido${ok > 1 ? "s" : ""} para "${cat.name}"`);
+      else toast.warning(`${ok} movidos, ${fail} falharam`);
+    } finally {
+      setBulkMoving(false);
     }
   };
 
@@ -542,26 +570,48 @@ function ContactsPage() {
               Limpar seleção
             </button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={handleBulkBlacklist}
-            disabled={bulkBlacklisting}
-          >
-            {bulkBlacklisting ? <Loader2 className="size-4 animate-spin" /> : <ShieldOff className="size-4" />}
-            Adicionar à blacklist
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="gap-2"
-            onClick={handleBulkDelete}
-            disabled={bulkDeleting}
-          >
-            {bulkDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-            Excluir selecionados
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value=""
+              onValueChange={(v) => handleBulkMoveToCategory(v)}
+              disabled={bulkMoving || categories.length === 0}
+            >
+              <SelectTrigger className="h-9 w-[220px] gap-2">
+                {bulkMoving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <SelectValue placeholder="Mover para categoria..." />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={handleBulkBlacklist}
+              disabled={bulkBlacklisting}
+            >
+              {bulkBlacklisting ? <Loader2 className="size-4 animate-spin" /> : <ShieldOff className="size-4" />}
+              Adicionar à blacklist
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-2"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+              Excluir selecionados
+            </Button>
+          </div>
         </div>
       )}
 
