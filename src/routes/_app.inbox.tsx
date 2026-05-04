@@ -991,10 +991,11 @@ function InboxPage() {
                     Nenhuma mensagem ainda. Envie a primeira!
                   </div>
                 ) : (
-                  messages.map((m) => {
+                  messages.map((m, index) => {
                     const status = (m.status ?? "").toLowerCase();
-                    const delivered = ["delivered", "read", "played"].includes(status);
-                    const read = ["read", "played"].includes(status);
+                    const hasLaterInboundReply = m.fromMe && messages.slice(index + 1).some((next) => !next.fromMe);
+                    const delivered = ["delivered", "delivery_ack", "read", "read_ack", "played", "played_ack"].includes(status) || hasLaterInboundReply;
+                    const read = ["read", "read_ack", "played", "played_ack"].includes(status) || hasLaterInboundReply;
                     return (
                       <div
                         key={m.id}
