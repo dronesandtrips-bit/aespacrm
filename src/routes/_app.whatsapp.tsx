@@ -474,3 +474,113 @@ function SyncContactsButton() {
   );
 }
 
+function SyncMessagesButton() {
+  const [loading, setLoading] = useState(false);
+  const [days, setDays] = useState(7);
+  const [result, setResult] = useState<null | {
+    days?: number;
+    totalContacts?: number;
+    contactsScanned?: number;
+    contactsWithMessages?: number;
+    messagesImported?: number;
+    messagesSkipped?: number;
+    evolutionErrors?: number;
+    stoppedEarly?: boolean;
+    lastError?: string | null;
+    message?: string;
+  }>(null);
+
+  async function runSync() {
+    if (loading) return;
+    const ok = window.confirm(
+      `Importar conversas dos últimos ${days} dia(s) dos seus contatos já cadastrados?\n\n` +
+        `Pode levar alguns minutos. A operação é segura: lê apenas o cache da sua instância (não consulta o WhatsApp em tempo real).`,
+    );
+    if (!ok) return;
+
+    setLoading(true);
+    setResult(null);
+    try {
+      const c = await getSupabaseClient();
+      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("sessão expirada — faça login novamente");
+
+      const res = await fetch("/api/public/evolution/sync-messages", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ days }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.detail || data?.error || `HTTP ${res.status}`);
+      }
+      setResult(data);
+      const imp = data.messagesImported ?? 0;
+      if (imp > 0) toast.success(`${imp} mensagem(ns) importada(s)!`);
+      else toast.info(data.message || "Nenhuma mensagem nova encontrada");
+    } catch (e: any) {
+      toast.error("Falha ao sincronizar mensagens", { description: String(e?.message ?? e) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="text-left space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h4 className="font-semibold text-sm flex items-center gap-2">
+            <MessageSquare className="size-4 text-primary" />
+            Importar conversas recentes
+          </h4>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Puxa o histórico dos últimos dias dos contatos já sincronizados.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <select
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            disabled={loading}
+            className="text-xs bg-background border rounded-md px-2 py-1.5 h-9"
+          >
+            <option value={1}>24h</option>
+            <option value={3}>3 dias</option>
+            <option value={7}>7 dias</option>
+            <option value={14}>14 dias</option>
+          </select>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={runSync}
+            disabled={loading}
+            className="gap-2"
+          >
+            {loading ? <Loader2 className="size-4 animate-spin" /> : <MessageSquare className="size-4" />}
+            {loading ? "Importando..." : "Importar"}
+          </Button>
+        </div>
+      </div>
+      {loading ? (
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-md p-2">
+          ⏳ Processando em lotes... isso pode demorar alguns minutos. Não feche a aba.
+        </div>
+      ) : null}
+      {result ? (
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-md p-2 space-y-0.5">
+          <div>💬 Mensagens importadas: <b className="text-foreground">{result.messagesImported ?? 0}</b></div>
+          <div>👥 Contatos com conversas: <b className="text-foreground">{result.contactsWithMessages ?? 0}</b> / {result.totalContacts ?? 0}</div>
+          {result.evolutionErrors ? <div className="text-warning">⚠️ Erros de leitura: {result.evolutionErrors}</div> : null}
+          {result.stoppedEarly ? (
+            <div className="text-warning">
+              ⚠️ Limite atingido nesta execução. Clique novamente para continuar.
+            </div>
+          ) : null}
+          {result.lastError ? <div className="text-destructive break-words">Detalhe: {result.lastError}</div> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
