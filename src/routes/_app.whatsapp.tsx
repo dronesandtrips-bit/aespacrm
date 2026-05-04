@@ -16,6 +16,7 @@ import {
   Send,
   Image as ImageIcon,
   Users,
+  MessageSquare,
 } from "lucide-react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
