@@ -29,6 +29,8 @@ export type Contact = {
   isGroup?: boolean;
   /** JID completo do WhatsApp (ex.: 120363xxx@g.us). Só preenchido para grupos. */
   waJid?: string | null;
+  /** URL da foto de perfil do WhatsApp (cache da Evolution). */
+  avatarUrl?: string | null;
 };
 export type BulkSend = {
   id: string;
