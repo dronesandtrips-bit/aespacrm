@@ -794,13 +794,26 @@ function InboxPage() {
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className="size-10 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0"
+                    className="size-10 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0 overflow-hidden"
                     style={{
                       background: "linear-gradient(135deg,#334155,#1e293b)",
                       border: "1px solid var(--ww-border-strong)",
                     }}
                   >
-                    {active.name[0]}
+                    {active.avatarUrl ? (
+                      <img
+                        src={active.avatarUrl}
+                        alt={active.name}
+                        className="size-full object-cover"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      active.name[0]
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-sm flex items-center gap-2 text-[color:var(--ww-text)] truncate">
