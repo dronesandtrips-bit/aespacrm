@@ -57,6 +57,68 @@ function normalizePhone(p: string) {
   return p.replace(/\D/g, "");
 }
 
+async function closeEnrichmentLog(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  ownerUserId: string,
+  input: {
+    logId?: string | null;
+    contactId?: string | null;
+    status: "success" | "error";
+    responsePayload?: unknown;
+    errorMessage?: string;
+  },
+) {
+  const completedAt = new Date().toISOString();
+  let targetLogId = input.logId ?? null;
+  let updated = false;
+
+  if (targetLogId) {
+    const patch =
+      input.status === "success"
+        ? { status: "success", response_payload: input.responsePayload ?? null, completed_at: completedAt }
+        : { status: "error", error_message: input.errorMessage ?? "Falha no enriquecimento", completed_at: completedAt };
+    const { data: rows, error } = await sb
+      .from("crm_ai_enrichment_logs")
+      .update(patch)
+      .eq("id", targetLogId)
+      .eq("user_id", ownerUserId)
+      .select("id");
+    if (error) console.warn("contact-enrich update log error", error);
+    else updated = (rows?.length ?? 0) > 0;
+  }
+
+  if (!updated && input.contactId) {
+    const { data: latestLog, error: findLogErr } = await sb
+      .from("crm_ai_enrichment_logs")
+      .select("id")
+      .eq("user_id", ownerUserId)
+      .eq("contact_id", input.contactId)
+      .eq("status", "dispatched")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (findLogErr) console.warn("contact-enrich find pending log error", findLogErr);
+    targetLogId = latestLog?.id ?? targetLogId;
+
+    if (latestLog?.id) {
+      const patch =
+        input.status === "success"
+          ? { status: "success", response_payload: input.responsePayload ?? null, completed_at: completedAt }
+          : { status: "error", error_message: input.errorMessage ?? "Falha no enriquecimento", completed_at: completedAt };
+      const { data: rows, error } = await sb
+        .from("crm_ai_enrichment_logs")
+        .update(patch)
+        .eq("id", latestLog.id)
+        .eq("user_id", ownerUserId)
+        .select("id");
+      if (error) console.warn("contact-enrich fallback update log error", error);
+      else updated = (rows?.length ?? 0) > 0;
+    }
+  }
+
+  return { updated, logId: targetLogId };
+}
+
 export const Route = createFileRoute("/api/public/ai/contact-enrich")({
   server: {
     handlers: {
