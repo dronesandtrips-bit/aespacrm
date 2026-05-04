@@ -20,6 +20,8 @@
 
 @theme inline {
   --color-primary-glow: var(--primary-glow);
+  --color-chat-bubble-out: var(--chat-bubble-out);
+  --color-chat-bubble-out-foreground: var(--chat-bubble-out-foreground);
   --color-primary-deep: var(--primary-deep);
   --color-success: var(--success);
   --color-warning: var(--warning);
