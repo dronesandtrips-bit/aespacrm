@@ -711,6 +711,24 @@ function AccountTab() {
           <Input value={user?.email ?? ""} readOnly />
         </div>
       </div>
+      <div className="border-t pt-4 space-y-1.5">
+        <Label htmlFor="testphone">Telefone para testes de Sequências</Label>
+        <div className="flex gap-2">
+          <Input
+            id="testphone"
+            placeholder="5511999999999"
+            value={testPhone}
+            onChange={(e) => setTestPhone(e.target.value)}
+            disabled={!testPhoneLoaded}
+          />
+          <Button onClick={saveTestPhone} disabled={savingTestPhone || !testPhoneLoaded}>
+            {savingTestPhone && <Loader2 className="size-4 mr-1 animate-spin" />} Salvar
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Recebe os envios do botão "Enviar teste" no editor de passos. Use formato internacional sem símbolos.
+        </p>
+      </div>
       <div className="pt-2 flex gap-2">
         <Button variant="outline" disabled className="gap-2">
           <User className="size-4" /> Editar perfil
