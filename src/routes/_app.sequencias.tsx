@@ -31,19 +31,50 @@ import {
   Clock,
   Users,
   CalendarClock,
+  GripVertical,
+  Copy,
+  Send,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import {
   sequencesDb,
   contactsDb,
   pipelineDb,
+  templatesDb,
   type Sequence,
   type SequenceStep,
+  type SequenceStepMetric,
+  type MessageTemplate,
   type Contact,
   type ContactSequence,
   type PipelineStage,
 } from "@/lib/db";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/sequencias")({
   component: SequenciasPage,
@@ -63,7 +94,16 @@ function formatDays(days: number[]): string {
   return sorted.map((d) => DAY_FULL[d]).join(", ");
 }
 
-type DraftStep = { message: string; delayValue: number; delayUnit: "hours" | "days" };
+type DraftStep = {
+  uid: string;
+  message: string;
+  delayValue: number;
+  delayUnit: "hours" | "days";
+  typingSeconds: number;
+};
+
+let _uidCounter = 0;
+const newUid = () => `s_${Date.now()}_${++_uidCounter}`;
 
 function SequenciasPage() {
   const [seqs, setSeqs] = useState<Sequence[]>([]);
@@ -238,6 +278,14 @@ function SequenceEditorDialog({
   const [stopStageIds, setStopStageIds] = useState<string[]>(sequence.stopOnStageIds);
   const [autoResumeDays, setAutoResumeDays] = useState<number>(sequence.autoResumeAfterDays);
   const [savingRules, setSavingRules] = useState(false);
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [metrics, setMetrics] = useState<SequenceStepMetric[]>([]);
+  const [testingIdx, setTestingIdx] = useState<number | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const reloadEnrolled = async () => {
     try {
@@ -248,29 +296,43 @@ function SequenceEditorDialog({
     }
   };
 
+  const reloadMetrics = async () => {
+    try {
+      setMetrics(await sequencesDb.stepMetrics(sequence.id));
+    } catch {
+      /* silent */
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [s, c, st, all] = await Promise.all([
+        const [s, c, st, all, tpls, mets] = await Promise.all([
           sequencesDb.listSteps(sequence.id),
           contactsDb.list(),
           pipelineDb.listStages(),
           sequencesDb.listContactSequences(),
+          templatesDb.list().catch(() => []),
+          sequencesDb.stepMetrics(sequence.id).catch(() => []),
         ]);
         if (cancelled) return;
         setSteps(
           s.length > 0
             ? s.map((x: SequenceStep) => ({
+                uid: newUid(),
                 message: x.message,
                 delayValue: x.delayValue,
                 delayUnit: x.delayUnit,
+                typingSeconds: x.typingSeconds ?? 0,
               }))
-            : [{ message: "", delayValue: 1, delayUnit: "days" }],
+            : [{ uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0 }],
         );
         setContacts(c);
         setStages(st);
         setEnrolled(all.filter((x) => x.sequenceId === sequence.id));
+        setTemplates(tpls);
+        setMetrics(mets);
       } catch (e: any) {
         toast.error(`Erro: ${e.message ?? e}`);
       } finally {
@@ -284,15 +346,76 @@ function SequenceEditorDialog({
 
   const addStep = () => {
     if (steps.length >= MAX_STEPS) return;
-    setSteps((p) => [...p, { message: "", delayValue: 1, delayUnit: "days" }]);
+    setSteps((p) => [...p, { uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0 }]);
   };
 
   const removeStep = (i: number) => {
     setSteps((p) => p.filter((_, idx) => idx !== i));
   };
 
+  const cloneStep = (i: number) => {
+    if (steps.length >= MAX_STEPS) {
+      toast.error(`Máximo de ${MAX_STEPS} passos`);
+      return;
+    }
+    setSteps((p) => {
+      const copy = { ...p[i], uid: newUid() };
+      return [...p.slice(0, i + 1), copy, ...p.slice(i + 1)];
+    });
+  };
+
+  const loadTemplate = (i: number, content: string) => {
+    setSteps((p) => p.map((s, idx) => (idx === i ? { ...s, message: content } : s)));
+    toast.success("Template carregado");
+  };
+
   const updateStep = (i: number, patch: Partial<DraftStep>) => {
     setSteps((p) => p.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  };
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setSteps((p) => {
+      const oldIdx = p.findIndex((s) => s.uid === active.id);
+      const newIdx = p.findIndex((s) => s.uid === over.id);
+      if (oldIdx < 0 || newIdx < 0) return p;
+      return arrayMove(p, oldIdx, newIdx);
+    });
+  };
+
+  const sendTest = async (i: number) => {
+    const step = steps[i];
+    if (!step.message.trim()) {
+      toast.error("Escreva a mensagem antes");
+      return;
+    }
+    setTestingIdx(i);
+    try {
+      const c = await getSupabaseClient();
+      if (!c) throw new Error("Supabase não configurado");
+      const { data: sess } = await c.auth.getSession();
+      const userId = sess.session?.user.id;
+      if (!userId) throw new Error("Não autenticado");
+      const res = await fetch("/api/public/sequences/test-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          message: step.message,
+          typing_seconds: step.typingSeconds,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error ?? `Falha (${res.status})`);
+      }
+      toast.success("Teste enviado");
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setTestingIdx(null);
+    }
   };
 
   const save = async () => {
@@ -304,6 +427,7 @@ function SequenceEditorDialog({
     try {
       await sequencesDb.saveSteps(sequence.id, steps);
       toast.success("Passos salvos");
+      await reloadMetrics();
       onChange();
     } catch (e: any) {
       toast.error(`Erro: ${e.message ?? e}`);
@@ -459,58 +583,38 @@ function SequenceEditorDialog({
         ) : (
           <div className="space-y-3">
             <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
-              Variáveis disponíveis: <code>{"{{nome}}"}</code>, <code>{"{{empresa}}"}</code>
+              Variáveis: <code>{"{{nome}}"}</code>, <code>{"{{primeiro_nome}}"}</code>,{" "}
+              <code>{"{{saudacao}}"}</code>, <code>{"{{empresa}}"}</code>
             </div>
 
-            {steps.map((s, i) => (
-              <Card key={i} className="p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium flex items-center gap-2">
-                    <Clock className="size-3.5" /> Passo {i + 1}
-                  </div>
-                  {steps.length > 1 && (
-                    <Button variant="ghost" size="sm" onClick={() => removeStep(i)}>
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  )}
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-1">
-                    <Label className="text-xs">Esperar</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={s.delayValue}
-                      onChange={(e) =>
-                        updateStep(i, { delayValue: Math.max(0, Number(e.target.value)) })
-                      }
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Unidade</Label>
-                    <Select
-                      value={s.delayUnit}
-                      onValueChange={(v) => updateStep(i, { delayUnit: v as "hours" | "days" })}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="hours">horas</SelectItem>
-                        <SelectItem value="days">dias</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs">Mensagem</Label>
-                  <Textarea
-                    value={s.message}
-                    onChange={(e) => updateStep(i, { message: e.target.value })}
-                    rows={3}
-                    placeholder="Olá {{nome}}, tudo bem?"
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={steps.map((s) => s.uid)}
+                strategy={verticalListSortingStrategy}
+              >
+                {steps.map((s, i) => (
+                  <SortableStepCard
+                    key={s.uid}
+                    step={s}
+                    index={i}
+                    canRemove={steps.length > 1}
+                    metric={metrics.find((m) => m.order === i)}
+                    templates={templates}
+                    testing={testingIdx === i}
+                    onRemove={() => removeStep(i)}
+                    onClone={() => cloneStep(i)}
+                    onUpdate={(patch) => updateStep(i, patch)}
+                    onLoadTemplate={(c) => loadTemplate(i, c)}
+                    onSendTest={() => sendTest(i)}
                   />
-                </div>
-              </Card>
-            ))}
+                ))}
+              </SortableContext>
+            </DndContext>
+
 
             {steps.length < MAX_STEPS && (
               <Button variant="outline" size="sm" onClick={addStep} className="w-full">
@@ -875,5 +979,181 @@ function SequenceEditorDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SortableStepCard({
+  step,
+  index,
+  canRemove,
+  metric,
+  templates,
+  testing,
+  onRemove,
+  onClone,
+  onUpdate,
+  onLoadTemplate,
+  onSendTest,
+}: {
+  step: DraftStep;
+  index: number;
+  canRemove: boolean;
+  metric: SequenceStepMetric | undefined;
+  templates: MessageTemplate[];
+  testing: boolean;
+  onRemove: () => void;
+  onClone: () => void;
+  onUpdate: (patch: Partial<DraftStep>) => void;
+  onLoadTemplate: (content: string) => void;
+  onSendTest: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: step.uid });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  const [tplOpen, setTplOpen] = useState(false);
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card className="p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm font-medium flex items-center gap-2">
+            <button
+              type="button"
+              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+              aria-label="Reordenar"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="size-4" />
+            </button>
+            <Clock className="size-3.5" /> Passo {index + 1}
+          </div>
+          <div className="flex items-center gap-1">
+            <Popover open={tplOpen} onOpenChange={setTplOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" title="Carregar template">
+                  <FileText className="size-3.5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72 p-0">
+                <div className="p-2 text-xs font-medium border-b">Templates</div>
+                <div className="max-h-64 overflow-auto">
+                  {templates.length === 0 ? (
+                    <div className="p-3 text-xs text-muted-foreground text-center">
+                      Nenhum template criado.
+                    </div>
+                  ) : (
+                    templates.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          onLoadTemplate(t.content);
+                          setTplOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-muted border-b last:border-b-0"
+                      >
+                        <div className="font-medium truncate">{t.name}</div>
+                        <div className="text-muted-foreground line-clamp-2">
+                          {t.content}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Button variant="ghost" size="sm" onClick={onClone} title="Clonar passo">
+              <Copy className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSendTest}
+              disabled={testing}
+              title="Enviar teste para meu número"
+            >
+              {testing ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Send className="size-3.5" />
+              )}
+            </Button>
+            {canRemove && (
+              <Button variant="ghost" size="sm" onClick={onRemove} title="Remover">
+                <Trash2 className="size-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="col-span-1">
+            <Label className="text-xs">Esperar</Label>
+            <Input
+              type="number"
+              min={0}
+              value={step.delayValue}
+              onChange={(e) =>
+                onUpdate({ delayValue: Math.max(0, Number(e.target.value)) })
+              }
+            />
+          </div>
+          <div className="col-span-1">
+            <Label className="text-xs">Unidade</Label>
+            <Select
+              value={step.delayUnit}
+              onValueChange={(v) => onUpdate({ delayUnit: v as "hours" | "days" })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hours">horas</SelectItem>
+                <SelectItem value="days">dias</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="col-span-1">
+            <Label className="text-xs flex items-center gap-1">
+              <Sparkles className="size-3" /> Digitando (s)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              max={60}
+              value={step.typingSeconds}
+              onChange={(e) =>
+                onUpdate({
+                  typingSeconds: Math.max(0, Math.min(60, Number(e.target.value) || 0)),
+                })
+              }
+            />
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">Mensagem</Label>
+          <Textarea
+            value={step.message}
+            onChange={(e) => onUpdate({ message: e.target.value })}
+            rows={3}
+            placeholder="Olá {{primeiro_nome}}, {{saudacao}}!"
+          />
+        </div>
+        {metric && (
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground border-t pt-2">
+            <span className="flex items-center gap-1">
+              <Users className="size-3" /> {metric.waiting} aguardando
+            </span>
+            <span>· {metric.sent} enviado(s)</span>
+            <span>
+              · {metric.replied} resposta(s) (
+              {(metric.responseRate * 100).toFixed(0)}%)
+            </span>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 }
