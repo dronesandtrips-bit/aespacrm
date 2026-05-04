@@ -94,7 +94,16 @@ function formatDays(days: number[]): string {
   return sorted.map((d) => DAY_FULL[d]).join(", ");
 }
 
-type DraftStep = { message: string; delayValue: number; delayUnit: "hours" | "days" };
+type DraftStep = {
+  uid: string;
+  message: string;
+  delayValue: number;
+  delayUnit: "hours" | "days";
+  typingSeconds: number;
+};
+
+let _uidCounter = 0;
+const newUid = () => `s_${Date.now()}_${++_uidCounter}`;
 
 function SequenciasPage() {
   const [seqs, setSeqs] = useState<Sequence[]>([]);
