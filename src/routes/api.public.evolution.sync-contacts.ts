@@ -294,6 +294,7 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
             valid: rows.length,
             imported,
             avatarsUpdated,
+            namesUpdated,
             alreadyExisted: conflicts,
             invalidOrSkipped: skipped,
             errors,
