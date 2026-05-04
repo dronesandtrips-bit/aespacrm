@@ -136,6 +136,33 @@ function ContactsPage() {
     }
   };
 
+  const handleBulkMoveToCategory = async (categoryId: string) => {
+    const ids = Array.from(selected);
+    if (ids.length === 0 || !categoryId) return;
+    const cat = categories.find((c) => c.id === categoryId);
+    if (!cat) return;
+    if (!confirm(`Mover ${ids.length} contato${ids.length > 1 ? "s" : ""} para a categoria "${cat.name}"?`)) return;
+    setBulkMoving(true);
+    let ok = 0;
+    let fail = 0;
+    try {
+      for (const id of ids) {
+        try {
+          await contactsDb.update(id, { categoryIds: [categoryId] });
+          ok++;
+        } catch {
+          fail++;
+        }
+      }
+      await refresh();
+      setSelected(new Set());
+      if (fail === 0) toast.success(`${ok} contato${ok > 1 ? "s" : ""} movido${ok > 1 ? "s" : ""} para "${cat.name}"`);
+      else toast.warning(`${ok} movidos, ${fail} falharam`);
+    } finally {
+      setBulkMoving(false);
+    }
+  };
+
   const handleCleanInvalid = async () => {
     try {
       setCleaning(true);
