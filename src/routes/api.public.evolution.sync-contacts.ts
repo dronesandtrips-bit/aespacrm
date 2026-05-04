@@ -123,6 +123,7 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
             phone: string;
             is_group: boolean;
             wa_jid: string;
+            avatar_url: string | null;
           };
           const rows: Row[] = [];
           const seenPhones = new Set<string>();
