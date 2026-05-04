@@ -103,6 +103,15 @@ export type SequenceStep = {
   message: string;
   delayValue: number;
   delayUnit: "hours" | "days";
+  typingSeconds: number;
+};
+
+export type SequenceStepMetric = {
+  order: number;
+  waiting: number;
+  sent: number;
+  replied: number;
+  responseRate: number;
 };
 
 export type ContactSequence = {
@@ -862,8 +871,12 @@ function rowToStep(r: any): SequenceStep {
     message: r.message,
     delayValue: r.delay_value,
     delayUnit: r.delay_unit,
+    typingSeconds: r.typing_seconds ?? 0,
   };
 }
+
+const STEP_COLS =
+  'id,sequence_id,"order",message,delay_value,delay_unit,typing_seconds';
 
 function rowToContactSeq(r: any): ContactSequence {
   return {
@@ -956,7 +969,7 @@ export const sequencesDb = {
     const c = await client();
     const { data, error } = await c
       .from("crm_sequence_steps")
-      .select('id,sequence_id,"order",message,delay_value,delay_unit')
+      .select(STEP_COLS)
       .eq("sequence_id", sequenceId)
       .order("order", { ascending: true });
     if (error) throw error;
@@ -965,7 +978,12 @@ export const sequencesDb = {
 
   async saveSteps(
     sequenceId: string,
-    steps: Array<{ message: string; delayValue: number; delayUnit: "hours" | "days" }>,
+    steps: Array<{
+      message: string;
+      delayValue: number;
+      delayUnit: "hours" | "days";
+      typingSeconds?: number;
+    }>,
   ) {
     const c = await client();
     const user_id = await uid();
@@ -983,9 +1001,120 @@ export const sequencesDb = {
       message: s.message,
       delay_value: s.delayValue,
       delay_unit: s.delayUnit,
+      typing_seconds: Math.max(0, Math.min(60, s.typingSeconds ?? 0)),
     }));
     const { error } = await c.from("crm_sequence_steps").insert(rows);
     if (error) throw error;
+  },
+
+  /**
+   * Métricas por passo: contatos atualmente aguardando, enviados (do log)
+   * e quantos receberam pelo menos 1 mensagem inbound após o envio.
+   */
+  async stepMetrics(sequenceId: string): Promise<SequenceStepMetric[]> {
+    const c = await client();
+    const [stepsRes, csRes, logRes] = await Promise.all([
+      c
+        .from("crm_sequence_steps")
+        .select('"order"')
+        .eq("sequence_id", sequenceId),
+      c
+        .from("crm_contact_sequences")
+        .select("current_step,status")
+        .eq("sequence_id", sequenceId)
+        .eq("status", "active"),
+      c
+        .from("crm_sequence_send_log")
+        .select("contact_sequence_id,step_order,sent_at,status")
+        .eq("status", "sent")
+        .in(
+          "contact_sequence_id",
+          (
+            await c
+              .from("crm_contact_sequences")
+              .select("id")
+              .eq("sequence_id", sequenceId)
+          ).data?.map((r: any) => r.id) ?? [],
+        ),
+    ]);
+    if (stepsRes.error) throw stepsRes.error;
+    if (csRes.error) throw csRes.error;
+    if (logRes.error) throw logRes.error;
+
+    const orders = (stepsRes.data ?? []).map((s: any) => s.order as number);
+    if (orders.length === 0) return [];
+
+    const waitingByOrder = new Map<number, number>();
+    for (const r of csRes.data ?? []) {
+      const k = r.current_step as number;
+      waitingByOrder.set(k, (waitingByOrder.get(k) ?? 0) + 1);
+    }
+
+    // sent + replied: precisa cruzar com mensagens inbound do contato
+    const sentByOrder = new Map<number, number>();
+    const repliedByOrder = new Map<number, number>();
+
+    const logs = logRes.data ?? [];
+    if (logs.length === 0) {
+      return orders.map((o) => ({
+        order: o,
+        waiting: waitingByOrder.get(o) ?? 0,
+        sent: 0,
+        replied: 0,
+        responseRate: 0,
+      }));
+    }
+
+    // Resolve contact_id via crm_contact_sequences
+    const csIds = [...new Set(logs.map((l: any) => l.contact_sequence_id))];
+    const { data: csRows } = await c
+      .from("crm_contact_sequences")
+      .select("id,contact_id")
+      .in("id", csIds);
+    const csToContact = new Map<string, string>(
+      (csRows ?? []).map((r: any) => [r.id, r.contact_id]),
+    );
+
+    // Inbound mais antiga depois do envio do step
+    const contactIds = [...new Set([...csToContact.values()])];
+    const { data: inbound } = contactIds.length
+      ? await c
+          .from("crm_messages")
+          .select("contact_id,at,from_me")
+          .in("contact_id", contactIds)
+          .eq("from_me", false)
+      : { data: [] as any[] };
+
+    const inboundByContact = new Map<string, string[]>();
+    for (const m of inbound ?? []) {
+      const arr = inboundByContact.get(m.contact_id) ?? [];
+      arr.push(m.at);
+      inboundByContact.set(m.contact_id, arr);
+    }
+
+    for (const log of logs) {
+      const o = log.step_order as number;
+      sentByOrder.set(o, (sentByOrder.get(o) ?? 0) + 1);
+      const contactId = csToContact.get(log.contact_sequence_id);
+      if (!contactId) continue;
+      const ats = inboundByContact.get(contactId) ?? [];
+      const sentAt = new Date(log.sent_at).getTime();
+      if (ats.some((a) => new Date(a).getTime() > sentAt)) {
+        repliedByOrder.set(o, (repliedByOrder.get(o) ?? 0) + 1);
+      }
+    }
+
+    return orders.map((o) => {
+      const sent = sentByOrder.get(o) ?? 0;
+      const replied = repliedByOrder.get(o) ?? 0;
+      return {
+        order: o,
+        waiting: waitingByOrder.get(o) ?? 0,
+        sent,
+        replied,
+        responseRate: sent > 0 ? replied / sent : 0,
+      };
+    });
   },
 
   async listContactSequences(): Promise<ContactSequence[]> {
@@ -1290,6 +1419,7 @@ export const templatesDb = {
 export type UserSettings = {
   interestTerms: string[];
   rescanWebhookUrl: string | null;
+  testPhone: string | null;
   updatedAt: string | null;
 };
 
@@ -1299,22 +1429,28 @@ export const userSettingsDb = {
     const user_id = await uid();
     const { data, error } = await c
       .from("crm_user_settings")
-      .select("interest_terms,rescan_webhook_url,updated_at")
+      .select("interest_terms,rescan_webhook_url,test_phone,updated_at")
       .eq("user_id", user_id)
       .maybeSingle();
     if (error) throw error;
     return {
       interestTerms: Array.isArray(data?.interest_terms) ? (data!.interest_terms as string[]) : [],
       rescanWebhookUrl: data?.rescan_webhook_url ?? null,
+      testPhone: data?.test_phone ?? null,
       updatedAt: data?.updated_at ?? null,
     };
   },
-  async save(patch: { interestTerms?: string[]; rescanWebhookUrl?: string | null }): Promise<void> {
+  async save(patch: {
+    interestTerms?: string[];
+    rescanWebhookUrl?: string | null;
+    testPhone?: string | null;
+  }): Promise<void> {
     const c = await client();
     const user_id = await uid();
     const row: Record<string, unknown> = { user_id };
     if (patch.interestTerms !== undefined) row.interest_terms = patch.interestTerms;
     if (patch.rescanWebhookUrl !== undefined) row.rescan_webhook_url = patch.rescanWebhookUrl;
+    if (patch.testPhone !== undefined) row.test_phone = patch.testPhone;
     const { error } = await c
       .from("crm_user_settings")
       .upsert(row, { onConflict: "user_id" });

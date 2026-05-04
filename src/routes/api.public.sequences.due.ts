@@ -14,6 +14,20 @@ function applyVars(template: string, vars: Record<string, string>) {
   return template.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 }
 
+function saudacao(now = new Date()): string {
+  // Hora de Brasília (UTC-3)
+  const brt = new Date(now.getTime() - 3 * 3600_000);
+  const h = brt.getUTCHours();
+  if (h >= 5 && h < 12) return "Bom dia";
+  if (h >= 12 && h < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
+function primeiroNome(name: string): string {
+  if (!name) return "";
+  return String(name).trim().split(/\s+/)[0] ?? "";
+}
+
 // Janela em horário de Brasília (UTC-3, sem DST desde 2019)
 function inWindow(seq: any, now = new Date()) {
   const brt = new Date(now.getTime() - 3 * 3600_000);
@@ -89,9 +103,9 @@ export const Route = createFileRoute("/api/public/sequences/due")({
                 "id,name,is_active,window_start_hour,window_end_hour,window_days",
               )
               .in("id", seqIds),
-            admin
+          admin
               .from("crm_sequence_steps")
-              .select('id,sequence_id,"order",message,delay_value,delay_unit')
+              .select('id,sequence_id,"order",message,delay_value,delay_unit,typing_seconds')
               .in("sequence_id", seqIds),
             admin
               .from("crm_contacts")
@@ -128,8 +142,14 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               if (!step) return null;
               const message = applyVars(step.message, {
                 nome: contact.name ?? "",
+                primeiro_nome: primeiroNome(contact.name ?? ""),
+                saudacao: saudacao(),
                 empresa: contact.email ?? "", // placeholder, mapear depois
               });
+              const typingMs = Math.max(
+                0,
+                Math.min(60, Number(step.typing_seconds ?? 0)),
+              ) * 1000;
               return {
                 contact_sequence_id: d.id,
                 user_id: d.user_id,
@@ -143,6 +163,8 @@ export const Route = createFileRoute("/api/public/sequences/due")({
                   email: contact.email,
                 },
                 message,
+                typing_seconds: Number(step.typing_seconds ?? 0),
+                delay_ms: typingMs,
               };
             })
             .filter(Boolean);
