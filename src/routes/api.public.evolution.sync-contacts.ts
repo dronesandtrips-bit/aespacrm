@@ -220,6 +220,29 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
           const rowsToInsert = rows.filter((r) => !existingPhones.has(r.phone));
           conflicts = rows.length - rowsToInsert.length;
 
+          // 3.1) Backfill de avatar_url em contatos JÁ existentes que ainda
+          //      não têm foto. Só toca em avatar_url — não mexe em nome,
+          //      tags, status etc. Pula linhas sem foto na Evolution.
+          let avatarsUpdated = 0;
+          const rowsWithAvatar = rows.filter(
+            (r) => existingPhones.has(r.phone) && r.avatar_url,
+          );
+          for (const r of rowsWithAvatar) {
+            const { data: upd, error: updErr } = await sbAdmin
+              .from("crm_contacts")
+              .update({ avatar_url: r.avatar_url })
+              .eq("user_id", userId)
+              .eq("is_group", false)
+              .eq("phone_norm", r.phone)
+              .is("avatar_url", null)
+              .select("id");
+            if (updErr) {
+              if (errorSamples.length < 3) errorSamples.push(updErr.message);
+            } else if (upd && upd.length) {
+              avatarsUpdated += upd.length;
+            }
+          }
+
           for (let i = 0; i < rowsToInsert.length; i += BATCH_SIZE) {
             const slice = rowsToInsert.slice(i, i + BATCH_SIZE);
             const { error } = await sbAdmin.from("crm_contacts").insert(slice);
