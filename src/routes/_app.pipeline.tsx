@@ -442,12 +442,17 @@ function PipelinePage() {
         </p>
         <NewStageDialog onCreated={load} />
       </div>
-      <DndContext sensors={sensors} onDragStart={handleStart} onDragEnd={handleEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {grouped.map(({ stage, contacts }) => (
-            <StageColumn key={stage.id} stage={stage} contacts={contacts} categories={categories} />
-          ))}
-        </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleStart} onDragEnd={handleEnd}>
+        <SortableContext
+          items={stages.map((s) => `stage:${s.id}`)}
+          strategy={horizontalListSortingStrategy}
+        >
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {grouped.map(({ stage, contacts }) => (
+              <StageColumn key={stage.id} stage={stage} contacts={contacts} categories={categories} />
+            ))}
+          </div>
+        </SortableContext>
         <DragOverlay>
           {activeContact && (
             <ContactCard
