@@ -183,30 +183,61 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
             });
           }
 
-          // 3) Insere em lotes. ON CONFLICT no índice único (user_id, phone_norm)
-          //    where is_group=false → ignora duplicatas silenciosamente.
+          // 3) Primeiro consulta o que já existe e depois insere só os novos.
+          //    Evita usar upsert/onConflict aqui porque a chave única real do CRM
+          //    é parcial para contatos individuais, e algumas versões do PostgREST
+          //    rejeitam ON CONFLICT contra índice parcial.
           const sbAdmin = getSupabaseAdmin();
           let imported = 0;
           let conflicts = 0;
           let errors = 0;
+          const errorSamples: string[] = [];
 
+          const existingPhones = new Set<string>();
           for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-            const slice = rows.slice(i, i + BATCH_SIZE);
-            const { data, error } = await sbAdmin
+            const phones = rows.slice(i, i + BATCH_SIZE).map((r) => r.phone);
+            const { data: existing, error: existingErr } = await sbAdmin
               .from("crm_contacts")
-              .upsert(slice, {
-                onConflict: "user_id,phone_norm",
-                ignoreDuplicates: true,
-              })
-              .select("id");
-            if (error) {
-              errors += slice.length;
-              console.error("[sync-contacts] batch error", error.message);
+              .select("phone_norm,phone")
+              .eq("user_id", userId)
+              .eq("is_group", false)
+              .in("phone_norm", phones);
+            if (existingErr) {
+              console.error("[sync-contacts] existing lookup error", existingErr.message);
+              if (errorSamples.length < 3) errorSamples.push(existingErr.message);
               continue;
             }
-            const inserted = data?.length ?? 0;
-            imported += inserted;
-            conflicts += slice.length - inserted;
+            for (const item of existing ?? []) {
+              const phone = digitsOnly(item.phone_norm ?? item.phone ?? "");
+              if (phone) existingPhones.add(phone);
+            }
+          }
+
+          const rowsToInsert = rows.filter((r) => !existingPhones.has(r.phone));
+          conflicts = rows.length - rowsToInsert.length;
+
+          for (let i = 0; i < rowsToInsert.length; i += BATCH_SIZE) {
+            const slice = rowsToInsert.slice(i, i + BATCH_SIZE);
+            const { error } = await sbAdmin.from("crm_contacts").insert(slice);
+            if (error) {
+              console.error("[sync-contacts] batch error", error.message);
+              if (errorSamples.length < 3) errorSamples.push(error.message);
+
+              for (const row of slice) {
+                const { error: oneError } = await sbAdmin.from("crm_contacts").insert(row);
+                if (!oneError) {
+                  imported++;
+                } else if (oneError.code === "23505") {
+                  conflicts++;
+                } else {
+                  errors++;
+                  console.error("[sync-contacts] row error", oneError.message);
+                  if (errorSamples.length < 3) errorSamples.push(oneError.message);
+                }
+              }
+            } else {
+              imported += slice.length;
+            }
           }
 
           return jsonResponse({
@@ -217,6 +248,7 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
             alreadyExisted: conflicts,
             invalidOrSkipped: skipped,
             errors,
+            lastError: errorSamples[0] ?? null,
           });
         } catch (err: any) {
           console.error("[sync-contacts] unhandled", err?.message ?? err);
