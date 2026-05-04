@@ -31,19 +31,50 @@ import {
   Clock,
   Users,
   CalendarClock,
+  GripVertical,
+  Copy,
+  Send,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 import {
   sequencesDb,
   contactsDb,
   pipelineDb,
+  templatesDb,
   type Sequence,
   type SequenceStep,
+  type SequenceStepMetric,
+  type MessageTemplate,
   type Contact,
   type ContactSequence,
   type PipelineStage,
 } from "@/lib/db";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/sequencias")({
   component: SequenciasPage,
