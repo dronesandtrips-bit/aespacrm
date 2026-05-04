@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check } from "lucide-react";
+import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
 import { getSupabaseClient, getSupabaseClientSync } from "@/integrations/supabase/client";
@@ -551,19 +551,100 @@ function InboxPage() {
   const activeCount = conversations.filter((c) => c.last).length;
 
   return (
-    <div className="h-screen">
-      <Card className="overflow-hidden h-full rounded-none border-0">
-        <div className="grid grid-cols-1 md:grid-cols-[380px_1fr_3rem] h-full min-h-0 relative">
+    <div className="h-screen whatsweb-theme">
+      <Card className="overflow-hidden h-full rounded-none border-0 bg-transparent shadow-none text-[color:var(--ww-text)]">
+        <div
+          className="grid grid-cols-1 h-full min-h-0 relative"
+          style={{ gridTemplateColumns: "30% 1fr 3rem" }}
+        >
           {/* Lista */}
-          <div className="border-r flex flex-col min-h-0 h-full overflow-hidden">
-            <div className="p-3 border-b">
+          <div
+            className="flex flex-col min-h-0 h-full overflow-hidden"
+            style={{
+              backgroundColor: "var(--ww-sidebar)",
+              borderRight: "1px solid var(--ww-border)",
+            }}
+          >
+            {/* Toolbar superior */}
+            <div
+              className="flex items-center justify-between px-3 h-14 shrink-0"
+              style={{ borderBottom: "1px solid var(--ww-border)" }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className="size-9 rounded-full grid place-items-center shrink-0"
+                  style={{
+                    background: "linear-gradient(135deg, #10b981, #059669)",
+                    boxShadow: "var(--ww-shadow-md)",
+                  }}
+                >
+                  <Bot className="size-4 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold leading-tight truncate text-[color:var(--ww-text)]">
+                    Bot ativo
+                  </p>
+                  <p className="text-[10px] leading-tight text-[color:var(--ww-text-muted)]">
+                    {activeCount} conversas
+                  </p>
+                </div>
+              </div>
+              <TooltipProvider delayDuration={150}>
+                <div className="flex items-center gap-0.5">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5">
+                        <Bell className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Notificações</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5">
+                        <Filter className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Filtrar contatos</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5">
+                        <UsersIcon className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Novo grupo</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
+                        onClick={() => refreshContacts()}
+                      >
+                        <RefreshCw className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Sincronizar</TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
+            </div>
+
+            {/* Busca */}
+            <div className="p-3" style={{ borderBottom: "1px solid var(--ww-border)" }}>
               <div className="relative">
-                <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Search className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[color:var(--ww-text-muted)]" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar conversa ou número..."
-                  className="pl-9"
+                  className="pl-10 h-10 rounded-full border-0 text-sm placeholder:text-[color:var(--ww-text-dim)] focus-visible:ring-1"
+                  style={{
+                    backgroundColor: "var(--ww-surface)",
+                    color: "var(--ww-text)",
+                  }}
                 />
               </div>
               <SearchOnWhatsApp
@@ -578,83 +659,102 @@ function InboxPage() {
             </div>
             <div className="overflow-auto flex-1">
               {loading ? (
-                <div className="p-8 text-center text-muted-foreground">
+                <div className="p-8 text-center text-[color:var(--ww-text-muted)]">
                   <Loader2 className="size-5 mx-auto animate-spin opacity-60" />
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground text-sm">
+                <div className="p-8 text-center text-[color:var(--ww-text-muted)] text-sm">
                   Nenhuma conversa
                 </div>
               ) : (
                 filtered.map(({ contact, last }) => {
                   const isActive = contact.id === activeId;
                   const pause = replyPauseByContact[contact.id];
+                  const unread = !!last && !last.fromMe; /* heurística visual: última recebida = badge */
                   return (
                     <button
                       key={contact.id}
                       onClick={() => setActiveId(contact.id)}
                       className={cn(
-                        "w-full text-left flex gap-3 p-3 border-b hover:bg-muted/50 transition",
-                        isActive && "bg-primary/5",
+                        "w-full text-left flex gap-3 px-3 py-3 transition-colors",
+                        "hover:bg-white/5",
+                        isActive && "bg-white/[0.07]",
                       )}
+                      style={{ borderBottom: "1px solid var(--ww-border)" }}
                     >
                       <div className="relative shrink-0">
-                        <div className="size-11 rounded-full bg-primary/10 grid place-items-center text-primary font-semibold">
+                        <div
+                          className="size-12 rounded-full grid place-items-center text-sm font-semibold text-white"
+                          style={{
+                            background: "linear-gradient(135deg,#334155,#1e293b)",
+                            border: "1px solid var(--ww-border-strong)",
+                          }}
+                        >
                           {contact.name[0]}
                         </div>
                         {pause && (
                           <span
-                            className="absolute -bottom-0.5 -right-0.5 size-4 rounded-full bg-amber-500 border-2 border-card grid place-items-center"
+                            className="absolute -bottom-0.5 -right-0.5 size-4 rounded-full bg-amber-500 grid place-items-center"
+                            style={{ border: "2px solid var(--ww-sidebar)" }}
                             title={`Sequência pausada: ${pause.sequenceName}`}
                           >
                             <PauseCircle className="size-2.5 text-white" />
                           </span>
                         )}
                       </div>
-                       <div className="flex-1 min-w-0">
-                         <div className="flex justify-between items-baseline gap-2">
-                           <p className="font-medium text-sm truncate flex items-center gap-1.5">
-                             {contact.name}
-                             {contact.isGroup && (
-                               <Badge variant="secondary" className="text-[9px] px-1 py-0 leading-tight">
-                                 Grupo
-                               </Badge>
-                             )}
-                           </p>
-                           <span className="text-[10px] text-muted-foreground shrink-0">
-                             {last && timeAgo(last.at)}
-                           </span>
-                         </div>
-                         {(() => {
-                           const ids = (contact.categoryIds && contact.categoryIds.length)
-                             ? contact.categoryIds
-                             : contact.categoryId ? [contact.categoryId] : [];
-                           if (ids.length === 0) return null;
-                           return (
-                             <div className="flex flex-wrap gap-1 mt-0.5">
-                               {ids.map((id) => {
-                                 const cat = categories.find((c) => c.id === id);
-                                 if (!cat) return null;
-                                 return (
-                                   <Badge
-                                     key={id}
-                                     variant="outline"
-                                     className="text-[9px] px-1 py-0 leading-tight"
-                                     style={{ borderColor: cat.color, color: cat.color }}
-                                   >
-                                     {cat.name}
-                                   </Badge>
-                                 );
-                               })}
-                             </div>
-                           );
-                         })()}
-                         <p className="text-xs text-muted-foreground truncate">
-                          {last?.fromMe && "Você: "}
-                          {last?.body ?? <span className="italic opacity-60">Sem mensagens</span>}
-                        </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-baseline gap-2">
+                          <p className="font-semibold text-sm truncate flex items-center gap-1.5 text-[color:var(--ww-text)]">
+                            {contact.name}
+                            {contact.isGroup && (
+                              <Badge variant="secondary" className="text-[9px] px-1 py-0 leading-tight bg-white/10 text-[color:var(--ww-text-muted)] border-0">
+                                Grupo
+                              </Badge>
+                            )}
+                          </p>
+                          <span className="text-[10px] text-[color:var(--ww-text-dim)] shrink-0">
+                            {last && timeAgo(last.at)}
+                          </span>
+                        </div>
+                        {(() => {
+                          const ids = (contact.categoryIds && contact.categoryIds.length)
+                            ? contact.categoryIds
+                            : contact.categoryId ? [contact.categoryId] : [];
+                          if (ids.length === 0) return null;
+                          return (
+                            <div className="flex flex-wrap gap-1 mt-0.5">
+                              {ids.map((id) => {
+                                const cat = categories.find((c) => c.id === id);
+                                if (!cat) return null;
+                                return (
+                                  <Badge
+                                    key={id}
+                                    variant="outline"
+                                    className="text-[9px] px-1 py-0 leading-tight"
+                                    style={{ borderColor: cat.color, color: cat.color, backgroundColor: "transparent" }}
+                                  >
+                                    {cat.name}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                        <div className="flex items-center justify-between gap-2 mt-0.5">
+                          <p className="text-xs text-[color:var(--ww-text-muted)] truncate flex-1">
+                            {last?.fromMe && "Você: "}
+                            {last?.body ?? <span className="italic opacity-60">Sem mensagens</span>}
+                          </p>
+                          {unread && !isActive && (
+                            <span
+                              className="shrink-0 size-2.5 rounded-full"
+                              style={{ backgroundColor: "var(--ww-accent)", boxShadow: "0 0 0 2px rgba(16,185,129,0.25)" }}
+                              aria-label="Nova mensagem"
+                            />
+                          )}
+                        </div>
                         {pause && (
-                          <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-0.5 truncate">
+                          <p className="text-[10px] text-amber-400 mt-0.5 truncate">
                             ⏸ {pause.sequenceName} pausada · respondeu há {timeAgo(pause.pausedAt)}
                           </p>
                         )}
@@ -668,30 +768,58 @@ function InboxPage() {
 
           {/* Chat */}
           {active ? (
-            <div className="flex flex-col bg-[oklch(0.97_0.01_150)] min-h-0 h-full overflow-hidden">
-              <div className="h-16 border-b bg-card flex items-center justify-between px-5">
-                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-full bg-primary/10 grid place-items-center text-primary font-semibold">
+            <div
+              className="flex flex-col min-h-0 h-full overflow-hidden whatsweb-doodle"
+            >
+              {/* Header do chat */}
+              <div
+                className="h-16 flex items-center justify-between px-5 shrink-0"
+                style={{
+                  backgroundColor: "var(--ww-sidebar)",
+                  borderBottom: "1px solid var(--ww-border)",
+                }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="size-10 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0"
+                    style={{
+                      background: "linear-gradient(135deg,#334155,#1e293b)",
+                      border: "1px solid var(--ww-border-strong)",
+                    }}
+                  >
                     {active.name[0]}
                   </div>
-                  <div>
-                    <p className="font-medium text-sm flex items-center gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm flex items-center gap-2 text-[color:var(--ww-text)] truncate">
                       {active.name}
                       {active.isGroup && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Grupo</Badge>
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-white/10 text-[color:var(--ww-text-muted)] border-0">Grupo</Badge>
                       )}
                     </p>
-                    <p className="text-xs text-muted-foreground font-mono">
+                    <p className="text-xs font-mono text-[color:var(--ww-text-muted)] truncate">
                       {active.isGroup ? "Conversa em grupo" : active.phone}
                     </p>
                   </div>
+                  {/* Badge de status (Novo / Em Atendimento) */}
+                  {!active.isGroup && (
+                    <Badge
+                      variant="outline"
+                      className="ml-2 gap-1 text-[10px] border-0"
+                      style={{
+                        backgroundColor: messages.length > 0 ? "rgba(16,185,129,0.15)" : "rgba(59,130,246,0.15)",
+                        color: messages.length > 0 ? "#34d399" : "#60a5fa",
+                      }}
+                    >
+                      {messages.length > 0 ? "Em atendimento" : "Novo"}
+                    </Badge>
+                  )}
                   {active && replyPauseByContact[active.id] && (
                     <TooltipProvider delayDuration={150}>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Badge
                             variant="outline"
-                            className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400 gap-1 cursor-help"
+                            className="border-amber-500/40 bg-amber-500/10 text-amber-300 gap-1 cursor-help"
                           >
                             <PauseCircle className="size-3" />
                             Sequência pausada
@@ -711,7 +839,7 @@ function InboxPage() {
 
                 {/* Ações sobre o contato (espelho da aba Contatos) */}
                 <TooltipProvider delayDuration={150}>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5">
                     {!active.isGroup && (
                       <>
                         <Tooltip>
@@ -719,13 +847,14 @@ function InboxPage() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
                               disabled={enriching.has(active.id)}
                               onClick={() => handleEnrich(active)}
                             >
                               {enriching.has(active.id) ? (
-                                <Loader2 className="size-4 animate-spin text-primary" />
+                                <Loader2 className="size-4 animate-spin text-emerald-400" />
                               ) : (
-                                <Sparkles className="size-4 text-primary" />
+                                <Sparkles className="size-4 text-emerald-400" />
                               )}
                             </Button>
                           </TooltipTrigger>
@@ -736,6 +865,7 @@ function InboxPage() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
                               onClick={() => setEnrollContact(active)}
                             >
                               <GitBranch className="size-4" />
@@ -747,8 +877,8 @@ function InboxPage() {
                           <TooltipTrigger asChild>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <FolderPlus className="size-4 text-primary" />
+                                <Button variant="ghost" size="icon" className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5">
+                                  <FolderPlus className="size-4 text-emerald-400" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-64">
@@ -784,15 +914,16 @@ function InboxPage() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
                               disabled={togglingIgnore.has(active.id)}
                               onClick={() => handleToggleIgnore(active)}
                             >
                               {togglingIgnore.has(active.id) ? (
                                 <Loader2 className="size-4 animate-spin" />
                               ) : active.isIgnored ? (
-                                <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+                                <ShieldCheck className="size-4 text-emerald-400" />
                               ) : (
-                                <ShieldOff className="size-4 text-amber-600 dark:text-amber-400" />
+                                <ShieldOff className="size-4 text-amber-400" />
                               )}
                             </Button>
                           </TooltipTrigger>
@@ -804,7 +935,7 @@ function InboxPage() {
                     )}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={() => setEditOpen(true)}>
+                        <Button variant="ghost" size="icon" className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5" onClick={() => setEditOpen(true)}>
                           <Pencil className="size-4" />
                         </Button>
                       </TooltipTrigger>
@@ -815,9 +946,10 @@ function InboxPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="size-8 text-[color:var(--ww-text-muted)] hover:bg-white/5"
                           onClick={() => handleDeleteContact(active)}
                         >
-                          <Trash2 className="size-4 text-destructive" />
+                          <Trash2 className="size-4 text-red-400" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Excluir contato</TooltipContent>
@@ -829,53 +961,129 @@ function InboxPage() {
 
               <div ref={scrollRef} className="flex-1 overflow-auto p-5 space-y-2">
                 {messages.length === 0 ? (
-                  <div className="text-center text-sm text-muted-foreground py-10">
+                  <div className="text-center text-sm text-[color:var(--ww-text-muted)] py-10">
                     Nenhuma mensagem ainda. Envie a primeira!
                   </div>
                 ) : (
-                  messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={cn(
-                        "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                        m.fromMe
-                          ? "bg-chat-bubble-out text-chat-bubble-out-foreground ml-auto rounded-br-sm"
-                          : "bg-card mr-auto rounded-bl-sm",
-                      )}
-                    >
-                      <MessageContent m={m} />
-                      <p
+                  messages.map((m) => {
+                    const status = (m.status ?? "").toLowerCase();
+                    const delivered = ["delivered", "read", "played"].includes(status);
+                    const read = ["read", "played"].includes(status);
+                    return (
+                      <div
+                        key={m.id}
                         className={cn(
-                          "text-[10px] mt-1 text-right",
-                          m.fromMe ? "text-chat-bubble-out-foreground/60" : "text-muted-foreground",
+                          "max-w-[75%] rounded-2xl px-3 py-2 text-sm",
+                          m.fromMe ? "ml-auto rounded-br-sm" : "mr-auto rounded-bl-sm",
                         )}
+                        style={{
+                          backgroundColor: m.fromMe ? "var(--ww-bubble-out)" : "var(--ww-bubble-in)",
+                          color: m.fromMe ? "var(--ww-bubble-out-text)" : "var(--ww-bubble-in-text)",
+                          boxShadow: "var(--ww-shadow-sm)",
+                        }}
                       >
-                        {new Date(m.at).toLocaleTimeString("pt-BR", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                  ))
+                        <MessageContent m={m} />
+                        <div
+                          className={cn(
+                            "flex items-center gap-1 mt-1 text-[10px]",
+                            m.fromMe ? "justify-end opacity-80" : "justify-end opacity-60",
+                          )}
+                        >
+                          <span>
+                            {new Date(m.at).toLocaleTimeString("pt-BR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                          {m.fromMe && (
+                            delivered ? (
+                              <CheckCheck
+                                className="size-3.5"
+                                style={{ color: read ? "#60a5fa" : "currentColor" }}
+                              />
+                            ) : (
+                              <Check className="size-3.5" />
+                            )
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
 
-              <div className="p-3 border-t bg-card flex gap-2">
-                <Input
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !sending && handleSend()}
-                  placeholder="Digite uma mensagem..."
-                  disabled={sending}
-                />
-                <Button onClick={handleSend} disabled={!draft.trim() || sending}>
-                  {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-                </Button>
+              {/* Barra de digitação pill */}
+              <div
+                className="p-3 shrink-0"
+                style={{
+                  backgroundColor: "var(--ww-sidebar)",
+                  borderTop: "1px solid var(--ww-border)",
+                }}
+              >
+                <div
+                  className="flex items-center gap-2 rounded-full px-2 py-1"
+                  style={{ backgroundColor: "var(--ww-surface)" }}
+                >
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-9 rounded-full text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5 shrink-0"
+                    aria-label="Emoji"
+                  >
+                    <Smile className="size-5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-9 rounded-full text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5 shrink-0"
+                    aria-label="Anexar"
+                  >
+                    <Paperclip className="size-5" />
+                  </Button>
+                  <Input
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && !sending && handleSend()}
+                    placeholder="Digite uma mensagem..."
+                    disabled={sending}
+                    className="flex-1 border-0 bg-transparent shadow-none h-10 px-1 text-sm placeholder:text-[color:var(--ww-text-dim)] focus-visible:ring-0 text-[color:var(--ww-text)]"
+                  />
+                  {draft.trim() ? (
+                    <Button
+                      onClick={handleSend}
+                      disabled={sending}
+                      className="size-10 rounded-full p-0 shrink-0 text-white border-0"
+                      style={{
+                        background: "linear-gradient(135deg,#10b981,#059669)",
+                        boxShadow: "var(--ww-shadow-md)",
+                      }}
+                      aria-label="Enviar"
+                    >
+                      {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-10 rounded-full p-0 shrink-0 text-white border-0"
+                      style={{
+                        background: "linear-gradient(135deg,#10b981,#059669)",
+                        boxShadow: "var(--ww-shadow-md)",
+                      }}
+                      aria-label="Gravar áudio"
+                    >
+                      <Mic className="size-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
+            <div className="flex items-center justify-center whatsweb-doodle">
+              <div className="text-center text-[color:var(--ww-text-muted)]">
                 <MessageCircle className="size-12 mx-auto opacity-30 mb-2" />
                 <p className="text-sm">
                   {loading ? "Carregando..." : "Selecione uma conversa"}
@@ -887,11 +1095,16 @@ function InboxPage() {
           {/* Painel IA — rail colapsado de 3rem; expande em overlay no hover */}
           <div className="hidden md:block relative w-12 h-full">
             <div
-              className="group/aipanel absolute top-0 right-0 h-full flex flex-col border-l bg-card shadow-sm overflow-hidden transition-[width] duration-200 ease-out w-12 hover:w-80 z-20"
+              className="group/aipanel absolute top-0 right-0 h-full flex flex-col overflow-hidden transition-[width] duration-200 ease-out w-12 hover:w-80 z-20"
               title="Contexto da IA"
+              style={{
+                backgroundColor: "var(--ww-sidebar)",
+                borderLeft: "1px solid var(--ww-border)",
+                color: "var(--ww-text)",
+              }}
             >
-            <div className="px-3 py-3 border-b flex items-center gap-2 h-12 shrink-0 w-80">
-              <Sparkles className="size-4 text-primary shrink-0" />
+            <div className="px-3 py-3 flex items-center gap-2 h-12 shrink-0 w-80" style={{ borderBottom: "1px solid var(--ww-border)" }}>
+              <Sparkles className="size-4 text-emerald-400 shrink-0" />
               <h4 className="text-sm font-semibold whitespace-nowrap">
                 Contexto da IA
               </h4>

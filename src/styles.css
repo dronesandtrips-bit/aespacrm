@@ -160,3 +160,47 @@
     color: var(--color-foreground);
   }
 }
+
+/* ==========================================================================
+   WhatsWeb Premium Theme (escopado — só dentro de .whatsweb-theme)
+   Tema dark profissional inspirado no WhatsApp Web + SaaS premium.
+   Não afeta o resto do app.
+   ========================================================================== */
+.whatsweb-theme {
+  --ww-bg: #0f172a;              /* slate-900 — fundo principal */
+  --ww-sidebar: #1e293b;         /* slate-800 — sidebar conversas */
+  --ww-surface: #111c30;         /* superfícies intermediárias */
+  --ww-surface-2: #182338;       /* hover / cards */
+  --ww-border: #1f2a40;          /* divisores sutis */
+  --ww-border-strong: #273349;
+  --ww-text: #e2e8f0;            /* slate-200 */
+  --ww-text-muted: #94a3b8;      /* slate-400 */
+  --ww-text-dim: #64748b;        /* slate-500 */
+  --ww-accent: #10b981;          /* emerald-500 — badge não lido */
+  --ww-bubble-in: #1e293b;       /* recebida */
+  --ww-bubble-out: #065f46;      /* enviada — emerald-800 */
+  --ww-bubble-out-text: #ecfdf5; /* texto enviadas */
+  --ww-bubble-in-text: #e2e8f0;
+  --ww-shadow-sm: 0 1px 2px rgba(0,0,0,0.25);
+  --ww-shadow-md: 0 4px 14px rgba(0,0,0,0.35);
+
+  background-color: var(--ww-bg);
+  color: var(--ww-text);
+}
+
+/* Doodle pattern do WhatsApp — SVG inline com opacity baixa */
+.whatsweb-doodle {
+  background-color: var(--ww-bg);
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'><g fill='none' stroke='%23ffffff' stroke-width='1.2' opacity='0.06'><circle cx='30' cy='30' r='10'/><circle cx='150' cy='40' r='6'/><circle cx='90' cy='90' r='14'/><circle cx='40' cy='140' r='8'/><circle cx='140' cy='150' r='12'/><path d='M10 80 q20 -20 40 0 t40 0 t40 0 t40 0'/><path d='M0 120 q20 20 40 0 t40 0 t40 0 t40 0'/><rect x='110' y='100' width='18' height='18' rx='3'/><path d='M60 50 l10 10 l-10 10 l-10 -10 z'/></g></svg>");
+  background-repeat: repeat;
+}
+
+/* Scrollbar fina para o tema WhatsWeb */
+.whatsweb-theme ::-webkit-scrollbar { width: 6px; height: 6px; }
+.whatsweb-theme ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+}
+.whatsweb-theme ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
