@@ -403,6 +403,7 @@ function SyncContactsButton() {
     alreadyExisted?: number;
     invalidOrSkipped?: number;
     errors?: number;
+    lastError?: string | null;
     message?: string;
   }>(null);
 
@@ -463,6 +464,7 @@ function SyncContactsButton() {
           <div>♻️ Já existiam: <b className="text-foreground">{result.alreadyExisted ?? 0}</b></div>
           <div>🚫 Ignorados (grupos/inválidos): <b className="text-foreground">{result.invalidOrSkipped ?? 0}</b></div>
           {result.errors ? <div className="text-destructive">⚠️ Erros: {result.errors}</div> : null}
+          {result.lastError ? <div className="text-destructive break-words">Detalhe: {result.lastError}</div> : null}
         </div>
       ) : null}
     </div>
