@@ -847,7 +847,7 @@ function InboxPage() {
                       <p
                         className={cn(
                           "text-[10px] mt-1 text-right",
-                          m.fromMe ? "text-primary-foreground/70" : "text-muted-foreground",
+                          m.fromMe ? "text-chat-bubble-out-foreground/60" : "text-muted-foreground",
                         )}
                       >
                         {new Date(m.at).toLocaleTimeString("pt-BR", {
