@@ -133,7 +133,7 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
             status: evData?.status?.toString().toLowerCase() ?? "sent",
             raw: evData,
           })
-          .select("id, contact_id, body, from_me, at")
+          .select("id, contact_id, body, from_me, at, status")
           .single();
 
         if (insertRes.error) {
@@ -141,7 +141,7 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
           if (insertRes.error.code === "23505" && messageId) {
             const { data: existing } = await sbAdmin
               .from("crm_messages")
-              .select("id, contact_id, body, from_me, at")
+              .select("id, contact_id, body, from_me, at, status")
               .eq("user_id", userId)
               .eq("message_id", messageId)
               .maybeSingle();
@@ -165,6 +165,7 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
             body: inserted.body,
             fromMe: inserted.from_me,
             at: inserted.at,
+            status: inserted.status ?? null,
           },
           evolution: { messageId, status: evData?.status ?? null },
         });

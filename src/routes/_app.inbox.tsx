@@ -37,6 +37,14 @@ type ReplyPause = {
 };
 type PauseMap = Record<string, ReplyPause | undefined>;
 
+function isDeliveredStatus(status: string) {
+  return ["2", "3", "4", "5", "server_ack", "delivery_ack", "delivered", "read", "read_ack", "played", "played_ack"].includes(status);
+}
+
+function isReadStatus(status: string) {
+  return ["4", "5", "read", "read_ack", "played", "played_ack"].includes(status);
+}
+
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -410,6 +418,29 @@ function InboxPage() {
               }
               return prev;
             });
+          },
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "aespacrm", table: "crm_messages" },
+          (payload: any) => {
+            const row = payload.new;
+            const msg: ChatMessage = {
+              id: row.id,
+              contactId: row.contact_id,
+              body: row.body,
+              fromMe: row.from_me,
+              at: row.at,
+              type: (row.type ?? "text") as ChatMessage["type"],
+              mediaUrl: row.media_url ?? null,
+              mediaMime: row.media_mime ?? null,
+              mediaCaption: row.media_caption ?? null,
+              status: row.status ?? null,
+            };
+            setLastByContact((prev) => ({ ...prev, [msg.contactId]: msg }));
+            if (msg.contactId === activeId) {
+              setMessages((prev) => prev.map((item) => (item.id === msg.id ? msg : item)));
+            }
           },
         )
         .on(
@@ -991,10 +1022,11 @@ function InboxPage() {
                     Nenhuma mensagem ainda. Envie a primeira!
                   </div>
                 ) : (
-                  messages.map((m) => {
+                  messages.map((m, index) => {
                     const status = (m.status ?? "").toLowerCase();
-                    const delivered = ["delivered", "read", "played"].includes(status);
-                    const read = ["read", "played"].includes(status);
+                    const hasLaterInboundReply = m.fromMe && messages.slice(index + 1).some((next) => !next.fromMe);
+                    const delivered = isDeliveredStatus(status) || hasLaterInboundReply;
+                    const read = isReadStatus(status) || hasLaterInboundReply;
                     return (
                       <div
                         key={m.id}
