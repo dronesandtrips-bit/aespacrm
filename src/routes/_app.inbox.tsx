@@ -684,13 +684,26 @@ function InboxPage() {
                     >
                       <div className="relative shrink-0">
                         <div
-                          className="size-12 rounded-full grid place-items-center text-sm font-semibold text-white"
+                          className="size-12 rounded-full grid place-items-center text-sm font-semibold text-white overflow-hidden"
                           style={{
                             background: "linear-gradient(135deg,#334155,#1e293b)",
                             border: "1px solid var(--ww-border-strong)",
                           }}
                         >
-                          {contact.name[0]}
+                          {contact.avatarUrl ? (
+                            <img
+                              src={contact.avatarUrl}
+                              alt={contact.name}
+                              className="size-full object-cover"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            contact.name[0]
+                          )}
                         </div>
                         {pause && (
                           <span
