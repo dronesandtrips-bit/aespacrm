@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "@tanstack/react-router";
+import { Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { AppSidebar } from "./AppSidebar";
@@ -8,7 +8,10 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 export function AppShell() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const focusMode = location.pathname === "/inbox" || location.pathname.startsWith("/inbox/");
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -24,15 +27,15 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      <AppSidebar />
+      <AppSidebar focusMode={focusMode} />
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="p-0 w-[280px] [&>button]:hidden">
           <AppSidebar inSheet onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
       <div className="flex-1 flex flex-col min-w-0">
-        <AppHeader onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 p-4 sm:p-6 overflow-auto">
+        {!focusMode && <AppHeader onMenuClick={() => setMobileOpen(true)} />}
+        <main className={focusMode ? "flex-1 overflow-hidden" : "flex-1 p-4 sm:p-6 overflow-auto"}>
           <Outlet />
         </main>
       </div>
