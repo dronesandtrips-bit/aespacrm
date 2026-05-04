@@ -1022,13 +1022,12 @@ function InboxPage() {
                             })}
                           </span>
                           {m.fromMe && (
-                            delivered ? (
-                              <CheckCheck
-                                className="size-3.5"
-                                style={{ color: read ? "#60a5fa" : "currentColor" }}
-                              />
+                            read ? (
+                              <CheckCheck className="size-3.5" style={{ color: "#53bdeb" }} />
+                            ) : delivered ? (
+                              <CheckCheck className="size-3.5" style={{ color: "#9aa6b2" }} />
                             ) : (
-                              <Check className="size-3.5" />
+                              <Check className="size-3.5" style={{ color: "#9aa6b2" }} />
                             )
                           )}
                         </div>
