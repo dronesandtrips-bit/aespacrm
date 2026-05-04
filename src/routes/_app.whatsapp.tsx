@@ -15,7 +15,9 @@ import {
   AlertCircle,
   Send,
   Image as ImageIcon,
+  Users,
 } from "lucide-react";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -157,6 +159,8 @@ function WhatsAppPage() {
                 <div><b className="text-foreground">{status.counts.chats?.toLocaleString() ?? "—"}</b> conversas</div>
               </div>
             ) : null}
+            <Separator className="my-4" />
+            <SyncContactsButton />
           </div>
         ) : (
           <div className="text-center space-y-4">
