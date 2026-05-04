@@ -492,6 +492,11 @@ function ContactsPage() {
           <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
             <Upload className="size-4" /> Importar CSV
           </Button>
+          <NewCategoryDialog
+            onCreated={() => {
+              refresh();
+            }}
+          />
           <Dialog
             open={open}
             onOpenChange={(v) => {
@@ -580,27 +585,19 @@ function ContactsPage() {
               className="pl-9"
             />
           </div>
-          <div className="flex items-center gap-2 sm:w-56">
-            <Select value={cat} onValueChange={(v) => goto({ cat: v, page: 1 })}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Todas categorias</SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <NewCategoryDialog
-              onCreated={(newCat) => {
-                refresh();
-                goto({ cat: newCat.id, page: 1 });
-              }}
-            />
-          </div>
+          <Select value={cat} onValueChange={(v) => goto({ cat: v, page: 1 })}>
+            <SelectTrigger className="sm:w-56">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Todas categorias</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 
@@ -1135,8 +1132,8 @@ function NewCategoryDialog({ onCreated }: { onCreated: (cat: Category) => void }
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" title="Nova categoria">
-          <Plus className="size-4" />
+        <Button className="gap-2 bg-success text-white hover:bg-success/90">
+          <Plus className="size-4" /> Nova categoria
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">
