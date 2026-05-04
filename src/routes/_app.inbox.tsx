@@ -553,7 +553,7 @@ function InboxPage() {
   return (
     <div className="h-screen">
       <Card className="overflow-hidden h-full rounded-none border-0">
-        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr_3rem] h-full min-h-0 relative">
+        <div className="grid grid-cols-1 md:grid-cols-[380px_1fr_3rem] h-full min-h-0 relative">
           {/* Lista */}
           <div className="border-r flex flex-col min-h-0 h-full overflow-hidden">
             <div className="p-3 border-b">
@@ -839,7 +839,7 @@ function InboxPage() {
                       className={cn(
                         "max-w-[75%] rounded-2xl px-3 py-2 text-sm shadow-sm",
                         m.fromMe
-                          ? "bg-primary text-primary-foreground ml-auto rounded-br-sm"
+                          ? "bg-chat-bubble-out text-chat-bubble-out-foreground ml-auto rounded-br-sm"
                           : "bg-card mr-auto rounded-bl-sm",
                       )}
                     >
@@ -847,7 +847,7 @@ function InboxPage() {
                       <p
                         className={cn(
                           "text-[10px] mt-1 text-right",
-                          m.fromMe ? "text-primary-foreground/70" : "text-muted-foreground",
+                          m.fromMe ? "text-chat-bubble-out-foreground/60" : "text-muted-foreground",
                         )}
                       >
                         {new Date(m.at).toLocaleTimeString("pt-BR", {

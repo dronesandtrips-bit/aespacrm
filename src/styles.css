@@ -20,6 +20,8 @@
 
 @theme inline {
   --color-primary-glow: var(--primary-glow);
+  --color-chat-bubble-out: var(--chat-bubble-out);
+  --color-chat-bubble-out-foreground: var(--chat-bubble-out-foreground);
   --color-primary-deep: var(--primary-deep);
   --color-success: var(--success);
   --color-warning: var(--warning);
@@ -78,6 +80,9 @@
   --primary-foreground: oklch(0.99 0.005 150);
   --primary-glow: oklch(0.78 0.16 152);
   --primary-deep: oklch(0.55 0.16 152);
+  /* WhatsApp outgoing bubble (verde clarinho) */
+  --chat-bubble-out: oklch(0.94 0.07 145);
+  --chat-bubble-out-foreground: oklch(0.25 0.04 230);
   --secondary: oklch(0.96 0.015 220);
   --secondary-foreground: oklch(0.25 0.05 230);
   --muted: oklch(0.96 0.01 230);
