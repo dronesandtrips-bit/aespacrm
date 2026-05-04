@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck } from "lucide-react";
+import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
 import { getSupabaseClient, getSupabaseClientSync } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -237,6 +238,25 @@ function InboxPage() {
       toast.success("Contato atualizado");
       await refreshContacts();
       setEditOpen(false);
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    }
+  };
+
+  const handleToggleCategory = async (c: Contact, categoryId: string) => {
+    try {
+      const current = c.categoryIds ?? [];
+      const next = current.includes(categoryId)
+        ? current.filter((id) => id !== categoryId)
+        : [...current, categoryId];
+      await contactsDb.update(c.id, { categoryIds: next });
+      const cat = categories.find((x) => x.id === categoryId);
+      toast.success(
+        next.includes(categoryId)
+          ? `Adicionado a "${cat?.name ?? "categoria"}"`
+          : `Removido de "${cat?.name ?? "categoria"}"`
+      );
+      await refreshContacts();
     } catch (e: any) {
       toast.error(`Erro: ${e.message ?? e}`);
     }
@@ -689,6 +709,42 @@ function InboxPage() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Adicionar a uma sequência</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <FolderPlus className="size-4 text-primary" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-64">
+                                <DropdownMenuLabel>Adicionar a uma categoria</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {categories.length === 0 ? (
+                                  <DropdownMenuItem disabled>Nenhuma categoria criada</DropdownMenuItem>
+                                ) : (
+                                  categories.map((cat) => {
+                                    const checked = (active.categoryIds ?? []).includes(cat.id);
+                                    return (
+                                      <DropdownMenuItem
+                                        key={cat.id}
+                                        onSelect={(e) => {
+                                          e.preventDefault();
+                                          handleToggleCategory(active, cat.id);
+                                        }}
+                                      >
+                                        <TagIcon className="size-4 opacity-60" />
+                                        <span className="flex-1 truncate">{cat.name}</span>
+                                        {checked && <Check className="size-4 text-primary" />}
+                                      </DropdownMenuItem>
+                                    );
+                                  })
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TooltipTrigger>
+                          <TooltipContent>Adicionar a uma categoria</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
