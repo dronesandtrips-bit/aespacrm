@@ -162,6 +162,8 @@ function WhatsAppPage() {
             ) : null}
             <Separator className="my-4" />
             <SyncContactsButton />
+            <Separator className="my-4" />
+            <SyncMessagesButton />
           </div>
         ) : (
           <div className="text-center space-y-4">
