@@ -981,3 +981,179 @@ function SequenceEditorDialog({
     </Dialog>
   );
 }
+
+function SortableStepCard({
+  step,
+  index,
+  canRemove,
+  metric,
+  templates,
+  testing,
+  onRemove,
+  onClone,
+  onUpdate,
+  onLoadTemplate,
+  onSendTest,
+}: {
+  step: DraftStep;
+  index: number;
+  canRemove: boolean;
+  metric: SequenceStepMetric | undefined;
+  templates: MessageTemplate[];
+  testing: boolean;
+  onRemove: () => void;
+  onClone: () => void;
+  onUpdate: (patch: Partial<DraftStep>) => void;
+  onLoadTemplate: (content: string) => void;
+  onSendTest: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: step.uid });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+  const [tplOpen, setTplOpen] = useState(false);
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card className="p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm font-medium flex items-center gap-2">
+            <button
+              type="button"
+              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+              aria-label="Reordenar"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="size-4" />
+            </button>
+            <Clock className="size-3.5" /> Passo {index + 1}
+          </div>
+          <div className="flex items-center gap-1">
+            <Popover open={tplOpen} onOpenChange={setTplOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" title="Carregar template">
+                  <FileText className="size-3.5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72 p-0">
+                <div className="p-2 text-xs font-medium border-b">Templates</div>
+                <div className="max-h-64 overflow-auto">
+                  {templates.length === 0 ? (
+                    <div className="p-3 text-xs text-muted-foreground text-center">
+                      Nenhum template criado.
+                    </div>
+                  ) : (
+                    templates.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          onLoadTemplate(t.content);
+                          setTplOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-muted border-b last:border-b-0"
+                      >
+                        <div className="font-medium truncate">{t.name}</div>
+                        <div className="text-muted-foreground line-clamp-2">
+                          {t.content}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Button variant="ghost" size="sm" onClick={onClone} title="Clonar passo">
+              <Copy className="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSendTest}
+              disabled={testing}
+              title="Enviar teste para meu número"
+            >
+              {testing ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Send className="size-3.5" />
+              )}
+            </Button>
+            {canRemove && (
+              <Button variant="ghost" size="sm" onClick={onRemove} title="Remover">
+                <Trash2 className="size-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="col-span-1">
+            <Label className="text-xs">Esperar</Label>
+            <Input
+              type="number"
+              min={0}
+              value={step.delayValue}
+              onChange={(e) =>
+                onUpdate({ delayValue: Math.max(0, Number(e.target.value)) })
+              }
+            />
+          </div>
+          <div className="col-span-1">
+            <Label className="text-xs">Unidade</Label>
+            <Select
+              value={step.delayUnit}
+              onValueChange={(v) => onUpdate({ delayUnit: v as "hours" | "days" })}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hours">horas</SelectItem>
+                <SelectItem value="days">dias</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="col-span-1">
+            <Label className="text-xs flex items-center gap-1">
+              <Sparkles className="size-3" /> Digitando (s)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              max={60}
+              value={step.typingSeconds}
+              onChange={(e) =>
+                onUpdate({
+                  typingSeconds: Math.max(0, Math.min(60, Number(e.target.value) || 0)),
+                })
+              }
+            />
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">Mensagem</Label>
+          <Textarea
+            value={step.message}
+            onChange={(e) => onUpdate({ message: e.target.value })}
+            rows={3}
+            placeholder="Olá {{primeiro_nome}}, {{saudacao}}!"
+          />
+        </div>
+        {metric && (
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground border-t pt-2">
+            <span className="flex items-center gap-1">
+              <Users className="size-3" /> {metric.waiting} aguardando
+            </span>
+            <span>· {metric.sent} enviado(s)</span>
+            <span>
+              · {metric.replied} resposta(s) (
+              {(metric.responseRate * 100).toFixed(0)}%)
+            </span>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
