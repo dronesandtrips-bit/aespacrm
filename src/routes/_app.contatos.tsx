@@ -570,26 +570,48 @@ function ContactsPage() {
               Limpar seleção
             </button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={handleBulkBlacklist}
-            disabled={bulkBlacklisting}
-          >
-            {bulkBlacklisting ? <Loader2 className="size-4 animate-spin" /> : <ShieldOff className="size-4" />}
-            Adicionar à blacklist
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="gap-2"
-            onClick={handleBulkDelete}
-            disabled={bulkDeleting}
-          >
-            {bulkDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-            Excluir selecionados
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value=""
+              onValueChange={(v) => handleBulkMoveToCategory(v)}
+              disabled={bulkMoving || categories.length === 0}
+            >
+              <SelectTrigger className="h-9 w-[220px] gap-2">
+                {bulkMoving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <SelectValue placeholder="Mover para categoria..." />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={handleBulkBlacklist}
+              disabled={bulkBlacklisting}
+            >
+              {bulkBlacklisting ? <Loader2 className="size-4 animate-spin" /> : <ShieldOff className="size-4" />}
+              Adicionar à blacklist
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-2"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+              Excluir selecionados
+            </Button>
+          </div>
         </div>
       )}
 
