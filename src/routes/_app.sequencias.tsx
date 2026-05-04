@@ -278,6 +278,14 @@ function SequenceEditorDialog({
   const [stopStageIds, setStopStageIds] = useState<string[]>(sequence.stopOnStageIds);
   const [autoResumeDays, setAutoResumeDays] = useState<number>(sequence.autoResumeAfterDays);
   const [savingRules, setSavingRules] = useState(false);
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [metrics, setMetrics] = useState<SequenceStepMetric[]>([]);
+  const [testingIdx, setTestingIdx] = useState<number | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const reloadEnrolled = async () => {
     try {
@@ -288,29 +296,43 @@ function SequenceEditorDialog({
     }
   };
 
+  const reloadMetrics = async () => {
+    try {
+      setMetrics(await sequencesDb.stepMetrics(sequence.id));
+    } catch {
+      /* silent */
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [s, c, st, all] = await Promise.all([
+        const [s, c, st, all, tpls, mets] = await Promise.all([
           sequencesDb.listSteps(sequence.id),
           contactsDb.list(),
           pipelineDb.listStages(),
           sequencesDb.listContactSequences(),
+          templatesDb.list().catch(() => []),
+          sequencesDb.stepMetrics(sequence.id).catch(() => []),
         ]);
         if (cancelled) return;
         setSteps(
           s.length > 0
             ? s.map((x: SequenceStep) => ({
+                uid: newUid(),
                 message: x.message,
                 delayValue: x.delayValue,
                 delayUnit: x.delayUnit,
+                typingSeconds: x.typingSeconds ?? 0,
               }))
-            : [{ message: "", delayValue: 1, delayUnit: "days" }],
+            : [{ uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0 }],
         );
         setContacts(c);
         setStages(st);
         setEnrolled(all.filter((x) => x.sequenceId === sequence.id));
+        setTemplates(tpls);
+        setMetrics(mets);
       } catch (e: any) {
         toast.error(`Erro: ${e.message ?? e}`);
       } finally {
@@ -324,15 +346,76 @@ function SequenceEditorDialog({
 
   const addStep = () => {
     if (steps.length >= MAX_STEPS) return;
-    setSteps((p) => [...p, { message: "", delayValue: 1, delayUnit: "days" }]);
+    setSteps((p) => [...p, { uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0 }]);
   };
 
   const removeStep = (i: number) => {
     setSteps((p) => p.filter((_, idx) => idx !== i));
   };
 
+  const cloneStep = (i: number) => {
+    if (steps.length >= MAX_STEPS) {
+      toast.error(`Máximo de ${MAX_STEPS} passos`);
+      return;
+    }
+    setSteps((p) => {
+      const copy = { ...p[i], uid: newUid() };
+      return [...p.slice(0, i + 1), copy, ...p.slice(i + 1)];
+    });
+  };
+
+  const loadTemplate = (i: number, content: string) => {
+    setSteps((p) => p.map((s, idx) => (idx === i ? { ...s, message: content } : s)));
+    toast.success("Template carregado");
+  };
+
   const updateStep = (i: number, patch: Partial<DraftStep>) => {
     setSteps((p) => p.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  };
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setSteps((p) => {
+      const oldIdx = p.findIndex((s) => s.uid === active.id);
+      const newIdx = p.findIndex((s) => s.uid === over.id);
+      if (oldIdx < 0 || newIdx < 0) return p;
+      return arrayMove(p, oldIdx, newIdx);
+    });
+  };
+
+  const sendTest = async (i: number) => {
+    const step = steps[i];
+    if (!step.message.trim()) {
+      toast.error("Escreva a mensagem antes");
+      return;
+    }
+    setTestingIdx(i);
+    try {
+      const c = await getSupabaseClient();
+      if (!c) throw new Error("Supabase não configurado");
+      const { data: sess } = await c.auth.getSession();
+      const userId = sess.session?.user.id;
+      if (!userId) throw new Error("Não autenticado");
+      const res = await fetch("/api/public/sequences/test-send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          message: step.message,
+          typing_seconds: step.typingSeconds,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error ?? `Falha (${res.status})`);
+      }
+      toast.success("Teste enviado");
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setTestingIdx(null);
+    }
   };
 
   const save = async () => {
