@@ -1098,3 +1098,86 @@ function UrgencyBadgeContacts({ level }: { level: "Baixa" | "Média" | "Alta" })
     </Badge>
   );
 }
+
+const CATEGORY_COLORS = [
+  "#10B981", "#3B82F6", "#8B5CF6", "#EC4899",
+  "#F59E0B", "#EF4444", "#14B8A6", "#64748B",
+];
+
+function NewCategoryDialog({ onCreated }: { onCreated: (cat: Category) => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [color, setColor] = useState(CATEGORY_COLORS[0]);
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => {
+    setName("");
+    setColor(CATEGORY_COLORS[0]);
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return toast.error("Nome obrigatório");
+    setSaving(true);
+    try {
+      const created = await categoriesDb.create(name.trim(), color, null);
+      toast.success("Categoria criada");
+      setOpen(false);
+      reset();
+      onCreated(created);
+    } catch (err: any) {
+      toast.error(`Erro: ${err.message ?? err}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="icon" title="Nova categoria">
+          <Plus className="size-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Nova categoria</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="cat-name">Nome</Label>
+            <Input
+              id="cat-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Lead Quente"
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Cor</Label>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORY_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  className={`size-8 rounded-lg border-2 transition ${color === c ? "border-foreground scale-110" : "border-transparent"}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Para vincular palavras-chave ou sequência, edite em Configurações → Categorias.
+          </p>
+          <DialogFooter>
+            <Button type="submit" disabled={saving}>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : "Criar"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
