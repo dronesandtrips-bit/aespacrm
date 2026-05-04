@@ -602,21 +602,45 @@ function InboxPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-baseline gap-2">
-                          <p className="font-medium text-sm truncate flex items-center gap-1.5">
-                            {contact.name}
-                            {contact.isGroup && (
-                              <Badge variant="secondary" className="text-[9px] px-1 py-0 leading-tight">
-                                Grupo
-                              </Badge>
-                            )}
-                          </p>
-                          <span className="text-[10px] text-muted-foreground shrink-0">
-                            {last && timeAgo(last.at)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate">
+                       <div className="flex-1 min-w-0">
+                         <div className="flex justify-between items-baseline gap-2">
+                           <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                             {contact.name}
+                             {contact.isGroup && (
+                               <Badge variant="secondary" className="text-[9px] px-1 py-0 leading-tight">
+                                 Grupo
+                               </Badge>
+                             )}
+                           </p>
+                           <span className="text-[10px] text-muted-foreground shrink-0">
+                             {last && timeAgo(last.at)}
+                           </span>
+                         </div>
+                         {(() => {
+                           const ids = (contact.categoryIds && contact.categoryIds.length)
+                             ? contact.categoryIds
+                             : contact.categoryId ? [contact.categoryId] : [];
+                           if (ids.length === 0) return null;
+                           return (
+                             <div className="flex flex-wrap gap-1 mt-0.5">
+                               {ids.map((id) => {
+                                 const cat = categories.find((c) => c.id === id);
+                                 if (!cat) return null;
+                                 return (
+                                   <Badge
+                                     key={id}
+                                     variant="outline"
+                                     className="text-[9px] px-1 py-0 leading-tight"
+                                     style={{ borderColor: cat.color, color: cat.color }}
+                                   >
+                                     {cat.name}
+                                   </Badge>
+                                 );
+                               })}
+                             </div>
+                           );
+                         })()}
+                         <p className="text-xs text-muted-foreground truncate">
                           {last?.fromMe && "Você: "}
                           {last?.body ?? <span className="italic opacity-60">Sem mensagens</span>}
                         </p>
