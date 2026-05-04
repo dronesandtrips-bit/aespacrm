@@ -35,6 +35,7 @@ import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.publ
 import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.sequences.due'
 import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api.public.evolution.webhook'
 import { Route as ApiPublicEvolutionTestRouteImport } from './routes/api.public.evolution.test'
+import { Route as ApiPublicEvolutionSyncContactsRouteImport } from './routes/api.public.evolution.sync-contacts'
 import { Route as ApiPublicEvolutionStatusRouteImport } from './routes/api.public.evolution.status'
 import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.public.evolution.send-media'
 import { Route as ApiPublicEvolutionSendAndLogRouteImport } from './routes/api.public.evolution.send-and-log'
@@ -42,6 +43,7 @@ import { Route as ApiPublicEvolutionSendRouteImport } from './routes/api.public.
 import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.evolution.qr'
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
 import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
+import { Route as ApiPublicEvolutionCheckNumberRouteImport } from './routes/api.public.evolution.check-number'
 import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api.public.evolution.bulk-dispatch'
 import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
@@ -184,6 +186,12 @@ const ApiPublicEvolutionTestRoute = ApiPublicEvolutionTestRouteImport.update({
   path: '/api/public/evolution/test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEvolutionSyncContactsRoute =
+  ApiPublicEvolutionSyncContactsRouteImport.update({
+    id: '/api/public/evolution/sync-contacts',
+    path: '/api/public/evolution/sync-contacts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEvolutionStatusRoute =
   ApiPublicEvolutionStatusRouteImport.update({
     id: '/api/public/evolution/status',
@@ -222,6 +230,12 @@ const ApiPublicEvolutionConfigureWebhookRoute =
   ApiPublicEvolutionConfigureWebhookRouteImport.update({
     id: '/api/public/evolution/configure-webhook',
     path: '/api/public/evolution/configure-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionCheckNumberRoute =
+  ApiPublicEvolutionCheckNumberRouteImport.update({
+    id: '/api/public/evolution/check-number',
+    path: '/api/public/evolution/check-number',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicEvolutionBulkDispatchRoute =
@@ -303,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
+  '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
@@ -310,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
+  '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
@@ -346,6 +362,7 @@ export interface FileRoutesByTo {
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
+  '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
@@ -353,6 +370,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
+  '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
@@ -391,6 +409,7 @@ export interface FileRoutesById {
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
+  '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
@@ -398,6 +417,7 @@ export interface FileRoutesById {
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
+  '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
@@ -436,6 +456,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/lovable-proxy'
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
+    | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
@@ -443,6 +464,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
+    | '/api/public/evolution/sync-contacts'
     | '/api/public/evolution/test'
     | '/api/public/evolution/webhook'
     | '/api/public/sequences/due'
@@ -479,6 +501,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/lovable-proxy'
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
+    | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
@@ -486,6 +509,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
+    | '/api/public/evolution/sync-contacts'
     | '/api/public/evolution/test'
     | '/api/public/evolution/webhook'
     | '/api/public/sequences/due'
@@ -523,6 +547,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/lovable-proxy'
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
+    | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/qr'
@@ -530,6 +555,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
+    | '/api/public/evolution/sync-contacts'
     | '/api/public/evolution/test'
     | '/api/public/evolution/webhook'
     | '/api/public/sequences/due'
@@ -555,6 +581,7 @@ export interface RootRouteChildren {
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
   ApiPublicContactsCleanupRoute: typeof ApiPublicContactsCleanupRoute
   ApiPublicEvolutionBulkDispatchRoute: typeof ApiPublicEvolutionBulkDispatchRoute
+  ApiPublicEvolutionCheckNumberRoute: typeof ApiPublicEvolutionCheckNumberRoute
   ApiPublicEvolutionConfigureWebhookRoute: typeof ApiPublicEvolutionConfigureWebhookRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
   ApiPublicEvolutionQrRoute: typeof ApiPublicEvolutionQrRoute
@@ -562,6 +589,7 @@ export interface RootRouteChildren {
   ApiPublicEvolutionSendAndLogRoute: typeof ApiPublicEvolutionSendAndLogRoute
   ApiPublicEvolutionSendMediaRoute: typeof ApiPublicEvolutionSendMediaRoute
   ApiPublicEvolutionStatusRoute: typeof ApiPublicEvolutionStatusRoute
+  ApiPublicEvolutionSyncContactsRoute: typeof ApiPublicEvolutionSyncContactsRoute
   ApiPublicEvolutionTestRoute: typeof ApiPublicEvolutionTestRoute
   ApiPublicEvolutionWebhookRoute: typeof ApiPublicEvolutionWebhookRoute
   ApiPublicSequencesDueRoute: typeof ApiPublicSequencesDueRoute
@@ -757,6 +785,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionTestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution/sync-contacts': {
+      id: '/api/public/evolution/sync-contacts'
+      path: '/api/public/evolution/sync-contacts'
+      fullPath: '/api/public/evolution/sync-contacts'
+      preLoaderRoute: typeof ApiPublicEvolutionSyncContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/status': {
       id: '/api/public/evolution/status'
       path: '/api/public/evolution/status'
@@ -804,6 +839,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/evolution/configure-webhook'
       fullPath: '/api/public/evolution/configure-webhook'
       preLoaderRoute: typeof ApiPublicEvolutionConfigureWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/check-number': {
+      id: '/api/public/evolution/check-number'
+      path: '/api/public/evolution/check-number'
+      fullPath: '/api/public/evolution/check-number'
+      preLoaderRoute: typeof ApiPublicEvolutionCheckNumberRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/evolution/bulk-dispatch': {
@@ -920,6 +962,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
   ApiPublicContactsCleanupRoute: ApiPublicContactsCleanupRoute,
   ApiPublicEvolutionBulkDispatchRoute: ApiPublicEvolutionBulkDispatchRoute,
+  ApiPublicEvolutionCheckNumberRoute: ApiPublicEvolutionCheckNumberRoute,
   ApiPublicEvolutionConfigureWebhookRoute:
     ApiPublicEvolutionConfigureWebhookRoute,
   ApiPublicEvolutionCreateRoute: ApiPublicEvolutionCreateRoute,
@@ -928,6 +971,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEvolutionSendAndLogRoute: ApiPublicEvolutionSendAndLogRoute,
   ApiPublicEvolutionSendMediaRoute: ApiPublicEvolutionSendMediaRoute,
   ApiPublicEvolutionStatusRoute: ApiPublicEvolutionStatusRoute,
+  ApiPublicEvolutionSyncContactsRoute: ApiPublicEvolutionSyncContactsRoute,
   ApiPublicEvolutionTestRoute: ApiPublicEvolutionTestRoute,
   ApiPublicEvolutionWebhookRoute: ApiPublicEvolutionWebhookRoute,
   ApiPublicSequencesDueRoute: ApiPublicSequencesDueRoute,

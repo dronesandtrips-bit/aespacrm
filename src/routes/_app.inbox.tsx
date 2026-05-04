@@ -562,10 +562,19 @@ function InboxPage() {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar conversa..."
+                  placeholder="Buscar conversa ou número..."
                   className="pl-9"
                 />
               </div>
+              <SearchOnWhatsApp
+                search={search}
+                hasResults={filtered.length > 0}
+                onCreated={async (newId) => {
+                  await refreshContacts();
+                  setActiveId(newId);
+                  setSearch("");
+                }}
+              />
             </div>
             <div className="overflow-auto flex-1">
               {loading ? (
@@ -1084,3 +1093,75 @@ function MessageContent({ m }: { m: ChatMessage }) {
 
   return <p className="whitespace-pre-wrap break-words">{m.body}</p>;
 }
+
+function SearchOnWhatsApp({
+  search,
+  hasResults,
+  onCreated,
+}: {
+  search: string;
+  hasResults: boolean;
+  onCreated: (newContactId: string) => void | Promise<void>;
+}) {
+  const [loading, setLoading] = useState(false);
+  const digits = search.replace(/\D/g, "");
+  // Mostra só se: usuário digitou algo, parece um número (10-15 dígitos)
+  // e não há resultados locais.
+  const looksLikeNumber = digits.length >= 10 && digits.length <= 15;
+  if (!search.trim() || hasResults || !looksLikeNumber) return null;
+
+  async function handleClick() {
+    setLoading(true);
+    try {
+      const c = await getSupabaseClient();
+      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("sessão expirada — faça login novamente");
+
+      const res = await fetch("/api/public/evolution/check-number", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ number: digits }),
+      });
+      const data = await res.json();
+      if (res.status === 429) {
+        toast.warning("Aguarde alguns segundos antes de buscar outro número");
+        return;
+      }
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.detail || data?.error || `HTTP ${res.status}`);
+      }
+      if (data.exists === false) {
+        toast.error("Esse número não está no WhatsApp");
+        return;
+      }
+      if (data.contact?.id) {
+        toast.success(
+          data.alreadyExisted
+            ? "Contato já existia no CRM"
+            : "Contato adicionado!",
+        );
+        await onCreated(data.contact.id);
+      }
+    } catch (e: any) {
+      toast.error("Falha ao buscar número", { description: String(e?.message ?? e) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={handleClick}
+      disabled={loading}
+      className="w-full mt-2 gap-2 text-xs"
+    >
+      {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Search className="size-3.5" />}
+      {loading ? "Verificando..." : `Buscar +${digits} no WhatsApp`}
+    </Button>
+  );
+}
+

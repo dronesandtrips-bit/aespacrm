@@ -15,7 +15,9 @@ import {
   AlertCircle,
   Send,
   Image as ImageIcon,
+  Users,
 } from "lucide-react";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -157,6 +159,8 @@ function WhatsAppPage() {
                 <div><b className="text-foreground">{status.counts.chats?.toLocaleString() ?? "—"}</b> conversas</div>
               </div>
             ) : null}
+            <Separator className="my-4" />
+            <SyncContactsButton />
           </div>
         ) : (
           <div className="text-center space-y-4">
@@ -390,3 +394,78 @@ function SendTestCard({ disabled }: { disabled: boolean }) {
     </Card>
   );
 }
+
+function SyncContactsButton() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<null | {
+    fetched?: number;
+    imported?: number;
+    alreadyExisted?: number;
+    invalidOrSkipped?: number;
+    errors?: number;
+    message?: string;
+  }>(null);
+
+  async function runSync() {
+    setLoading(true);
+    setResult(null);
+    try {
+      const c = await getSupabaseClient();
+      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("sessão expirada — faça login novamente");
+
+      const res = await fetch("/api/public/evolution/sync-contacts", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.detail || data?.error || `HTTP ${res.status}`);
+      }
+      setResult(data);
+      const imp = data.imported ?? 0;
+      if (imp > 0) toast.success(`${imp} contato(s) importado(s)!`);
+      else toast.info(data.message || "Nenhum contato novo encontrado");
+    } catch (e: any) {
+      toast.error("Falha ao sincronizar", { description: String(e?.message ?? e) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="text-left space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h4 className="font-semibold text-sm flex items-center gap-2">
+            <Users className="size-4 text-primary" />
+            Sincronizar contatos
+          </h4>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Importa contatos que sua instância já conhece. Não envia mensagens.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={runSync}
+          disabled={loading}
+          className="gap-2 shrink-0"
+        >
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+          {loading ? "Sincronizando..." : "Sincronizar"}
+        </Button>
+      </div>
+      {result ? (
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-md p-2 space-y-0.5">
+          <div>📥 Importados: <b className="text-foreground">{result.imported ?? 0}</b></div>
+          <div>♻️ Já existiam: <b className="text-foreground">{result.alreadyExisted ?? 0}</b></div>
+          <div>🚫 Ignorados (grupos/inválidos): <b className="text-foreground">{result.invalidOrSkipped ?? 0}</b></div>
+          {result.errors ? <div className="text-destructive">⚠️ Erros: {result.errors}</div> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
