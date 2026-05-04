@@ -562,10 +562,19 @@ function InboxPage() {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar conversa..."
+                  placeholder="Buscar conversa ou número..."
                   className="pl-9"
                 />
               </div>
+              <SearchOnWhatsApp
+                search={search}
+                hasResults={filtered.length > 0}
+                onCreated={async (newId) => {
+                  await refreshContacts();
+                  setActiveId(newId);
+                  setSearch("");
+                }}
+              />
             </div>
             <div className="overflow-auto flex-1">
               {loading ? (
