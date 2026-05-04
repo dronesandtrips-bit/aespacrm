@@ -2,6 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import {
   DndContext,
@@ -24,12 +35,104 @@ import {
   type PipelinePlacement,
 } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { GripVertical, Phone, Loader2, Sparkles, AlertTriangle } from "lucide-react";
+import { GripVertical, Phone, Loader2, Sparkles, AlertTriangle, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/pipeline")({
   component: PipelinePage,
 });
+
+const STAGE_COLORS = [
+  "#10B981",
+  "#3B82F6",
+  "#8B5CF6",
+  "#EC4899",
+  "#F59E0B",
+  "#EF4444",
+  "#14B8A6",
+  "#64748B",
+];
+
+function NewStageDialog({ onCreated }: { onCreated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [color, setColor] = useState(STAGE_COLORS[0]);
+  const [saving, setSaving] = useState(false);
+
+  const reset = () => {
+    setName("");
+    setColor(STAGE_COLORS[0]);
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return toast.error("Nome obrigatório");
+    setSaving(true);
+    try {
+      await pipelineDb.createStage(name.trim(), color, null);
+      toast.success("Etapa criada");
+      setOpen(false);
+      reset();
+      onCreated();
+    } catch (err: any) {
+      toast.error(`Erro: ${err.message ?? err}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-2">
+          <Plus className="size-4" /> Nova etapa
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Nova etapa</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="stage-name">Nome</Label>
+            <Input
+              id="stage-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ex: Negociação"
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Cor</Label>
+            <div className="flex flex-wrap gap-2">
+              {STAGE_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  className={cn(
+                    "size-8 rounded-lg border-2 transition",
+                    color === c ? "border-foreground scale-110" : "border-transparent",
+                  )}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Para vincular uma sequência automática, edite em Configurações → Pipeline.
+          </p>
+          <DialogFooter>
+            <Button type="submit" disabled={saving}>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : "Criar"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function ContactCard({
   contact,
