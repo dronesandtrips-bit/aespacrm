@@ -1132,8 +1132,8 @@ function NewCategoryDialog({ onCreated }: { onCreated: (cat: Category) => void }
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" title="Nova categoria">
-          <Plus className="size-4" />
+        <Button className="gap-2 bg-success text-success-foreground hover:bg-success/90">
+          <Plus className="size-4" /> Nova categoria
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">
