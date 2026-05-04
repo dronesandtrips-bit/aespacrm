@@ -129,13 +129,24 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
           let skipped = 0;
 
           for (const c of evList) {
-            const jid = c.id ?? c.remoteJid ?? "";
+            // ATENÇÃO: o JID real está em `remoteJid`. O campo `id` é um cuid interno
+            // do banco da Evolution (ex: cmoj3fe5l05okqi4ytgf2i6t4) — NÃO usar.
+            const jid = (c.remoteJid ?? c.id ?? "") as string;
             if (!jid || typeof jid !== "string") {
               skipped++;
               continue;
             }
-            // Só queremos 1:1 (s.whatsapp.net). Ignora @g.us, @broadcast, status@.
+            // Só queremos 1:1. Aceita @s.whatsapp.net (formato clássico).
+            // Ignora @g.us (grupos), @broadcast, status@, e @lid (identificadores
+            // anônimos de membros de grupo, sem número real).
             if (!jid.includes("@s.whatsapp.net")) {
+              skipped++;
+              continue;
+            }
+            // Filtro adicional: só contatos salvos / reais (type === "contact"),
+            // descarta "group_member" mesmo que venha com @s.whatsapp.net.
+            const ctype = (c as any).type;
+            if (ctype && ctype !== "contact") {
               skipped++;
               continue;
             }
