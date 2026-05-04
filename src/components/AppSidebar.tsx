@@ -44,7 +44,7 @@ const items = [
   { to: "/templates", label: "Templates", icon: FileText },
   { to: "/historico-ia", label: "Histórico IA", icon: Sparkles },
   { to: "/logs", label: "Logs", icon: Activity },
-  { to: "/inbox", label: "WhatsWeb", icon: Inbox },
+  { to: "/inbox", label: "WhatsWeb", icon: WhatsAppIcon },
   { to: "/pipeline", label: "Pipeline", icon: Kanban },
   { to: "/whatsapp", label: "WhatsApp", icon: Smartphone },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
