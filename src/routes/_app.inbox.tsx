@@ -531,9 +531,9 @@ function InboxPage() {
   const activeCount = conversations.filter((c) => c.last).length;
 
   return (
-    <div className="space-y-4 max-w-[1400px]">
-      <Card className="overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr_260px] h-[calc(100vh-180px)] min-h-[600px]">
+    <div className="h-screen">
+      <Card className="overflow-hidden h-full rounded-none border-0">
+        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr_260px] h-full min-h-0">
           {/* Lista */}
           <div className="border-r flex flex-col min-h-0 h-full overflow-hidden">
             <div className="p-3 border-b">
