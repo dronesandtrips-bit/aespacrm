@@ -37,6 +37,14 @@ type ReplyPause = {
 };
 type PauseMap = Record<string, ReplyPause | undefined>;
 
+function isDeliveredStatus(status: string) {
+  return ["2", "3", "4", "5", "server_ack", "delivery_ack", "delivered", "read", "read_ack", "played", "played_ack"].includes(status);
+}
+
+function isReadStatus(status: string) {
+  return ["4", "5", "read", "read_ack", "played", "played_ack"].includes(status);
+}
+
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
