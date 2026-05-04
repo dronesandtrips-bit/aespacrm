@@ -101,7 +101,7 @@ export function AppSidebar({ inSheet = false, onNavigate, focusMode = false }: P
     localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0");
   };
 
-  const focusExpanded = focusMode && hovered && !inSheet;
+  
   const effectiveCollapsed = !inSheet && (collapsed || (focusMode && !hovered));
   const effectiveWidth = inSheet
     ? "100%"
