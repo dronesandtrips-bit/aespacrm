@@ -362,18 +362,46 @@ function PipelinePage() {
   const handleStart = (e: DragStartEvent) => setActiveId(e.active.id as string);
   const handleEnd = async (e: DragEndEvent) => {
     setActiveId(null);
+    const activeId = e.active.id as string;
     const overId = e.over?.id as string | undefined;
-    const contactId = e.active.id as string;
     if (!overId) return;
-    // Optimistic update
+
+    // Reordenação de etapas (stage:xxx -> stage:yyy)
+    if (activeId.startsWith("stage:") && overId.startsWith("stage:")) {
+      const fromId = activeId.slice("stage:".length);
+      const toId = overId.slice("stage:".length);
+      if (fromId === toId) return;
+      const oldIdx = stages.findIndex((s) => s.id === fromId);
+      const newIdx = stages.findIndex((s) => s.id === toId);
+      if (oldIdx < 0 || newIdx < 0) return;
+      const previous = stages;
+      const next = arrayMove(stages, oldIdx, newIdx);
+      setStages(next);
+      try {
+        await pipelineDb.reorderStages(next.map((s) => s.id));
+        toast.success("Ordem das etapas atualizada");
+      } catch (err: any) {
+        setStages(previous);
+        toast.error(`Erro ao reordenar: ${err.message ?? err}`);
+      }
+      return;
+    }
+
+    // Mover contato para etapa (contactId -> drop:stageId ou stage:stageId)
+    const contactId = activeId;
+    const targetStageId = overId.startsWith("drop:")
+      ? overId.slice("drop:".length)
+      : overId.startsWith("stage:")
+      ? overId.slice("stage:".length)
+      : overId;
     const previous = placement;
     const next = previous.find((p) => p.contactId === contactId)
-      ? previous.map((p) => (p.contactId === contactId ? { ...p, stageId: overId } : p))
-      : [...previous, { contactId, stageId: overId }];
+      ? previous.map((p) => (p.contactId === contactId ? { ...p, stageId: targetStageId } : p))
+      : [...previous, { contactId, stageId: targetStageId }];
     setPlacement(next);
     try {
-      await pipelineDb.moveContactToStage(contactId, overId);
-      const stage = stages.find((s) => s.id === overId);
+      await pipelineDb.moveContactToStage(contactId, targetStageId);
+      const stage = stages.find((s) => s.id === targetStageId);
       toast.success(`Movido para ${stage?.name}`);
     } catch (err: any) {
       setPlacement(previous);
