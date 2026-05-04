@@ -576,15 +576,6 @@ function ContactsPage() {
               className="pl-9"
             />
           </div>
-          <div className="relative sm:w-64">
-            <Sparkles className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Filtrar por persona (IA)..."
-              value={persona}
-              onChange={(e) => goto({ persona: e.target.value, page: 1 })}
-              className="pl-9"
-            />
-          </div>
           <Select value={cat} onValueChange={(v) => goto({ cat: v, page: 1 })}>
             <SelectTrigger className="sm:w-56">
               <SelectValue placeholder="Categoria" />
