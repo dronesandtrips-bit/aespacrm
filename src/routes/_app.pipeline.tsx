@@ -24,7 +24,15 @@ import {
   useDroppable,
   DragOverlay,
   type DragStartEvent,
+  closestCenter,
 } from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   contactsDb,
   categoriesDb,
