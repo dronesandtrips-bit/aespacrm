@@ -492,6 +492,11 @@ function ContactsPage() {
           <Button variant="outline" size="sm" className="gap-2" onClick={() => setImportOpen(true)}>
             <Upload className="size-4" /> Importar CSV
           </Button>
+          <NewCategoryDialog
+            onCreated={() => {
+              refresh();
+            }}
+          />
           <Dialog
             open={open}
             onOpenChange={(v) => {
