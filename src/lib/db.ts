@@ -283,11 +283,12 @@ function rowToContact(r: any): Contact {
     isIgnored: Boolean(r.is_ignored),
     isGroup: Boolean(r.is_group),
     waJid: r.wa_jid ?? null,
+    avatarUrl: r.avatar_url ?? null,
   };
 }
 
 const CONTACT_COLUMNS =
-  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,is_ignored,is_group,wa_jid";
+  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,is_ignored,is_group,wa_jid,avatar_url";
 
 /**
  * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
