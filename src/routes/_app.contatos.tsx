@@ -85,6 +85,7 @@ function ContactsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkBlacklisting, setBulkBlacklisting] = useState(false);
+  const [bulkMoving, setBulkMoving] = useState(false);
   const [togglingIgnore, setTogglingIgnore] = useState<Set<string>>(new Set());
 
   const handleToggleIgnore = async (c: Contact) => {
