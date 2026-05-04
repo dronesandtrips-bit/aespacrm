@@ -49,12 +49,15 @@ type Props = {
   /** Quando true, renderiza versão "interna" para usar dentro de um Sheet (mobile). */
   inSheet?: boolean;
   onNavigate?: () => void;
+  /** Modo foco: força mini-sidebar; expande no hover como overlay. */
+  focusMode?: boolean;
 };
 
-export function AppSidebar({ inSheet = false, onNavigate }: Props) {
+export function AppSidebar({ inSheet = false, onNavigate, focusMode = false }: Props) {
   const location = useLocation();
   const [width, setWidth] = useState<number>(DEFAULT);
   const [collapsed, setCollapsed] = useState<boolean>(false);
+  const [hovered, setHovered] = useState<boolean>(false);
   const dragging = useRef(false);
 
   useEffect(() => {
