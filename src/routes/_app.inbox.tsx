@@ -795,13 +795,18 @@ function InboxPage() {
             </div>
           )}
 
-          {/* Painel IA — contexto do contato */}
-          <div className="hidden md:flex flex-col border-l bg-card/50 min-h-0 h-full overflow-hidden">
-            <div className="px-4 py-3 border-b flex items-center gap-2">
-              <Sparkles className="size-4 text-primary" />
-              <h4 className="text-sm font-semibold">Contexto da IA</h4>
+          {/* Painel IA — contexto do contato (rail colapsado, expande no hover) */}
+          <div
+            className="hidden md:flex group/aipanel flex-col border-l bg-card/50 min-h-0 h-full overflow-hidden transition-[width] duration-200 ease-out w-12 hover:w-80"
+            title="Contexto da IA"
+          >
+            <div className="px-3 py-3 border-b flex items-center gap-2 h-12 shrink-0">
+              <Sparkles className="size-4 text-primary shrink-0" />
+              <h4 className="text-sm font-semibold whitespace-nowrap opacity-0 group-hover/aipanel:opacity-100 transition-opacity">
+                Contexto da IA
+              </h4>
             </div>
-            <div className="p-4 space-y-4 overflow-auto flex-1">
+            <div className="p-4 space-y-4 overflow-auto flex-1 opacity-0 group-hover/aipanel:opacity-100 transition-opacity">
               {!active ? (
                 <p className="text-xs text-muted-foreground">
                   Selecione um contato para ver a análise de persona.
