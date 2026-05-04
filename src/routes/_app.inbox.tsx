@@ -243,6 +243,25 @@ function InboxPage() {
     }
   };
 
+  const handleToggleCategory = async (c: Contact, categoryId: string) => {
+    try {
+      const current = c.categoryIds ?? [];
+      const next = current.includes(categoryId)
+        ? current.filter((id) => id !== categoryId)
+        : [...current, categoryId];
+      await contactsDb.update(c.id, { categoryIds: next });
+      const cat = categories.find((x) => x.id === categoryId);
+      toast.success(
+        next.includes(categoryId)
+          ? `Adicionado a "${cat?.name ?? "categoria"}"`
+          : `Removido de "${cat?.name ?? "categoria"}"`
+      );
+      await refreshContacts();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    }
+  };
+
   const handleDeleteContact = async (c: Contact) => {
     if (!confirm(`Remover o contato ${c.name}? Mensagens e sequências vinculadas também serão apagadas.`)) return;
     try {
