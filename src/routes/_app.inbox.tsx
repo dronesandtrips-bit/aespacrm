@@ -533,7 +533,7 @@ function InboxPage() {
   return (
     <div className="h-screen">
       <Card className="overflow-hidden h-full rounded-none border-0">
-        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr_260px] h-full min-h-0">
+        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr_3rem] h-full min-h-0 relative">
           {/* Lista */}
           <div className="border-r flex flex-col min-h-0 h-full overflow-hidden">
             <div className="p-3 border-b">
@@ -795,11 +795,12 @@ function InboxPage() {
             </div>
           )}
 
-          {/* Painel IA — contexto do contato (rail colapsado, expande no hover) */}
-          <div
-            className="hidden md:flex group/aipanel flex-col border-l bg-card/50 min-h-0 h-full overflow-hidden transition-[width] duration-200 ease-out w-12 hover:w-80"
-            title="Contexto da IA"
-          >
+          {/* Painel IA — rail colapsado de 3rem; expande em overlay no hover */}
+          <div className="hidden md:block relative w-12 h-full">
+            <div
+              className="group/aipanel absolute top-0 right-0 h-full flex flex-col border-l bg-card shadow-sm overflow-hidden transition-[width] duration-200 ease-out w-12 hover:w-80 z-20"
+              title="Contexto da IA"
+            >
             <div className="px-3 py-3 border-b flex items-center gap-2 h-12 shrink-0 w-80">
               <Sparkles className="size-4 text-primary shrink-0" />
               <h4 className="text-sm font-semibold whitespace-nowrap">
@@ -852,6 +853,7 @@ function InboxPage() {
                   )}
                 </>
               )}
+            </div>
             </div>
           </div>
         </div>
