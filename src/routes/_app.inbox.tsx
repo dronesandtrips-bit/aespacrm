@@ -854,6 +854,7 @@ function InboxPage() {
                 </>
               )}
             </div>
+            </div>
           </div>
         </div>
       </Card>
