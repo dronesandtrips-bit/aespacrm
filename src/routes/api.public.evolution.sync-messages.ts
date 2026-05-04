@@ -184,8 +184,10 @@ export const Route = createFileRoute("/api/public/evolution/sync-messages")({
             );
           }
 
-          const targets = (contacts ?? []).filter(
-            (c) => typeof c.wa_jid === "string" && c.wa_jid.includes("@s.whatsapp.net"),
+          type ContactRow = { id: string; wa_jid: string | null; phone_norm: string | null; phone: string | null };
+          const targets = ((contacts ?? []) as ContactRow[]).filter(
+            (c): c is ContactRow & { wa_jid: string } =>
+              typeof c.wa_jid === "string" && c.wa_jid.includes("@s.whatsapp.net"),
           );
 
           if (!targets.length) {
