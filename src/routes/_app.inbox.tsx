@@ -712,6 +712,42 @@ function InboxPage() {
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <FolderPlus className="size-4 text-primary" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-64">
+                                <DropdownMenuLabel>Adicionar a uma categoria</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {categories.length === 0 ? (
+                                  <DropdownMenuItem disabled>Nenhuma categoria criada</DropdownMenuItem>
+                                ) : (
+                                  categories.map((cat) => {
+                                    const checked = (active.categoryIds ?? []).includes(cat.id);
+                                    return (
+                                      <DropdownMenuItem
+                                        key={cat.id}
+                                        onSelect={(e) => {
+                                          e.preventDefault();
+                                          handleToggleCategory(active, cat.id);
+                                        }}
+                                      >
+                                        <TagIcon className="size-4 opacity-60" />
+                                        <span className="flex-1 truncate">{cat.name}</span>
+                                        {checked && <Check className="size-4 text-primary" />}
+                                      </DropdownMenuItem>
+                                    );
+                                  })
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TooltipTrigger>
+                          <TooltipContent>Adicionar a uma categoria</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
