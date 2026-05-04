@@ -74,7 +74,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/sequencias")({
   component: SequenciasPage,
