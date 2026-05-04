@@ -363,15 +363,26 @@ function PipelinePage() {
 
   if (stages.length === 0) {
     return (
-      <Card className="p-10 text-center text-sm text-muted-foreground max-w-2xl">
-        <p className="mb-2 font-medium text-foreground">Nenhuma etapa configurada</p>
-        <p>Vá em Configurações → Pipeline para criar suas etapas.</p>
+      <Card className="p-10 text-center text-sm text-muted-foreground max-w-2xl space-y-4">
+        <div>
+          <p className="mb-2 font-medium text-foreground">Nenhuma etapa configurada</p>
+          <p>Crie a primeira etapa para começar seu Kanban.</p>
+        </div>
+        <div className="flex justify-center">
+          <NewStageDialog onCreated={load} />
+        </div>
       </Card>
     );
   }
 
   return (
     <div className="space-y-5 max-w-[1400px]">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {stages.length} {stages.length === 1 ? "etapa" : "etapas"} · {allContacts.length} contatos
+        </p>
+        <NewStageDialog onCreated={load} />
+      </div>
       <DndContext sensors={sensors} onDragStart={handleStart} onDragEnd={handleEnd}>
         <div className="flex gap-3 overflow-x-auto pb-2">
           {grouped.map(({ stage, contacts }) => (
