@@ -1713,13 +1713,13 @@ function ForwardImageDialog({
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {c.isGroup ? "GRUPO" : c.name}
+                      {c.name}
                       {c.isGroup && (
                         <span className="ml-1.5 text-[10px] text-muted-foreground">(Grupo)</span>
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {c.isGroup ? c.name : c.phone}
+                      {c.isGroup ? "Conversa em grupo" : c.phone}
                     </p>
                   </div>
                 </label>
