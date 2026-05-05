@@ -5,13 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic } from "lucide-react";
+import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
 import { getSupabaseClient, getSupabaseClientSync } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { ContactDialog, EnrollDialog } from "@/components/contact-dialogs";
 
 
@@ -67,6 +69,9 @@ function InboxPage() {
   const [togglingIgnore, setTogglingIgnore] = useState<Set<string>>(new Set());
   const [editOpen, setEditOpen] = useState(false);
   const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
+  // Viewer de imagem (lightbox) + dialog de encaminhar
+  const [viewer, setViewer] = useState<{ messageId: string; src: string; alt: string } | null>(null);
+  const [forwardMessageId, setForwardMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     sequencesDb.list().then(setSequences).catch(() => {});
@@ -1043,7 +1048,7 @@ function InboxPage() {
                           boxShadow: "var(--ww-shadow-sm)",
                         }}
                       >
-                        <MessageContent m={m} />
+                        <MessageContent m={m} onOpenImage={(messageId, src, alt) => setViewer({ messageId, src, alt })} />
                         <div
                           className={cn(
                             "flex items-center gap-1 mt-1 text-[10px]",
@@ -1242,6 +1247,23 @@ function InboxPage() {
         sequences={sequences}
         onClose={() => setEnrollContact(null)}
       />
+
+      {/* Lightbox de imagem (estilo WhatsApp Web) */}
+      <ImageLightbox
+        viewer={viewer}
+        onClose={() => setViewer(null)}
+        onForward={(messageId) => {
+          setForwardMessageId(messageId);
+          setViewer(null);
+        }}
+      />
+
+      {/* Dialog de encaminhar imagem */}
+      <ForwardImageDialog
+        messageId={forwardMessageId}
+        contacts={contacts}
+        onClose={() => setForwardMessageId(null)}
+      />
     </div>
   );
 }
@@ -1294,10 +1316,12 @@ function SecureImage({
   messageId,
   alt,
   className,
+  onOpen,
 }: {
   messageId: string;
   alt: string;
   className?: string;
+  onOpen?: (messageId: string, src: string, alt: string) => void;
 }) {
   const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1338,9 +1362,13 @@ function SecureImage({
 
   if (src) {
     return (
-      <a href={src} target="_blank" rel="noreferrer" className="block">
+      <button
+        type="button"
+        onClick={() => onOpen?.(messageId, src, alt)}
+        className="block cursor-zoom-in"
+      >
         <img src={src} alt={alt} className={className} loading="lazy" />
-      </a>
+      </button>
     );
   }
   if (error) {
@@ -1363,7 +1391,13 @@ function SecureImage({
   );
 }
 
-function MessageContent({ m }: { m: ChatMessage }) {
+function MessageContent({
+  m,
+  onOpenImage,
+}: {
+  m: ChatMessage;
+  onOpenImage?: (messageId: string, src: string, alt: string) => void;
+}) {
   const type = m.type ?? "text";
   const caption = m.mediaCaption ?? (m.body && m.body !== "[imagem]" && m.body !== "[vídeo]" ? m.body : "");
 
@@ -1375,6 +1409,7 @@ function MessageContent({ m }: { m: ChatMessage }) {
             messageId={m.messageId}
             alt={caption || "imagem"}
             className="rounded-lg max-w-full max-h-72 object-contain bg-black/5"
+            onOpen={onOpenImage}
           />
         ) : (
           <p className="italic opacity-70 flex items-center gap-1.5">
@@ -1431,6 +1466,7 @@ function MessageContent({ m }: { m: ChatMessage }) {
         messageId={m.messageId}
         alt="sticker"
         className="size-32 object-contain"
+        onOpen={onOpenImage}
       />
     );
   }
@@ -1518,3 +1554,199 @@ function SearchOnWhatsApp({
   );
 }
 
+
+// ===================== Lightbox de imagem =====================
+function ImageLightbox({
+  viewer,
+  onClose,
+  onForward,
+}: {
+  viewer: { messageId: string; src: string; alt: string } | null;
+  onClose: () => void;
+  onForward: (messageId: string) => void;
+}) {
+  useEffect(() => {
+    if (!viewer) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [viewer, onClose]);
+
+  if (!viewer) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div className="absolute top-3 right-3 flex items-center gap-2 z-10" onClick={(e) => e.stopPropagation()}>
+        <a
+          href={viewer.src}
+          download={`imagem-${viewer.messageId}.jpg`}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs"
+        >
+          <Download className="size-4" /> Baixar
+        </a>
+        <button
+          type="button"
+          onClick={() => onForward(viewer.messageId)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs"
+        >
+          <Forward className="size-4" /> Encaminhar
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex items-center justify-center size-9 rounded-md bg-white/10 hover:bg-white/20 text-white"
+        >
+          <X className="size-5" />
+        </button>
+      </div>
+      <img
+        src={viewer.src}
+        alt={viewer.alt}
+        className="max-w-[95vw] max-h-[95vh] object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
+// ===================== Dialog de Encaminhar Imagem =====================
+function ForwardImageDialog({
+  messageId,
+  contacts,
+  onClose,
+}: {
+  messageId: string | null;
+  contacts: Contact[];
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [caption, setCaption] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (!messageId) {
+      setSelected(new Set());
+      setSearch("");
+      setCaption("");
+    }
+  }, [messageId]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return contacts;
+    return contacts.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.phone ?? "").toLowerCase().includes(q),
+    );
+  }, [contacts, search]);
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSend = async () => {
+    if (!messageId || selected.size === 0) return;
+    setSending(true);
+    try {
+      const c = await getSupabaseClient();
+      if (!c) throw new Error("sem sessão");
+      const sess = await c.auth.getSession();
+      const token = sess?.data?.session?.access_token;
+      if (!token) throw new Error("sem token");
+      const res = await fetch("/api/public/evolution/forward-media", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageId,
+          contactIds: Array.from(selected),
+          caption: caption.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error ?? `HTTP ${res.status}`);
+      }
+      toast.success(`Imagem encaminhada para ${data.sent}/${data.total} contato(s)`);
+      onClose();
+    } catch (e: any) {
+      toast.error(`Falha ao encaminhar: ${e?.message ?? e}`);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!messageId} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Encaminhar imagem</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input
+            placeholder="Buscar contato ou grupo..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="max-h-72 overflow-y-auto border rounded-md divide-y">
+            {filtered.length === 0 ? (
+              <p className="text-sm text-muted-foreground p-4 text-center">Nenhum contato encontrado</p>
+            ) : (
+              filtered.map((c) => (
+                <label
+                  key={c.id}
+                  className="flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer"
+                >
+                  <Checkbox
+                    checked={selected.has(c.id)}
+                    onCheckedChange={() => toggle(c.id)}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {c.isGroup ? "GRUPO" : c.name}
+                      {c.isGroup && (
+                        <span className="ml-1.5 text-[10px] text-muted-foreground">(Grupo)</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {c.isGroup ? c.name : c.phone}
+                    </p>
+                  </div>
+                </label>
+              ))
+            )}
+          </div>
+          <Textarea
+            placeholder="Legenda (opcional)"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            rows={2}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={sending}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSend} disabled={sending || selected.size === 0}>
+            {sending ? (
+              <Loader2 className="size-4 animate-spin mr-2" />
+            ) : (
+              <Forward className="size-4 mr-2" />
+            )}
+            Encaminhar ({selected.size})
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
