@@ -17,6 +17,7 @@ import {
   Image as ImageIcon,
   Users,
   MessageSquare,
+  Trash2,
 } from "lucide-react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -164,6 +165,8 @@ function WhatsAppPage() {
             <SyncContactsButton />
             <Separator className="my-4" />
             <SyncGroupsButton />
+            <Separator className="my-4" />
+            <CleanupGroupsButton />
             <Separator className="my-4" />
             <SyncMessagesButton />
           </div>
@@ -648,6 +651,86 @@ function SyncGroupsButton() {
           {result.errors && result.errors.length ? (
             <div className="text-destructive">⚠️ {result.errors.length} erro(s): {result.errors[0]}</div>
           ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CleanupGroupsButton() {
+  const [loading, setLoading] = useState(false);
+  const [days, setDays] = useState(7);
+  const [result, setResult] = useState<null | { deletedMessages?: number; deletedEvents?: number; groups?: number; days?: number }>(null);
+
+  async function runCleanup() {
+    if (!confirm(`Apagar mensagens de GRUPOS e eventos brutos com mais de ${days} dias? Esta ação é irreversível.`)) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      const c = await getSupabaseClient();
+      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("sessão expirada — faça login novamente");
+
+      const res = await fetch("/api/public/cleanup/groups", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ days }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.detail || data?.error || `HTTP ${res.status}`);
+      }
+      setResult(data);
+      toast.success(`Limpeza concluída: ${data.deletedMessages ?? 0} mensagens + ${data.deletedEvents ?? 0} eventos`);
+    } catch (e: any) {
+      toast.error("Falha na limpeza", { description: String(e?.message ?? e) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="text-left space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h4 className="font-semibold text-sm flex items-center gap-2">
+            <Trash2 className="size-4 text-destructive" />
+            Limpar lixo de grupos
+          </h4>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Apaga mensagens de grupos e eventos brutos antigos. Não afeta conversas 1:1 nem o próprio grupo na lista.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Input
+            type="number"
+            min={1}
+            max={365}
+            value={days}
+            onChange={(e) => setDays(Math.max(1, Math.min(365, Number(e.target.value) || 7)))}
+            className="w-20 h-9"
+            disabled={loading}
+          />
+          <span className="text-xs text-muted-foreground">dias</span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={runCleanup}
+            disabled={loading}
+            className="gap-2"
+          >
+            {loading ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+            {loading ? "Limpando..." : "Limpar"}
+          </Button>
+        </div>
+      </div>
+      {result ? (
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-md p-2 space-y-0.5">
+          <div>🗑️ Mensagens apagadas: <b className="text-foreground">{result.deletedMessages ?? 0}</b></div>
+          <div>🗑️ Eventos apagados: <b className="text-foreground">{result.deletedEvents ?? 0}</b></div>
+          <div>👥 Grupos verificados: <b className="text-foreground">{result.groups ?? 0}</b></div>
+          <div>📅 Janela: <b className="text-foreground">{result.days} dias</b></div>
         </div>
       ) : null}
     </div>
