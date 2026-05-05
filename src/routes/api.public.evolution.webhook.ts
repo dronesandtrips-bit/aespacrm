@@ -156,39 +156,30 @@ async function ensureContact(
 
 // Garante "contato" do tipo grupo. Não valida telefone.
 // Usa wa_jid (ex.: 120363xxx@g.us) como chave única por usuário.
+// IMPORTANTE: não usamos `pushName` aqui — em grupos isso é o nome do
+// PARTICIPANTE que enviou a mensagem, não o nome do grupo. O nome real
+// do grupo vem via enrichGroupIfNeeded (chama /group/findGroupInfos).
 async function ensureGroupContact(
   sb: any,
   userId: string,
   jid: string,
-  fallbackName: string,
 ): Promise<string | null> {
   if (!jid || !isGroupJid(jid)) return null;
   const phoneLike = normalizePhone(jid) || "0";
-  const safeName =
-    ((fallbackName ?? "").toString().trim().slice(0, 120)) || "Grupo";
 
   const { data: existing } = await sb
     .from("crm_contacts")
-    .select("id,name")
+    .select("id")
     .eq("user_id", userId)
     .eq("wa_jid", jid)
     .maybeSingle();
-  if (existing?.id) {
-    if (fallbackName && existing.name !== safeName) {
-      sb.from("crm_contacts")
-        .update({ name: safeName })
-        .eq("id", existing.id)
-        .then(() => {})
-        .catch(() => {});
-    }
-    return existing.id;
-  }
+  if (existing?.id) return existing.id;
 
   const { data: created, error } = await sb
     .from("crm_contacts")
     .insert({
       user_id: userId,
-      name: safeName,
+      name: "Grupo",
       phone: phoneLike,
       is_group: true,
       wa_jid: jid,
