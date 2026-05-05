@@ -1297,10 +1297,12 @@ function SecureImage({
   messageId,
   alt,
   className,
+  onOpen,
 }: {
   messageId: string;
   alt: string;
   className?: string;
+  onOpen?: (messageId: string, src: string, alt: string) => void;
 }) {
   const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1341,9 +1343,13 @@ function SecureImage({
 
   if (src) {
     return (
-      <a href={src} target="_blank" rel="noreferrer" className="block">
+      <button
+        type="button"
+        onClick={() => onOpen?.(messageId, src, alt)}
+        className="block cursor-zoom-in"
+      >
         <img src={src} alt={alt} className={className} loading="lazy" />
-      </a>
+      </button>
     );
   }
   if (error) {
@@ -1366,7 +1372,13 @@ function SecureImage({
   );
 }
 
-function MessageContent({ m }: { m: ChatMessage }) {
+function MessageContent({
+  m,
+  onOpenImage,
+}: {
+  m: ChatMessage;
+  onOpenImage?: (messageId: string, src: string, alt: string) => void;
+}) {
   const type = m.type ?? "text";
   const caption = m.mediaCaption ?? (m.body && m.body !== "[imagem]" && m.body !== "[vídeo]" ? m.body : "");
 
