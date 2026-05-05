@@ -163,6 +163,8 @@ function WhatsAppPage() {
             <Separator className="my-4" />
             <SyncContactsButton />
             <Separator className="my-4" />
+            <SyncGroupsButton />
+            <Separator className="my-4" />
             <SyncMessagesButton />
           </div>
         ) : (
