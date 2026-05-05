@@ -152,7 +152,9 @@ export function AppSidebar({ inSheet = false, onNavigate, focusMode = false }: P
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {items.map(({ to, label, icon: Icon, highlight }) => {
+          {items.map((item) => {
+            const { to, label, icon: Icon } = item;
+            const highlight = "highlight" in item && item.highlight;
             const active =
               location.pathname === to || location.pathname.startsWith(to + "/");
             const link = (
