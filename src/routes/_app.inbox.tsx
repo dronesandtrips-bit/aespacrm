@@ -226,12 +226,32 @@ function InboxPage() {
     if (togglingIgnore.has(c.id)) return;
     setTogglingIgnore((prev) => new Set(prev).add(c.id));
     try {
+      const turningOff = !c.isIgnored; // se vai bloquear, manda "off"; se vai liberar, manda "on"
+      const command = turningOff ? "off" : "on";
+
+      // 1) Dispara o comando no chat do contato (mesma instância do Robo).
+      //    O Robo escuta fromMe e pausa/retoma. Se falhar, abortamos para não
+      //    deixar a blacklist dessincronizada do estado real do Robo.
+      const phoneDigits = c.phone.replace(/\D/g, "");
+      const sendRes = await fetch("/api/public/evolution/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ number: phoneDigits, text: command }),
+      });
+      const sendJson = await sendRes.json().catch(() => ({}));
+      if (!sendRes.ok || sendJson?.ok === false) {
+        throw new Error(
+          `Falha ao enviar "${command}" via WhatsApp: ${sendJson?.error ?? sendRes.statusText}`
+        );
+      }
+
+      // 2) Sincroniza a blacklist local (espelho do estado do Robo).
       if (c.isIgnored) {
         await ignoredPhonesDb.removeByPhone(c.phone);
-        toast.success(`${c.name} removido da blacklist`);
+        toast.success(`${c.name}: comando "on" enviado e removido da blacklist`);
       } else {
         await ignoredPhonesDb.addOne(c.phone, "manual:whatsweb");
-        toast.success(`${c.name} adicionado à blacklist`);
+        toast.success(`${c.name}: comando "off" enviado e adicionado à blacklist`);
       }
       await refreshContacts();
     } catch (e: any) {
