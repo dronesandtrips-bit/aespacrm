@@ -1245,6 +1245,23 @@ function InboxPage() {
         sequences={sequences}
         onClose={() => setEnrollContact(null)}
       />
+
+      {/* Lightbox de imagem (estilo WhatsApp Web) */}
+      <ImageLightbox
+        viewer={viewer}
+        onClose={() => setViewer(null)}
+        onForward={(messageId) => {
+          setForwardMessageId(messageId);
+          setViewer(null);
+        }}
+      />
+
+      {/* Dialog de encaminhar imagem */}
+      <ForwardImageDialog
+        messageId={forwardMessageId}
+        contacts={contacts}
+        onClose={() => setForwardMessageId(null)}
+      />
     </div>
   );
 }
