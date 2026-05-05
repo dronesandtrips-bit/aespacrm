@@ -1390,6 +1390,7 @@ function MessageContent({
             messageId={m.messageId}
             alt={caption || "imagem"}
             className="rounded-lg max-w-full max-h-72 object-contain bg-black/5"
+            onOpen={onOpenImage}
           />
         ) : (
           <p className="italic opacity-70 flex items-center gap-1.5">
