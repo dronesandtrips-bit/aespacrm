@@ -39,6 +39,7 @@ import { Route as ApiPublicEvolutionSyncMessagesRouteImport } from './routes/api
 import { Route as ApiPublicEvolutionSyncGroupsRouteImport } from './routes/api.public.evolution.sync-groups'
 import { Route as ApiPublicEvolutionSyncContactsRouteImport } from './routes/api.public.evolution.sync-contacts'
 import { Route as ApiPublicEvolutionStatusRouteImport } from './routes/api.public.evolution.status'
+import { Route as ApiPublicEvolutionSendMediaAndLogRouteImport } from './routes/api.public.evolution.send-media-and-log'
 import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.public.evolution.send-media'
 import { Route as ApiPublicEvolutionSendAndLogRouteImport } from './routes/api.public.evolution.send-and-log'
 import { Route as ApiPublicEvolutionSendRouteImport } from './routes/api.public.evolution.send'
@@ -216,6 +217,12 @@ const ApiPublicEvolutionStatusRoute =
     path: '/api/public/evolution/status',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicEvolutionSendMediaAndLogRoute =
+  ApiPublicEvolutionSendMediaAndLogRouteImport.update({
+    id: '/api/public/evolution/send-media-and-log',
+    path: '/api/public/evolution/send-media-and-log',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEvolutionSendMediaRoute =
   ApiPublicEvolutionSendMediaRouteImport.update({
     id: '/api/public/evolution/send-media',
@@ -368,6 +375,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
+  '/api/public/evolution/send-media-and-log': typeof ApiPublicEvolutionSendMediaAndLogRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
   '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
@@ -419,6 +427,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
+  '/api/public/evolution/send-media-and-log': typeof ApiPublicEvolutionSendMediaAndLogRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
   '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
@@ -472,6 +481,7 @@ export interface FileRoutesById {
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
+  '/api/public/evolution/send-media-and-log': typeof ApiPublicEvolutionSendMediaAndLogRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
   '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
@@ -525,6 +535,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
+    | '/api/public/evolution/send-media-and-log'
     | '/api/public/evolution/status'
     | '/api/public/evolution/sync-contacts'
     | '/api/public/evolution/sync-groups'
@@ -576,6 +587,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
+    | '/api/public/evolution/send-media-and-log'
     | '/api/public/evolution/status'
     | '/api/public/evolution/sync-contacts'
     | '/api/public/evolution/sync-groups'
@@ -628,6 +640,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
+    | '/api/public/evolution/send-media-and-log'
     | '/api/public/evolution/status'
     | '/api/public/evolution/sync-contacts'
     | '/api/public/evolution/sync-groups'
@@ -668,6 +681,7 @@ export interface RootRouteChildren {
   ApiPublicEvolutionSendRoute: typeof ApiPublicEvolutionSendRoute
   ApiPublicEvolutionSendAndLogRoute: typeof ApiPublicEvolutionSendAndLogRoute
   ApiPublicEvolutionSendMediaRoute: typeof ApiPublicEvolutionSendMediaRoute
+  ApiPublicEvolutionSendMediaAndLogRoute: typeof ApiPublicEvolutionSendMediaAndLogRoute
   ApiPublicEvolutionStatusRoute: typeof ApiPublicEvolutionStatusRoute
   ApiPublicEvolutionSyncContactsRoute: typeof ApiPublicEvolutionSyncContactsRoute
   ApiPublicEvolutionSyncGroupsRoute: typeof ApiPublicEvolutionSyncGroupsRoute
@@ -895,6 +909,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution/send-media-and-log': {
+      id: '/api/public/evolution/send-media-and-log'
+      path: '/api/public/evolution/send-media-and-log'
+      fullPath: '/api/public/evolution/send-media-and-log'
+      preLoaderRoute: typeof ApiPublicEvolutionSendMediaAndLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/send-media': {
       id: '/api/public/evolution/send-media'
       path: '/api/public/evolution/send-media'
@@ -1098,6 +1119,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEvolutionSendRoute: ApiPublicEvolutionSendRoute,
   ApiPublicEvolutionSendAndLogRoute: ApiPublicEvolutionSendAndLogRoute,
   ApiPublicEvolutionSendMediaRoute: ApiPublicEvolutionSendMediaRoute,
+  ApiPublicEvolutionSendMediaAndLogRoute:
+    ApiPublicEvolutionSendMediaAndLogRoute,
   ApiPublicEvolutionStatusRoute: ApiPublicEvolutionStatusRoute,
   ApiPublicEvolutionSyncContactsRoute: ApiPublicEvolutionSyncContactsRoute,
   ApiPublicEvolutionSyncGroupsRoute: ApiPublicEvolutionSyncGroupsRoute,
