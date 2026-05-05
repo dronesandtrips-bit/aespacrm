@@ -1554,3 +1554,199 @@ function SearchOnWhatsApp({
   );
 }
 
+
+// ===================== Lightbox de imagem =====================
+function ImageLightbox({
+  viewer,
+  onClose,
+  onForward,
+}: {
+  viewer: { messageId: string; src: string; alt: string } | null;
+  onClose: () => void;
+  onForward: (messageId: string) => void;
+}) {
+  useEffect(() => {
+    if (!viewer) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [viewer, onClose]);
+
+  if (!viewer) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div className="absolute top-3 right-3 flex items-center gap-2 z-10" onClick={(e) => e.stopPropagation()}>
+        <a
+          href={viewer.src}
+          download={`imagem-${viewer.messageId}.jpg`}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs"
+        >
+          <Download className="size-4" /> Baixar
+        </a>
+        <button
+          type="button"
+          onClick={() => onForward(viewer.messageId)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs"
+        >
+          <Forward className="size-4" /> Encaminhar
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex items-center justify-center size-9 rounded-md bg-white/10 hover:bg-white/20 text-white"
+        >
+          <X className="size-5" />
+        </button>
+      </div>
+      <img
+        src={viewer.src}
+        alt={viewer.alt}
+        className="max-w-[95vw] max-h-[95vh] object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
+// ===================== Dialog de Encaminhar Imagem =====================
+function ForwardImageDialog({
+  messageId,
+  contacts,
+  onClose,
+}: {
+  messageId: string | null;
+  contacts: Contact[];
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [caption, setCaption] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (!messageId) {
+      setSelected(new Set());
+      setSearch("");
+      setCaption("");
+    }
+  }, [messageId]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return contacts;
+    return contacts.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.phone ?? "").toLowerCase().includes(q),
+    );
+  }, [contacts, search]);
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSend = async () => {
+    if (!messageId || selected.size === 0) return;
+    setSending(true);
+    try {
+      const c = await getSupabaseClient();
+      if (!c) throw new Error("sem sessão");
+      const sess = await c.auth.getSession();
+      const token = sess?.data?.session?.access_token;
+      if (!token) throw new Error("sem token");
+      const res = await fetch("/api/public/evolution/forward-media", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messageId,
+          contactIds: Array.from(selected),
+          caption: caption.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error ?? `HTTP ${res.status}`);
+      }
+      toast.success(`Imagem encaminhada para ${data.sent}/${data.total} contato(s)`);
+      onClose();
+    } catch (e: any) {
+      toast.error(`Falha ao encaminhar: ${e?.message ?? e}`);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!messageId} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Encaminhar imagem</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input
+            placeholder="Buscar contato ou grupo..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="max-h-72 overflow-y-auto border rounded-md divide-y">
+            {filtered.length === 0 ? (
+              <p className="text-sm text-muted-foreground p-4 text-center">Nenhum contato encontrado</p>
+            ) : (
+              filtered.map((c) => (
+                <label
+                  key={c.id}
+                  className="flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer"
+                >
+                  <Checkbox
+                    checked={selected.has(c.id)}
+                    onCheckedChange={() => toggle(c.id)}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {c.isGroup ? "GRUPO" : c.name}
+                      {c.isGroup && (
+                        <span className="ml-1.5 text-[10px] text-muted-foreground">(Grupo)</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {c.isGroup ? c.name : c.phone}
+                    </p>
+                  </div>
+                </label>
+              ))
+            )}
+          </div>
+          <Textarea
+            placeholder="Legenda (opcional)"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            rows={2}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={sending}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSend} disabled={sending || selected.size === 0}>
+            {sending ? (
+              <Loader2 className="size-4 animate-spin mr-2" />
+            ) : (
+              <Forward className="size-4 mr-2" />
+            )}
+            Encaminhar ({selected.size})
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
