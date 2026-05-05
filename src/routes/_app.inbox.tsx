@@ -752,7 +752,7 @@ function InboxPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-baseline gap-2">
                           <p className="font-semibold text-sm truncate flex items-center gap-1.5 text-[color:var(--ww-text)]">
-                            {contact.name}
+                            {contact.isGroup ? "GRUPO" : contact.name}
                             {contact.isGroup && (
                               <Badge variant="secondary" className="text-[9px] px-1 py-0 leading-tight bg-white/10 text-[color:var(--ww-text-muted)] border-0">
                                 Grupo
