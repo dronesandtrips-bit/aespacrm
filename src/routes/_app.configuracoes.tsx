@@ -92,6 +92,9 @@ function SettingsPage() {
         <TabsContent value="blacklist" className="mt-5">
           <BlacklistTab />
         </TabsContent>
+        <TabsContent value="notificacoes" className="mt-5">
+          <NotificationsTab />
+        </TabsContent>
         <TabsContent value="integracoes" className="mt-5">
           <IntegrationsTab />
         </TabsContent>
