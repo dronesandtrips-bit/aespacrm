@@ -156,39 +156,30 @@ async function ensureContact(
 
 // Garante "contato" do tipo grupo. Não valida telefone.
 // Usa wa_jid (ex.: 120363xxx@g.us) como chave única por usuário.
+// IMPORTANTE: não usamos `pushName` aqui — em grupos isso é o nome do
+// PARTICIPANTE que enviou a mensagem, não o nome do grupo. O nome real
+// do grupo vem via enrichGroupIfNeeded (chama /group/findGroupInfos).
 async function ensureGroupContact(
   sb: any,
   userId: string,
   jid: string,
-  fallbackName: string,
 ): Promise<string | null> {
   if (!jid || !isGroupJid(jid)) return null;
   const phoneLike = normalizePhone(jid) || "0";
-  const safeName =
-    ((fallbackName ?? "").toString().trim().slice(0, 120)) || "Grupo";
 
   const { data: existing } = await sb
     .from("crm_contacts")
-    .select("id,name")
+    .select("id")
     .eq("user_id", userId)
     .eq("wa_jid", jid)
     .maybeSingle();
-  if (existing?.id) {
-    if (fallbackName && existing.name !== safeName) {
-      sb.from("crm_contacts")
-        .update({ name: safeName })
-        .eq("id", existing.id)
-        .then(() => {})
-        .catch(() => {});
-    }
-    return existing.id;
-  }
+  if (existing?.id) return existing.id;
 
   const { data: created, error } = await sb
     .from("crm_contacts")
     .insert({
       user_id: userId,
-      name: safeName,
+      name: "Grupo",
       phone: phoneLike,
       is_group: true,
       wa_jid: jid,
@@ -202,8 +193,9 @@ async function ensureGroupContact(
   return created.id;
 }
 
-// Enriquecimento on-the-fly: quando o grupo ainda não tem subject real ou foto,
-// busca em /group/findGroupInfos e atualiza name/avatar_url.
+// Enriquecimento on-the-fly: busca subject real + foto do grupo via API.
+// Sempre sobrescreve `name` quando a API devolve um subject não-vazio
+// (corrige grupos que ficaram com nome de participante por engano).
 async function enrichGroupIfNeeded(
   sb: any,
   userId: string,
@@ -215,16 +207,6 @@ async function enrichGroupIfNeeded(
     const apiKey = process.env.EVOLUTION_API_KEY?.trim();
     if (!apiUrl || !apiKey) return;
 
-    const { data: row } = await sb
-      .from("crm_contacts")
-      .select("name, avatar_url")
-      .eq("id", contactId)
-      .maybeSingle();
-    if (!row) return;
-    const needsName = !row.name || row.name === "Grupo";
-    const needsPic = !row.avatar_url;
-    if (!needsName && !needsPic) return;
-
     const r = await fetch(
       `${apiUrl}/group/findGroupInfos/${INSTANCE}?groupJid=${encodeURIComponent(jid)}`,
       { method: "GET", headers: { apikey: apiKey } },
@@ -233,11 +215,14 @@ async function enrichGroupIfNeeded(
     const info: any = await r.json().catch(() => null);
     if (!info) return;
 
-    const subject = (info.subject ?? "").toString().trim().slice(0, 120);
-    const pictureUrl = info.pictureUrl ?? info.profilePicUrl ?? null;
+    const subject = (info?.subject ?? info?.groupMetadata?.subject ?? "")
+      .toString()
+      .trim()
+      .slice(0, 120);
+    const pictureUrl = info?.pictureUrl ?? info?.profilePicUrl ?? null;
     const patch: Record<string, any> = {};
-    if (needsName && subject) patch.name = subject;
-    if (needsPic && pictureUrl) patch.avatar_url = pictureUrl;
+    if (subject) patch.name = subject;
+    if (pictureUrl) patch.avatar_url = pictureUrl;
     if (Object.keys(patch).length === 0) return;
 
     await sb
@@ -313,13 +298,19 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
 
               let contactId: string | null = null;
               if (isGroup) {
-                const groupName: string =
-                  msg?.groupMetadata?.subject ??
-                  msg?.pushName ?? // fallback fraco
-                  "Grupo";
-                contactId = await ensureGroupContact(sb, ownerUserId, remoteJid, groupName);
+                contactId = await ensureGroupContact(sb, ownerUserId, remoteJid);
                 if (contactId) {
-                  // best-effort: enriquece com subject real e foto se faltarem
+                  // Tenta usar o subject já enviado no payload (quando vem)
+                  const inlineSubject = (msg?.groupMetadata?.subject ?? "").toString().trim().slice(0, 120);
+                  if (inlineSubject) {
+                    sb.from("crm_contacts")
+                      .update({ name: inlineSubject })
+                      .eq("id", contactId)
+                      .eq("user_id", ownerUserId)
+                      .then(() => {})
+                      .catch(() => {});
+                  }
+                  // best-effort: busca subject real + foto via API
                   enrichGroupIfNeeded(sb, ownerUserId, contactId, remoteJid).catch(() => {});
                 }
               } else {
