@@ -1561,3 +1561,71 @@ function BlacklistTab() {
   );
 }
 
+
+function NotificationsTab() {
+  const [enabled, setEnabled] = useState(true);
+  const [volume, setVolume] = useState(0.4);
+
+  useEffect(() => {
+    setEnabled(isSoundEnabled());
+    setVolume(getSoundVolume());
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-5 space-y-5">
+        <div>
+          <h3 className="text-base font-semibold">Som de mensagens novas</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Toca um som curto sempre que chegar uma mensagem de um contato individual no WhatsWeb. Mensagens de grupos não disparam som.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Label htmlFor="notif-enabled" className="text-sm">
+            Ativar som de notificação
+          </Label>
+          <Switch
+            id="notif-enabled"
+            checked={enabled}
+            onCheckedChange={(v) => {
+              setEnabled(v);
+              setSoundEnabled(v);
+            }}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm flex items-center gap-2">
+              <Volume2 className="size-4" /> Volume
+            </Label>
+            <span className="text-xs text-muted-foreground">{Math.round(volume * 100)}%</span>
+          </div>
+          <Slider
+            value={[volume]}
+            min={0.05}
+            max={1}
+            step={0.05}
+            disabled={!enabled}
+            onValueChange={([v]) => {
+              setVolume(v);
+              setSoundVolume(v);
+            }}
+          />
+        </div>
+
+        <div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => playMessagePing(volume)}
+            disabled={!enabled}
+          >
+            Testar som
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
