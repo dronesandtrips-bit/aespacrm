@@ -163,6 +163,8 @@ function WhatsAppPage() {
             <Separator className="my-4" />
             <SyncContactsButton />
             <Separator className="my-4" />
+            <SyncGroupsButton />
+            <Separator className="my-4" />
             <SyncMessagesButton />
           </div>
         ) : (
@@ -584,3 +586,70 @@ function SyncMessagesButton() {
   );
 }
 
+
+function SyncGroupsButton() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<null | { scanned?: number; updated?: number; info?: string; errors?: string[] }>(null);
+
+  async function runSync() {
+    setLoading(true);
+    setResult(null);
+    try {
+      const c = await getSupabaseClient();
+      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("sessão expirada — faça login novamente");
+
+      const res = await fetch("/api/public/evolution/sync-groups", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.detail || data?.error || `HTTP ${res.status}`);
+      }
+      setResult(data);
+      if ((data.updated ?? 0) > 0) toast.success(`${data.updated} grupo(s) atualizado(s)!`);
+      else toast.info(data.info || "Nada a atualizar");
+    } catch (e: any) {
+      toast.error("Falha ao sincronizar grupos", { description: String(e?.message ?? e) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="text-left space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h4 className="font-semibold text-sm flex items-center gap-2">
+            <Users className="size-4 text-primary" />
+            Sincronizar grupos
+          </h4>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Atualiza nome oficial e foto dos grupos do WhatsApp.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={runSync}
+          disabled={loading}
+          className="gap-2 shrink-0"
+        >
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+          {loading ? "Sincronizando..." : "Sincronizar"}
+        </Button>
+      </div>
+      {result ? (
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-md p-2 space-y-0.5">
+          <div>🔍 Encontrados: <b className="text-foreground">{result.scanned ?? 0}</b></div>
+          <div>✅ Atualizados: <b className="text-foreground">{result.updated ?? 0}</b></div>
+          {result.errors && result.errors.length ? (
+            <div className="text-destructive">⚠️ {result.errors.length} erro(s): {result.errors[0]}</div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
