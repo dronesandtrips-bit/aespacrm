@@ -851,7 +851,7 @@ function InboxPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-sm flex items-center gap-2 text-[color:var(--ww-text)] truncate">
-                      {active.name}
+                      {active.isGroup ? "GRUPO" : active.name}
                       {active.isGroup && (
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-white/10 text-[color:var(--ww-text-muted)] border-0">Grupo</Badge>
                       )}
