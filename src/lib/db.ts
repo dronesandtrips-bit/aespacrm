@@ -72,6 +72,7 @@ export type ChatMessage = {
   mediaMime?: string | null;
   mediaCaption?: string | null;
   status?: string | null;
+  messageId?: string | null;
 };
 
 export type Sequence = {
