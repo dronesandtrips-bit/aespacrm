@@ -83,7 +83,7 @@ function InboxPage() {
     let rows: any[] = [];
     const full = await c
       .from("crm_messages")
-      .select("id,contact_id,body,from_me,at,type,media_url,media_mime,media_caption,status")
+      .select("id,contact_id,body,from_me,at,type,media_url,media_mime,media_caption,status,message_id")
       .order("at", { ascending: false })
       .limit(1000);
 
