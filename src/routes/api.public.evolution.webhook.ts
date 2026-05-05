@@ -318,6 +318,10 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                   msg?.pushName ?? // fallback fraco
                   "Grupo";
                 contactId = await ensureGroupContact(sb, ownerUserId, remoteJid, groupName);
+                if (contactId) {
+                  // best-effort: enriquece com subject real e foto se faltarem
+                  enrichGroupIfNeeded(sb, ownerUserId, contactId, remoteJid).catch(() => {});
+                }
               } else {
                 const phone = normalizePhone(remoteJid);
                 if (!isValidE164(phone)) continue;
