@@ -580,6 +580,78 @@ function InboxPage() {
 
   const active = contacts.find((c) => c.id === activeId);
 
+  const handleAttachClick = () => {
+    if (!activeId || attaching || sending) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !activeId) return;
+    const MAX = 16 * 1024 * 1024;
+    if (file.size > MAX) {
+      toast.error("Arquivo maior que 16MB não é suportado pelo WhatsApp.");
+      return;
+    }
+    const mime = file.type || "application/octet-stream";
+    const isImage = mime.startsWith("image/");
+    const mediatype: "image" | "document" = isImage ? "image" : "document";
+
+    setAttaching(true);
+    try {
+      // converte para base64 puro
+      const base64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(reader.error ?? new Error("falha ao ler arquivo"));
+        reader.onload = () => {
+          const result = reader.result as string;
+          const idx = result.indexOf(",");
+          resolve(idx >= 0 ? result.slice(idx + 1) : result);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      const c = await getSupabaseClient();
+      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("sessão expirada — faça login novamente");
+
+      const caption = draft.trim() || undefined;
+
+      const res = await fetch("/api/public/evolution/send-media-and-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          contactId: activeId,
+          mediatype,
+          media: base64,
+          fileName: file.name,
+          mimetype: mime,
+          caption,
+        }),
+      });
+      const raw = await res.text();
+      let data: any = null;
+      try { data = JSON.parse(raw); } catch {}
+      if (!res.ok || !data?.ok) {
+        const errMsg =
+          (data && (typeof data.error === "string" ? data.error : data.error && JSON.stringify(data.error))) ||
+          raw || `HTTP ${res.status}`;
+        throw new Error(errMsg);
+      }
+      const msg: ChatMessage = data.message;
+      setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
+      setLastByContact((prev) => ({ ...prev, [activeId]: msg }));
+      if (caption) setDraft("");
+      toast.success(isImage ? "Imagem enviada" : "Documento enviado");
+    } catch (err: any) {
+      toast.error(`Erro ao enviar anexo: ${err.message ?? err}`);
+    } finally {
+      setAttaching(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!draft.trim() || !activeId) return;
     setSending(true);
