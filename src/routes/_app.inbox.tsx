@@ -1447,6 +1447,7 @@ function MessageContent({
         messageId={m.messageId}
         alt="sticker"
         className="size-32 object-contain"
+        onOpen={onOpenImage}
       />
     );
   }
