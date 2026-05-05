@@ -304,13 +304,19 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
 
               let contactId: string | null = null;
               if (isGroup) {
-                const groupName: string =
-                  msg?.groupMetadata?.subject ??
-                  msg?.pushName ?? // fallback fraco
-                  "Grupo";
-                contactId = await ensureGroupContact(sb, ownerUserId, remoteJid, groupName);
+                contactId = await ensureGroupContact(sb, ownerUserId, remoteJid);
                 if (contactId) {
-                  // best-effort: enriquece com subject real e foto se faltarem
+                  // Tenta usar o subject já enviado no payload (quando vem)
+                  const inlineSubject = (msg?.groupMetadata?.subject ?? "").toString().trim().slice(0, 120);
+                  if (inlineSubject) {
+                    sb.from("crm_contacts")
+                      .update({ name: inlineSubject })
+                      .eq("id", contactId)
+                      .eq("user_id", ownerUserId)
+                      .then(() => {})
+                      .catch(() => {});
+                  }
+                  // best-effort: busca subject real + foto via API
                   enrichGroupIfNeeded(sb, ownerUserId, contactId, remoteJid).catch(() => {});
                 }
               } else {
