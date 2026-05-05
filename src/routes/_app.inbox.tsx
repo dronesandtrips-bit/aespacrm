@@ -229,8 +229,8 @@ function InboxPage() {
     if (togglingIgnore.has(c.id)) return;
     setTogglingIgnore((prev) => new Set(prev).add(c.id));
     try {
-      const turningOff = !c.isIgnored; // se vai bloquear, manda "off"; se vai liberar, manda "on"
-      const command = turningOff ? "off" : "on";
+      const turningOff = !c.isIgnored; // se vai bloquear, manda "/off"; se vai liberar, manda "/on"
+      const command = turningOff ? "/off" : "/on";
 
       // 1) Dispara o comando no chat do contato (mesma instância do Robo).
       //    O Robo escuta fromMe e pausa/retoma. Se falhar, abortamos para não
@@ -251,10 +251,10 @@ function InboxPage() {
       // 2) Sincroniza a blacklist local (espelho do estado do Robo).
       if (c.isIgnored) {
         await ignoredPhonesDb.removeByPhone(c.phone);
-        toast.success(`${c.name}: comando "on" enviado e removido da blacklist`);
+        toast.success(`${c.name}: comando "/on" enviado e removido da blacklist`);
       } else {
         await ignoredPhonesDb.addOne(c.phone, "manual:whatsweb");
-        toast.success(`${c.name}: comando "off" enviado e adicionado à blacklist`);
+        toast.success(`${c.name}: comando "/off" enviado e adicionado à blacklist`);
       }
       await refreshContacts();
     } catch (e: any) {
