@@ -67,6 +67,9 @@ function InboxPage() {
   const [togglingIgnore, setTogglingIgnore] = useState<Set<string>>(new Set());
   const [editOpen, setEditOpen] = useState(false);
   const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
+  // Viewer de imagem (lightbox) + dialog de encaminhar
+  const [viewer, setViewer] = useState<{ messageId: string; src: string; alt: string } | null>(null);
+  const [forwardMessageId, setForwardMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     sequencesDb.list().then(setSequences).catch(() => {});
