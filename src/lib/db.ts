@@ -728,7 +728,7 @@ export const pipelineDb = {
 // ===================== Mensagens (Inbox) =====================
 
 const MESSAGE_COLUMNS =
-  "id,contact_id,body,from_me,at,type,media_url,media_mime,media_caption,status";
+  "id,contact_id,body,from_me,at,type,media_url,media_mime,media_caption,status,message_id";
 
 function rowToMessage(r: any): ChatMessage {
   return {
@@ -742,6 +742,7 @@ function rowToMessage(r: any): ChatMessage {
     mediaMime: r.media_mime ?? null,
     mediaCaption: r.media_caption ?? null,
     status: r.status ?? null,
+    messageId: r.message_id ?? null,
   };
 }
 
