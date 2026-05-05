@@ -193,8 +193,9 @@ async function ensureGroupContact(
   return created.id;
 }
 
-// Enriquecimento on-the-fly: quando o grupo ainda não tem subject real ou foto,
-// busca em /group/findGroupInfos e atualiza name/avatar_url.
+// Enriquecimento on-the-fly: busca subject real + foto do grupo via API.
+// Sempre sobrescreve `name` quando a API devolve um subject não-vazio
+// (corrige grupos que ficaram com nome de participante por engano).
 async function enrichGroupIfNeeded(
   sb: any,
   userId: string,
@@ -206,16 +207,6 @@ async function enrichGroupIfNeeded(
     const apiKey = process.env.EVOLUTION_API_KEY?.trim();
     if (!apiUrl || !apiKey) return;
 
-    const { data: row } = await sb
-      .from("crm_contacts")
-      .select("name, avatar_url")
-      .eq("id", contactId)
-      .maybeSingle();
-    if (!row) return;
-    const needsName = !row.name || row.name === "Grupo";
-    const needsPic = !row.avatar_url;
-    if (!needsName && !needsPic) return;
-
     const r = await fetch(
       `${apiUrl}/group/findGroupInfos/${INSTANCE}?groupJid=${encodeURIComponent(jid)}`,
       { method: "GET", headers: { apikey: apiKey } },
@@ -224,11 +215,14 @@ async function enrichGroupIfNeeded(
     const info: any = await r.json().catch(() => null);
     if (!info) return;
 
-    const subject = (info.subject ?? "").toString().trim().slice(0, 120);
-    const pictureUrl = info.pictureUrl ?? info.profilePicUrl ?? null;
+    const subject = (info?.subject ?? info?.groupMetadata?.subject ?? "")
+      .toString()
+      .trim()
+      .slice(0, 120);
+    const pictureUrl = info?.pictureUrl ?? info?.profilePicUrl ?? null;
     const patch: Record<string, any> = {};
-    if (needsName && subject) patch.name = subject;
-    if (needsPic && pictureUrl) patch.avatar_url = pictureUrl;
+    if (subject) patch.name = subject;
+    if (pictureUrl) patch.avatar_url = pictureUrl;
     if (Object.keys(patch).length === 0) return;
 
     await sb
