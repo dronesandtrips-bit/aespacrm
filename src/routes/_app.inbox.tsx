@@ -1046,7 +1046,7 @@ function InboxPage() {
                           boxShadow: "var(--ww-shadow-sm)",
                         }}
                       >
-                        <MessageContent m={m} />
+                        <MessageContent m={m} onOpenImage={(messageId, src, alt) => setViewer({ messageId, src, alt })} />
                         <div
                           className={cn(
                             "flex items-center gap-1 mt-1 text-[10px]",
