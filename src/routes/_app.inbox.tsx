@@ -1290,48 +1290,122 @@ function ContactTags({ contact, categories }: { contact: Contact; categories: Ca
   );
 }
 
+function SecureImage({
+  messageId,
+  alt,
+  className,
+}: {
+  messageId: string;
+  alt: string;
+  className?: string;
+}) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    if (src || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const c = await getSupabaseClient();
+      if (!c) throw new Error("sem sessão");
+      const sess = await c.auth.getSession();
+      const token = sess?.data?.session?.access_token;
+      if (!token) throw new Error("sem token");
+      const res = await fetch("/api/public/evolution/media", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      setSrc(URL.createObjectURL(blob));
+    } catch (e: any) {
+      setError(e?.message ?? "erro");
+    } finally {
+      setLoading(false);
+    }
+  }, [messageId, src, loading]);
+
+  useEffect(() => {
+    load();
+    return () => {
+      if (src) URL.revokeObjectURL(src);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messageId]);
+
+  if (src) {
+    return (
+      <a href={src} target="_blank" rel="noreferrer" className="block">
+        <img src={src} alt={alt} className={className} loading="lazy" />
+      </a>
+    );
+  }
+  if (error) {
+    return (
+      <button
+        type="button"
+        onClick={() => { setSrc(null); load(); }}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 hover:bg-black/20 text-xs"
+      >
+        <ImageIcon className="size-4" />
+        Falha ao carregar imagem — tentar novamente
+      </button>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 px-3 py-6 rounded-lg bg-black/10 text-xs opacity-70 min-w-[180px]">
+      <ImageIcon className="size-4 animate-pulse" />
+      Carregando imagem…
+    </div>
+  );
+}
+
 function MessageContent({ m }: { m: ChatMessage }) {
   const type = m.type ?? "text";
-  const caption = m.mediaCaption ?? m.body;
+  const caption = m.mediaCaption ?? (m.body && m.body !== "[imagem]" && m.body !== "[vídeo]" ? m.body : "");
 
-  if (type === "image" && m.mediaUrl) {
+  if (type === "image") {
     return (
       <div className="space-y-1.5">
-        <a href={m.mediaUrl} target="_blank" rel="noreferrer" className="block">
-          <img
-            src={m.mediaUrl}
+        {m.messageId ? (
+          <SecureImage
+            messageId={m.messageId}
             alt={caption || "imagem"}
             className="rounded-lg max-w-full max-h-72 object-contain bg-black/5"
-            loading="lazy"
           />
-        </a>
+        ) : (
+          <p className="italic opacity-70 flex items-center gap-1.5">
+            <ImageIcon className="size-3.5" />
+            Imagem indisponível
+          </p>
+        )}
         {caption ? <p className="whitespace-pre-wrap break-words">{caption}</p> : null}
       </div>
     );
   }
 
-  if (type === "video" && m.mediaUrl) {
+  if (type === "video") {
+    // Política: vídeos NÃO são baixados/descriptografados.
     return (
       <div className="space-y-1.5">
-        <video
-          src={m.mediaUrl}
-          controls
-          className="rounded-lg max-w-full max-h-72 bg-black"
-          preload="metadata"
-        />
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 text-xs opacity-80 min-w-[200px]">
+          <FileText className="size-4" />
+          Vídeo recebido (não baixado)
+        </div>
         {caption ? <p className="whitespace-pre-wrap break-words">{caption}</p> : null}
       </div>
     );
   }
 
-  if (type === "audio" && m.mediaUrl) {
+  if (type === "audio") {
     return (
-      <div className="space-y-1.5 min-w-[220px]">
-        <audio src={m.mediaUrl} controls className="w-full max-w-xs" preload="metadata" />
-        {caption && caption !== m.body ? (
-          <p className="whitespace-pre-wrap break-words">{caption}</p>
-        ) : null}
-      </div>
+      <p className="italic opacity-70 flex items-center gap-1.5">
+        <FileText className="size-3.5" />
+        Áudio recebido
+      </p>
     );
   }
 
@@ -1351,11 +1425,17 @@ function MessageContent({ m }: { m: ChatMessage }) {
     );
   }
 
-  if (type === "sticker" && m.mediaUrl) {
-    return <img src={m.mediaUrl} alt="sticker" className="size-32 object-contain" />;
+  if (type === "sticker" && m.messageId) {
+    return (
+      <SecureImage
+        messageId={m.messageId}
+        alt="sticker"
+        className="size-32 object-contain"
+      />
+    );
   }
 
-  if ((type === "image" || type === "video" || type === "audio" || type === "document") && !m.mediaUrl) {
+  if (type === "document" || type === "sticker") {
     return (
       <p className="italic opacity-70 flex items-center gap-1.5">
         <ImageIcon className="size-3.5" />
