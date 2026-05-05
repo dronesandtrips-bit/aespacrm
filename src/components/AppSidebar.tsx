@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
 
 const items = [
+  { to: "/inbox", label: "WhatsWeb", icon: WhatsAppIcon, highlight: true },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/explorar", label: "Explorar", icon: Search },
   { to: "/contatos", label: "Contatos", icon: Users },
@@ -44,7 +45,6 @@ const items = [
   { to: "/templates", label: "Templates", icon: FileText },
   { to: "/historico-ia", label: "Histórico IA", icon: Sparkles },
   { to: "/logs", label: "Logs", icon: Activity },
-  { to: "/inbox", label: "WhatsWeb", icon: WhatsAppIcon },
   { to: "/pipeline", label: "Pipeline", icon: Kanban },
   { to: "/whatsapp", label: "WhatsApp", icon: Smartphone },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
