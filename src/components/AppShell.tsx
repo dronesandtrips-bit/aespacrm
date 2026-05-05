@@ -4,9 +4,11 @@ import { useAuth } from "@/lib/auth";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useGlobalMessagePing } from "@/hooks/use-global-message-ping";
 
 export function AppShell() {
   const { user, loading } = useAuth();
+  useGlobalMessagePing();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
