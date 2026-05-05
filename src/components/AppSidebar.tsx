@@ -152,7 +152,7 @@ export function AppSidebar({ inSheet = false, onNavigate, focusMode = false }: P
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {items.map(({ to, label, icon: Icon }) => {
+          {items.map(({ to, label, icon: Icon, highlight }) => {
             const active =
               location.pathname === to || location.pathname.startsWith(to + "/");
             const link = (
@@ -163,12 +163,16 @@ export function AppSidebar({ inSheet = false, onNavigate, focusMode = false }: P
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   isCollapsed && "justify-center px-0",
-                  active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  highlight
+                    ? active
+                      ? "bg-[#25D366]/20 text-[#25D366] ring-1 ring-[#25D366]/40"
+                      : "bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20"
+                    : active
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                <Icon className="size-4 shrink-0" />
+                <Icon className={cn("shrink-0", highlight ? "size-6" : "size-4")} />
                 {!isCollapsed && <span className="truncate">{label}</span>}
               </Link>
             );
