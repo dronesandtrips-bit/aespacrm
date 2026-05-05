@@ -36,6 +36,7 @@ import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.s
 import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api.public.evolution.webhook'
 import { Route as ApiPublicEvolutionTestRouteImport } from './routes/api.public.evolution.test'
 import { Route as ApiPublicEvolutionSyncMessagesRouteImport } from './routes/api.public.evolution.sync-messages'
+import { Route as ApiPublicEvolutionSyncGroupsRouteImport } from './routes/api.public.evolution.sync-groups'
 import { Route as ApiPublicEvolutionSyncContactsRouteImport } from './routes/api.public.evolution.sync-contacts'
 import { Route as ApiPublicEvolutionStatusRouteImport } from './routes/api.public.evolution.status'
 import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.public.evolution.send-media'
@@ -194,6 +195,12 @@ const ApiPublicEvolutionSyncMessagesRoute =
   ApiPublicEvolutionSyncMessagesRouteImport.update({
     id: '/api/public/evolution/sync-messages',
     path: '/api/public/evolution/sync-messages',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionSyncGroupsRoute =
+  ApiPublicEvolutionSyncGroupsRouteImport.update({
+    id: '/api/public/evolution/sync-groups',
+    path: '/api/public/evolution/sync-groups',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicEvolutionSyncContactsRoute =
@@ -356,6 +363,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
+  '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
@@ -405,6 +413,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
+  '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
@@ -456,6 +465,7 @@ export interface FileRoutesById {
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
   '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
+  '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
@@ -507,6 +517,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/sync-contacts'
+    | '/api/public/evolution/sync-groups'
     | '/api/public/evolution/sync-messages'
     | '/api/public/evolution/test'
     | '/api/public/evolution/webhook'
@@ -556,6 +567,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/sync-contacts'
+    | '/api/public/evolution/sync-groups'
     | '/api/public/evolution/sync-messages'
     | '/api/public/evolution/test'
     | '/api/public/evolution/webhook'
@@ -606,6 +618,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/status'
     | '/api/public/evolution/sync-contacts'
+    | '/api/public/evolution/sync-groups'
     | '/api/public/evolution/sync-messages'
     | '/api/public/evolution/test'
     | '/api/public/evolution/webhook'
@@ -644,6 +657,7 @@ export interface RootRouteChildren {
   ApiPublicEvolutionSendMediaRoute: typeof ApiPublicEvolutionSendMediaRoute
   ApiPublicEvolutionStatusRoute: typeof ApiPublicEvolutionStatusRoute
   ApiPublicEvolutionSyncContactsRoute: typeof ApiPublicEvolutionSyncContactsRoute
+  ApiPublicEvolutionSyncGroupsRoute: typeof ApiPublicEvolutionSyncGroupsRoute
   ApiPublicEvolutionSyncMessagesRoute: typeof ApiPublicEvolutionSyncMessagesRoute
   ApiPublicEvolutionTestRoute: typeof ApiPublicEvolutionTestRoute
   ApiPublicEvolutionWebhookRoute: typeof ApiPublicEvolutionWebhookRoute
@@ -845,6 +859,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/evolution/sync-messages'
       fullPath: '/api/public/evolution/sync-messages'
       preLoaderRoute: typeof ApiPublicEvolutionSyncMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/sync-groups': {
+      id: '/api/public/evolution/sync-groups'
+      path: '/api/public/evolution/sync-groups'
+      fullPath: '/api/public/evolution/sync-groups'
+      preLoaderRoute: typeof ApiPublicEvolutionSyncGroupsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/evolution/sync-contacts': {
@@ -1058,6 +1079,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEvolutionSendMediaRoute: ApiPublicEvolutionSendMediaRoute,
   ApiPublicEvolutionStatusRoute: ApiPublicEvolutionStatusRoute,
   ApiPublicEvolutionSyncContactsRoute: ApiPublicEvolutionSyncContactsRoute,
+  ApiPublicEvolutionSyncGroupsRoute: ApiPublicEvolutionSyncGroupsRoute,
   ApiPublicEvolutionSyncMessagesRoute: ApiPublicEvolutionSyncMessagesRoute,
   ApiPublicEvolutionTestRoute: ApiPublicEvolutionTestRoute,
   ApiPublicEvolutionWebhookRoute: ApiPublicEvolutionWebhookRoute,
