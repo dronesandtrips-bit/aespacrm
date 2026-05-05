@@ -434,6 +434,13 @@ function InboxPage() {
                 prev.find((m) => m.id === msg.id) ? prev : [...prev, msg],
               );
             }
+            // 🔔 Som de notificação para mensagens recebidas (ignora grupos e fromMe)
+            if (!msg.fromMe && isSoundEnabled()) {
+              const sender = contactsRef.current.find((x) => x.id === msg.contactId);
+              if (!sender?.isGroup) {
+                playMessagePing(getSoundVolume());
+              }
+            }
             // Se o contato ainda não está na lista, recarrega contatos.
             setContacts((prev) => {
               if (prev.some((x) => x.id === msg.contactId)) return prev;
