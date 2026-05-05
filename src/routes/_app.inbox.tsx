@@ -112,6 +112,7 @@ function InboxPage() {
           mediaMime: row.media_mime ?? null,
           mediaCaption: row.media_caption ?? null,
           status: row.status ?? null,
+          messageId: row.message_id ?? null,
         };
       }
     });
