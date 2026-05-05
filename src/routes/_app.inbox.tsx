@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
+import { playMessagePing, isSoundEnabled, getSoundVolume } from "@/lib/notification-sound";
 import { getSupabaseClient, getSupabaseClientSync } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -61,6 +62,8 @@ function InboxPage() {
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef("");
+  const contactsRef = useRef<Contact[]>([]);
+  useEffect(() => { contactsRef.current = contacts; }, [contacts]);
   
 
   // Ações sobre o contato ativo (espelho dos botões da aba Contatos)
@@ -433,6 +436,13 @@ function InboxPage() {
               setMessages((prev) =>
                 prev.find((m) => m.id === msg.id) ? prev : [...prev, msg],
               );
+            }
+            // 🔔 Som de notificação para mensagens recebidas (ignora grupos e fromMe)
+            if (!msg.fromMe && isSoundEnabled()) {
+              const sender = contactsRef.current.find((x) => x.id === msg.contactId);
+              if (!sender?.isGroup) {
+                playMessagePing(getSoundVolume());
+              }
             }
             // Se o contato ainda não está na lista, recarrega contatos.
             setContacts((prev) => {
