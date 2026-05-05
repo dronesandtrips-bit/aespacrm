@@ -42,6 +42,7 @@ import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.pu
 import { Route as ApiPublicEvolutionSendAndLogRouteImport } from './routes/api.public.evolution.send-and-log'
 import { Route as ApiPublicEvolutionSendRouteImport } from './routes/api.public.evolution.send'
 import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.evolution.qr'
+import { Route as ApiPublicEvolutionMediaRouteImport } from './routes/api.public.evolution.media'
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
 import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
 import { Route as ApiPublicEvolutionCheckNumberRouteImport } from './routes/api.public.evolution.check-number'
@@ -228,6 +229,11 @@ const ApiPublicEvolutionQrRoute = ApiPublicEvolutionQrRouteImport.update({
   path: '/api/public/evolution/qr',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEvolutionMediaRoute = ApiPublicEvolutionMediaRouteImport.update({
+  id: '/api/public/evolution/media',
+  path: '/api/public/evolution/media',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEvolutionCreateRoute =
   ApiPublicEvolutionCreateRouteImport.update({
     id: '/api/public/evolution/create',
@@ -335,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
+  '/api/public/evolution/media': typeof ApiPublicEvolutionMediaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
@@ -382,6 +389,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
+  '/api/public/evolution/media': typeof ApiPublicEvolutionMediaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
@@ -431,6 +439,7 @@ export interface FileRoutesById {
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
+  '/api/public/evolution/media': typeof ApiPublicEvolutionMediaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
@@ -480,6 +489,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
+    | '/api/public/evolution/media'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-and-log'
@@ -527,6 +537,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
+    | '/api/public/evolution/media'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-and-log'
@@ -575,6 +586,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
+    | '/api/public/evolution/media'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-and-log'
@@ -611,6 +623,7 @@ export interface RootRouteChildren {
   ApiPublicEvolutionCheckNumberRoute: typeof ApiPublicEvolutionCheckNumberRoute
   ApiPublicEvolutionConfigureWebhookRoute: typeof ApiPublicEvolutionConfigureWebhookRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
+  ApiPublicEvolutionMediaRoute: typeof ApiPublicEvolutionMediaRoute
   ApiPublicEvolutionQrRoute: typeof ApiPublicEvolutionQrRoute
   ApiPublicEvolutionSendRoute: typeof ApiPublicEvolutionSendRoute
   ApiPublicEvolutionSendAndLogRoute: typeof ApiPublicEvolutionSendAndLogRoute
@@ -862,6 +875,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionQrRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution/media': {
+      id: '/api/public/evolution/media'
+      path: '/api/public/evolution/media'
+      fullPath: '/api/public/evolution/media'
+      preLoaderRoute: typeof ApiPublicEvolutionMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/create': {
       id: '/api/public/evolution/create'
       path: '/api/public/evolution/create'
@@ -1009,6 +1029,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEvolutionConfigureWebhookRoute:
     ApiPublicEvolutionConfigureWebhookRoute,
   ApiPublicEvolutionCreateRoute: ApiPublicEvolutionCreateRoute,
+  ApiPublicEvolutionMediaRoute: ApiPublicEvolutionMediaRoute,
   ApiPublicEvolutionQrRoute: ApiPublicEvolutionQrRoute,
   ApiPublicEvolutionSendRoute: ApiPublicEvolutionSendRoute,
   ApiPublicEvolutionSendAndLogRoute: ApiPublicEvolutionSendAndLogRoute,
