@@ -61,6 +61,8 @@ function InboxPage() {
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef("");
+  const contactsRef = useRef<Contact[]>([]);
+  useEffect(() => { contactsRef.current = contacts; }, [contacts]);
   
 
   // Ações sobre o contato ativo (espelho dos botões da aba Contatos)
