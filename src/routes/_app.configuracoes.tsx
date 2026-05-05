@@ -73,6 +73,7 @@ function SettingsPage() {
           <TabsTrigger value="widgets">Widgets</TabsTrigger>
           <TabsTrigger value="ia">IA</TabsTrigger>
           <TabsTrigger value="blacklist">Blacklist</TabsTrigger>
+          <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
           <TabsTrigger value="integracoes">Integrações</TabsTrigger>
           <TabsTrigger value="conta">Conta</TabsTrigger>
         </TabsList>
