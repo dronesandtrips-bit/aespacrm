@@ -1202,14 +1202,23 @@ function InboxPage() {
                   >
                     <Smile className="size-5" />
                   </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+                    className="hidden"
+                    onChange={handleFileSelected}
+                  />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
+                    onClick={handleAttachClick}
+                    disabled={attaching || sending || !activeId}
                     className="size-9 rounded-full text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5 shrink-0"
                     aria-label="Anexar"
                   >
-                    <Paperclip className="size-5" />
+                    {attaching ? <Loader2 className="size-5 animate-spin" /> : <Paperclip className="size-5" />}
                   </Button>
                   <Input
                     value={draft}
