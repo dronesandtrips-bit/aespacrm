@@ -14,6 +14,8 @@ export type Contact = {
   name: string;
   phone: string;
   email?: string | null;
+  /** Site do contato (opcional — preenchido p.ex. via Explorar/Google Maps). */
+  website?: string | null;
   notes?: string | null;
   /** Categoria principal (espelho da 1ª tag — mantido pelo trigger no DB). */
   categoryId?: string | null;
@@ -274,6 +276,7 @@ function rowToContact(r: any): Contact {
     name: r.name,
     phone: r.phone,
     email: r.email,
+    website: r.website ?? null,
     notes: r.notes,
     categoryId: r.category_id,
     categoryIds: [],
@@ -289,7 +292,7 @@ function rowToContact(r: any): Contact {
 }
 
 const CONTACT_COLUMNS =
-  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,is_ignored,is_group,wa_jid,avatar_url";
+  "id,name,phone,email,website,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,is_ignored,is_group,wa_jid,avatar_url";
 
 /**
  * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
@@ -465,6 +468,7 @@ export const contactsDb = {
         name: input.name,
         phone: input.phone,
         email: input.email || null,
+        website: input.website || null,
         notes: input.notes || null,
         category_id: tags[0] ?? null,
       })
@@ -489,6 +493,7 @@ export const contactsDb = {
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.phone !== undefined) dbPatch.phone = patch.phone;
     if (patch.email !== undefined) dbPatch.email = patch.email || null;
+    if (patch.website !== undefined) dbPatch.website = patch.website || null;
     if (patch.notes !== undefined) dbPatch.notes = patch.notes || null;
     if (patch.aiPersonaSummary !== undefined)
       dbPatch.ai_persona_summary = patch.aiPersonaSummary || null;
@@ -569,6 +574,7 @@ export const contactsDb = {
         name: r.name,
         phone: r.phone,
         email: r.email || null,
+        website: r.website || null,
         notes: r.notes || null,
         category_id: tags[0] ?? null,
       });

@@ -219,6 +219,7 @@ function ExplorarPage() {
       await contactsDb.create({
         name: lead.name,
         phone: lead.phone ?? "",
+        website: lead.website || undefined,
         notes: [
           lead.address,
           lead.website,

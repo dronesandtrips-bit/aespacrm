@@ -21,6 +21,7 @@ export function ContactDialog({
   const [name, setName] = useState(initial?.name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
+  const [website, setWebsite] = useState(initial?.website ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const initialTags =
     initial?.categoryIds && initial.categoryIds.length
@@ -49,6 +50,7 @@ export function ContactDialog({
         name: name.trim(),
         phone: phone.trim(),
         email: email.trim() || undefined,
+        website: website.trim() || undefined,
         notes: notes.trim() || undefined,
         categoryIds: selectedIds,
       });
@@ -80,6 +82,16 @@ export function ContactDialog({
         <div className="space-y-1.5">
           <Label htmlFor="e">Email</Label>
           <Input id="e" type="email" value={email ?? ""} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="w">Website</Label>
+          <Input
+            id="w"
+            type="url"
+            value={website ?? ""}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="https://exemplo.com"
+          />
         </div>
         <div className="space-y-1.5">
           <Label>Categorias (tags)</Label>
