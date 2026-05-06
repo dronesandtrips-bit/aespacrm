@@ -77,6 +77,22 @@ function InboxPage() {
   // Viewer de imagem (lightbox) + dialog de encaminhar
   const [viewer, setViewer] = useState<{ messageId: string; src: string; alt: string } | null>(null);
   const [forwardMessageId, setForwardMessageId] = useState<string | null>(null);
+  // Estado REAL do bot do Robo (ZapBot) para o contato ativo. null = desconhecido/loading.
+  const [botPausedActive, setBotPausedActive] = useState<boolean | null>(null);
+  const activePhoneRef = useRef<string>("");
+  const refetchBotPaused = useCallback(async () => {
+    const phone = activePhoneRef.current;
+    if (!phone) return;
+    try {
+      const res = await fetch(`https://roboaespa.lovable.app/api/public/contacts/bot-paused?phone=${phone}`);
+      if (!res.ok) { setBotPausedActive(null); return; }
+      const data = await res.json().catch(() => null);
+      if (activePhoneRef.current !== phone) return;
+      setBotPausedActive(typeof data?.paused === "boolean" ? data.paused : null);
+    } catch {
+      setBotPausedActive(null);
+    }
+  }, []);
 
   useEffect(() => {
     sequencesDb.list().then(setSequences).catch(() => {});
