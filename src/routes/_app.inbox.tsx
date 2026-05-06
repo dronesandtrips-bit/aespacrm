@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Reply, Copy } from "lucide-react";
+import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, BellOff, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Reply, Copy } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
-import { playMessagePing, isSoundEnabled, getSoundVolume } from "@/lib/notification-sound";
+import { playMessagePing, isSoundEnabled, getSoundVolume, setSoundEnabled, unlockNotificationSound } from "@/lib/notification-sound";
 import { getSupabaseClient, getSupabaseClientSync } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -54,6 +54,8 @@ function InboxPage() {
   const [lastByContact, setLastByContact] = useState<LastMap>({});
   const [replyPauseByContact, setReplyPauseByContact] = useState<PauseMap>({});
   const [loading, setLoading] = useState(true);
+  const [soundOn, setSoundOn] = useState<boolean>(true);
+  useEffect(() => { setSoundOn(isSoundEnabled()); }, []);
 
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string>("");
@@ -788,11 +790,28 @@ function InboxPage() {
                 <div className="flex items-center gap-0.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5">
-                        <Bell className="size-4" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
+                        onClick={() => {
+                          const next = !soundOn;
+                          setSoundEnabled(next);
+                          setSoundOn(next);
+                          if (next) {
+                            // Desbloqueia áudio (gesto do usuário) e toca um ping de confirmação
+                            unlockNotificationSound();
+                            setTimeout(() => playMessagePing(getSoundVolume()), 50);
+                            toast.success("Notificações sonoras ativadas");
+                          } else {
+                            toast("Notificações sonoras silenciadas");
+                          }
+                        }}
+                      >
+                        {soundOn ? <Bell className="size-4" /> : <BellOff className="size-4" />}
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Notificações</TooltipContent>
+                    <TooltipContent side="bottom">{soundOn ? "Silenciar notificações" : "Ativar notificações"}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
