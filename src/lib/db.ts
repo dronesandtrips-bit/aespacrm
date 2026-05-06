@@ -34,6 +34,16 @@ export type Contact = {
   /** URL da foto de perfil do WhatsApp (cache da Evolution). */
   avatarUrl?: string | null;
 };
+export type BulkSendStatus =
+  | "pending"
+  | "scheduled"
+  | "in_progress"
+  | "paused"
+  | "completed"
+  | "error"
+  | "cancelled";
+export type BulkSendControl = "run" | "paused" | "cancelled";
+export type BulkSendMediaType = "image" | "document" | "video" | "audio";
 export type BulkSend = {
   id: string;
   name: string;
@@ -41,8 +51,15 @@ export type BulkSend = {
   intervalSeconds: number;
   totalContacts: number;
   sentCount: number;
-  status: "pending" | "in_progress" | "completed" | "error";
+  status: BulkSendStatus;
   createdAt: string;
+  scheduledAt?: string | null;
+  control?: BulkSendControl;
+  mediaType?: BulkSendMediaType | null;
+  mediaMime?: string | null;
+  mediaFilename?: string | null;
+  mediaCaption?: string | null;
+  hasMedia?: boolean;
 };
 export type PipelineStage = {
   id: string;
@@ -838,6 +855,9 @@ export const messagesDb = {
 
 // ===================== Disparos =====================
 
+const BULK_SELECT =
+  "id,name,message,interval_seconds,total_contacts,sent_count,status,created_at,scheduled_at,control,media_type,media_mime,media_filename,media_caption";
+
 function rowToBulk(r: any): BulkSend {
   return {
     id: r.id,
@@ -848,6 +868,13 @@ function rowToBulk(r: any): BulkSend {
     sentCount: r.sent_count,
     status: r.status,
     createdAt: r.created_at,
+    scheduledAt: r.scheduled_at ?? null,
+    control: (r.control ?? "run") as BulkSendControl,
+    mediaType: r.media_type ?? null,
+    mediaMime: r.media_mime ?? null,
+    mediaFilename: r.media_filename ?? null,
+    mediaCaption: r.media_caption ?? null,
+    hasMedia: !!r.media_type,
   };
 }
 
@@ -855,17 +882,17 @@ export const bulkSendsDb = {
   async list(): Promise<BulkSend[]> {
     const c = await client();
     // Sweeper: marca como "error" qualquer disparo travado em in_progress há
-    // mais de 15 min. Worker pode ter sido derrubado (timeout, deploy) sem
-    // gravar o status final, deixando o card eternamente em "Enviando".
+    // mais de 15 min, exceto se estiver pausado pelo usuário (control=paused).
     const staleCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     await c
       .from("crm_bulk_sends")
       .update({ status: "error" })
       .eq("status", "in_progress")
+      .neq("control", "paused")
       .lt("created_at", staleCutoff);
     const { data, error } = await c
       .from("crm_bulk_sends")
-      .select("id,name,message,interval_seconds,total_contacts,sent_count,status,created_at")
+      .select(BULK_SELECT)
       .order("created_at", { ascending: false })
       .limit(50);
     if (error) throw error;
@@ -876,9 +903,18 @@ export const bulkSendsDb = {
     message: string;
     intervalSeconds: number;
     totalContacts: number;
+    scheduledAt?: string | null;
+    media?: {
+      type: BulkSendMediaType;
+      base64: string;
+      mime?: string | null;
+      filename?: string | null;
+      caption?: string | null;
+    } | null;
   }): Promise<BulkSend> {
     const c = await client();
     const user_id = await uid();
+    const isScheduled = !!input.scheduledAt && new Date(input.scheduledAt).getTime() > Date.now() + 5_000;
     const { data, error } = await c
       .from("crm_bulk_sends")
       .insert({
@@ -887,19 +923,30 @@ export const bulkSendsDb = {
         message: input.message,
         interval_seconds: input.intervalSeconds,
         total_contacts: input.totalContacts,
-        status: "in_progress",
+        status: isScheduled ? "scheduled" : "in_progress",
         sent_count: 0,
+        scheduled_at: input.scheduledAt ?? null,
+        control: "run",
+        media_base64: input.media?.base64 ?? null,
+        media_type: input.media?.type ?? null,
+        media_mime: input.media?.mime ?? null,
+        media_filename: input.media?.filename ?? null,
+        media_caption: input.media?.caption ?? null,
       })
-      .select("id,name,message,interval_seconds,total_contacts,sent_count,status,created_at")
+      .select(BULK_SELECT)
       .single();
     if (error) throw error;
     return rowToBulk(data);
   },
-  async update(id: string, patch: Partial<Pick<BulkSend, "sentCount" | "status">>) {
+  async update(
+    id: string,
+    patch: Partial<Pick<BulkSend, "sentCount" | "status" | "control">>,
+  ) {
     const c = await client();
     const dbPatch: Record<string, unknown> = {};
     if (patch.sentCount !== undefined) dbPatch.sent_count = patch.sentCount;
     if (patch.status !== undefined) dbPatch.status = patch.status;
+    if (patch.control !== undefined) dbPatch.control = patch.control;
     const { error } = await c.from("crm_bulk_sends").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
