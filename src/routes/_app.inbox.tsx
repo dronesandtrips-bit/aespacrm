@@ -1109,11 +1109,14 @@ function InboxPage() {
                               size="icon"
                               className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
                               disabled={togglingIgnore.has(active.id)}
-                              onClick={() => handleToggleIgnore(active)}
+                              onClick={async () => {
+                                await handleToggleIgnore(active);
+                                setTimeout(() => { refetchBotPaused(); }, 2000);
+                              }}
                             >
-                              {togglingIgnore.has(active.id) ? (
+                              {togglingIgnore.has(active.id) || botPausedActive === null ? (
                                 <Loader2 className="size-4 animate-spin" />
-                              ) : active.isIgnored ? (
+                              ) : botPausedActive ? (
                                 <ShieldCheck className="size-4 text-emerald-400" />
                               ) : (
                                 <ShieldOff className="size-4 text-amber-400" />
@@ -1121,7 +1124,7 @@ function InboxPage() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {active.isIgnored ? "Restaurar (remover da blacklist)" : "Ignorar (blacklist)"}
+                            {botPausedActive ? "Robo pausado — clique para retomar (/on)" : "Robo ativo — clique para pausar (/off)"}
                           </TooltipContent>
                         </Tooltip>
                       </>
