@@ -416,8 +416,10 @@ function InboxPage() {
   useEffect(() => {
     if (!activeId) {
       setMessages([]);
+      setReplyTo(null);
       return;
     }
+    setReplyTo(null);
     let cancelled = false;
     (async () => {
       try {
