@@ -77,6 +77,22 @@ function InboxPage() {
   // Viewer de imagem (lightbox) + dialog de encaminhar
   const [viewer, setViewer] = useState<{ messageId: string; src: string; alt: string } | null>(null);
   const [forwardMessageId, setForwardMessageId] = useState<string | null>(null);
+  // Estado REAL do bot do Robo (ZapBot) para o contato ativo. null = desconhecido/loading.
+  const [botPausedActive, setBotPausedActive] = useState<boolean | null>(null);
+  const activePhoneRef = useRef<string>("");
+  const refetchBotPaused = useCallback(async () => {
+    const phone = activePhoneRef.current;
+    if (!phone) return;
+    try {
+      const res = await fetch(`https://roboaespa.lovable.app/api/public/contacts/bot-paused?phone=${phone}`);
+      if (!res.ok) { setBotPausedActive(null); return; }
+      const data = await res.json().catch(() => null);
+      if (activePhoneRef.current !== phone) return;
+      setBotPausedActive(typeof data?.paused === "boolean" ? data.paused : null);
+    } catch {
+      setBotPausedActive(null);
+    }
+  }, []);
 
   useEffect(() => {
     sequencesDb.list().then(setSequences).catch(() => {});
@@ -579,6 +595,14 @@ function InboxPage() {
   );
 
   const active = contacts.find((c) => c.id === activeId);
+
+  useEffect(() => {
+    const phone = active?.phone?.replace(/\D/g, "") ?? "";
+    activePhoneRef.current = phone;
+    setBotPausedActive(null);
+    if (!phone) return;
+    refetchBotPaused();
+  }, [active?.phone, refetchBotPaused]);
 
   const handleAttachClick = () => {
     if (!activeId || attaching || sending) return;
@@ -1085,11 +1109,14 @@ function InboxPage() {
                               size="icon"
                               className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
                               disabled={togglingIgnore.has(active.id)}
-                              onClick={() => handleToggleIgnore(active)}
+                              onClick={async () => {
+                                await handleToggleIgnore(active);
+                                setTimeout(() => { refetchBotPaused(); }, 2000);
+                              }}
                             >
-                              {togglingIgnore.has(active.id) ? (
+                              {togglingIgnore.has(active.id) || botPausedActive === null ? (
                                 <Loader2 className="size-4 animate-spin" />
-                              ) : active.isIgnored ? (
+                              ) : botPausedActive ? (
                                 <ShieldCheck className="size-4 text-emerald-400" />
                               ) : (
                                 <ShieldOff className="size-4 text-amber-400" />
@@ -1097,7 +1124,7 @@ function InboxPage() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {active.isIgnored ? "Restaurar (remover da blacklist)" : "Ignorar (blacklist)"}
+                            {botPausedActive ? "Robo pausado — clique para retomar (/on)" : "Robo ativo — clique para pausar (/off)"}
                           </TooltipContent>
                         </Tooltip>
                       </>
