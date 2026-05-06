@@ -1504,6 +1504,67 @@ function SecureImage({
   );
 }
 
+function SecureAudio({ messageId }: { messageId: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    if (src || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const c = await getSupabaseClient();
+      if (!c) throw new Error("sem sessão");
+      const sess = await c.auth.getSession();
+      const token = sess?.data?.session?.access_token;
+      if (!token) throw new Error("sem token");
+      const res = await fetch("/api/public/evolution/media", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      setSrc(URL.createObjectURL(blob));
+    } catch (e: any) {
+      setError(e?.message ?? "erro");
+    } finally {
+      setLoading(false);
+    }
+  }, [messageId, src, loading]);
+
+  useEffect(() => {
+    load();
+    return () => {
+      if (src) URL.revokeObjectURL(src);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messageId]);
+
+  if (src) {
+    return <audio controls src={src} className="max-w-[260px]" preload="metadata" />;
+  }
+  if (error) {
+    return (
+      <button
+        type="button"
+        onClick={() => { setSrc(null); load(); }}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 hover:bg-black/20 text-xs"
+      >
+        <FileText className="size-4" />
+        Falha ao carregar áudio — tentar novamente
+      </button>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 text-xs opacity-70 min-w-[180px]">
+      <FileText className="size-4 animate-pulse" />
+      Carregando áudio…
+    </div>
+  );
+}
+
 function MessageContent({
   m,
   onOpenImage,
