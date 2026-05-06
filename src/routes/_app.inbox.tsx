@@ -77,6 +77,8 @@ function InboxPage() {
   // Viewer de imagem (lightbox) + dialog de encaminhar
   const [viewer, setViewer] = useState<{ messageId: string; src: string; alt: string } | null>(null);
   const [forwardMessageId, setForwardMessageId] = useState<string | null>(null);
+  // Reply (responder) — mensagem em rascunho citada
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   // Estado REAL do bot do Robo (ZapBot) para o contato ativo. null = desconhecido/loading.
   const [botPausedActive, setBotPausedActive] = useState<boolean | null>(null);
   const [botPausedLoading, setBotPausedLoading] = useState(false);
