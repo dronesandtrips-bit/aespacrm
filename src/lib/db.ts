@@ -493,6 +493,7 @@ export const contactsDb = {
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.phone !== undefined) dbPatch.phone = patch.phone;
     if (patch.email !== undefined) dbPatch.email = patch.email || null;
+    if (patch.website !== undefined) dbPatch.website = patch.website || null;
     if (patch.notes !== undefined) dbPatch.notes = patch.notes || null;
     if (patch.aiPersonaSummary !== undefined)
       dbPatch.ai_persona_summary = patch.aiPersonaSummary || null;
