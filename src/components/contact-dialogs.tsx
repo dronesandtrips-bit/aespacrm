@@ -84,6 +84,16 @@ export function ContactDialog({
           <Input id="e" type="email" value={email ?? ""} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="w">Website</Label>
+          <Input
+            id="w"
+            type="url"
+            value={website ?? ""}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="https://exemplo.com"
+          />
+        </div>
+        <div className="space-y-1.5">
           <Label>Categorias (tags)</Label>
           {categories.length === 0 ? (
             <p className="text-xs text-muted-foreground">
