@@ -581,12 +581,12 @@ export const contactsDb = {
     // A dedupe contra o banco é feita pelo upsert(ignoreDuplicates) abaixo,
     // que respeita a unique constraint (user_id, phone) sem precisar carregar
     // a lista completa de contatos existentes (evita o limite de 1000 do PostgREST).
-    const toInsert: any[] = [];
+    const byNorm = new Map<string, any>();
     const tagsByPhone = new Map<string, string[]>();
     let skipped = 0;
     const seenInBatch = new Set<string>();
     for (const r of rows) {
-      const norm = r.phone.replace(/\D/g, "");
+      const norm = normalizeContactPhone(r.phone);
       if (!norm || seenInBatch.has(norm)) {
         skipped++;
         continue;
@@ -595,7 +595,7 @@ export const contactsDb = {
       const tags =
         r.categoryIds && r.categoryIds.length ? r.categoryIds : r.categoryId ? [r.categoryId] : [];
       tagsByPhone.set(norm, tags);
-      toInsert.push({
+      byNorm.set(norm, {
         user_id,
         name: r.name,
         phone: r.phone,
@@ -605,14 +605,28 @@ export const contactsDb = {
         category_id: tags[0] ?? null,
       });
     }
+    const toInsert = Array.from(byNorm.values());
     if (toInsert.length === 0) return { imported: 0, skipped };
 
-    // upsert com ignoreDuplicates: insere os novos e ignora silenciosamente
-    // os que já existem (mesmo user_id + phone). `inserted` traz só os efetivamente novos.
-    const { data: inserted, error } = await c
+    const norms = Array.from(byNorm.keys());
+    const { data: existing, error: existingError } = await c
       .from("crm_contacts")
-      .upsert(toInsert, { onConflict: "user_id,phone", ignoreDuplicates: true })
-      .select("id,phone");
+      .select("phone_norm")
+      .eq("user_id", user_id)
+      .eq("is_group", false)
+      .in("phone_norm", norms)
+      .range(0, norms.length - 1);
+    if (existingError) throw existingError;
+
+    for (const row of existing ?? []) {
+      byNorm.delete(String(row.phone_norm ?? ""));
+    }
+
+    const newRows = Array.from(byNorm.values());
+    skipped += toInsert.length - newRows.length;
+    if (newRows.length === 0) return { imported: 0, skipped };
+
+    const { data: inserted, error } = await c.from("crm_contacts").insert(newRows).select("id,phone");
     if (error) throw error;
 
     const insertedCount = inserted?.length ?? 0;
