@@ -611,7 +611,11 @@ function InboxPage() {
     const phone = active?.phone?.replace(/\D/g, "") ?? "";
     activePhoneRef.current = phone;
     setBotPausedActive(null);
-    if (!phone) return;
+    if (!phone) {
+      botPausedAbortRef.current?.abort();
+      setBotPausedLoading(false);
+      return;
+    }
     refetchBotPaused();
   }, [active?.phone, refetchBotPaused]);
 
