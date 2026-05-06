@@ -687,6 +687,7 @@ function InboxPage() {
       setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
       setLastByContact((prev) => ({ ...prev, [activeId]: msg }));
       if (caption) setDraft("");
+      setReplyTo(null);
       toast.success(isImage ? "Imagem enviada" : "Documento enviado");
     } catch (err: any) {
       toast.error(`Erro ao enviar anexo: ${err.message ?? err}`);
