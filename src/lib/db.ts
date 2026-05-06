@@ -294,6 +294,31 @@ function rowToContact(r: any): Contact {
 const CONTACT_COLUMNS =
   "id,name,phone,email,website,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,is_ignored,is_group,wa_jid,avatar_url";
 
+function normalizeContactPhone(phone: string | null | undefined): string {
+  return String(phone ?? "").replace(/\D/g, "");
+}
+
+function isDuplicateContactPhoneError(error: unknown): boolean {
+  const e = error as { code?: string; message?: string; details?: string } | null;
+  const text = `${e?.message ?? ""} ${e?.details ?? ""}`;
+  return e?.code === "23505" && text.includes("uq_crm_contacts_user_phone");
+}
+
+async function loadExistingContactByPhoneNorm(userId: string, phone: string): Promise<Contact | null> {
+  const norm = normalizeContactPhone(phone);
+  if (!norm) return null;
+  const c = await client();
+  const { data, error } = await c
+    .from("crm_contacts")
+    .select(CONTACT_COLUMNS)
+    .eq("user_id", userId)
+    .eq("is_group", false)
+    .eq("phone_norm", norm)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToContact(data) : null;
+}
+
 /**
  * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
  * Silencioso em caso de erro (não bloqueia a operação principal).
