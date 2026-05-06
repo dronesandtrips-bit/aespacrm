@@ -1194,42 +1194,65 @@ function InboxPage() {
                     const hasLaterInboundReply = m.fromMe && messages.slice(index + 1).some((next) => !next.fromMe);
                     const delivered = isDeliveredStatus(status) || hasLaterInboundReply;
                     const read = isReadStatus(status) || hasLaterInboundReply;
+                    const canForward =
+                      !!m.messageId &&
+                      (m.type === "text" || !m.type || m.type === "image" || m.type === "sticker" || m.type === "audio");
                     return (
                       <div
                         key={m.id}
-                        className={cn(
-                          "max-w-[75%] rounded-2xl px-3 py-2 text-sm",
-                          m.fromMe ? "ml-auto rounded-br-sm" : "mr-auto rounded-bl-sm",
-                        )}
-                        style={{
-                          backgroundColor: m.fromMe ? "var(--ww-bubble-out)" : "var(--ww-bubble-in)",
-                          color: m.fromMe ? "var(--ww-bubble-out-text)" : "var(--ww-bubble-in-text)",
-                          boxShadow: "var(--ww-shadow-sm)",
-                        }}
+                        className={cn("group/msg flex items-start gap-1", m.fromMe ? "justify-end" : "justify-start")}
                       >
-                        <MessageContent m={m} onOpenImage={(messageId, src, alt) => setViewer({ messageId, src, alt })} />
+                        {m.fromMe && (
+                          <MessageActionsMenu
+                            m={m}
+                            canForward={canForward}
+                            onReply={() => setReplyTo(m)}
+                            onForward={() => m.messageId && setForwardMessageId(m.messageId)}
+                          />
+                        )}
                         <div
                           className={cn(
-                            "flex items-center gap-1 mt-1 text-[10px]",
-                            m.fromMe ? "justify-end opacity-80" : "justify-end opacity-60",
+                            "max-w-[75%] rounded-2xl px-3 py-2 text-sm relative",
+                            m.fromMe ? "rounded-br-sm" : "rounded-bl-sm",
                           )}
+                          style={{
+                            backgroundColor: m.fromMe ? "var(--ww-bubble-out)" : "var(--ww-bubble-in)",
+                            color: m.fromMe ? "var(--ww-bubble-out-text)" : "var(--ww-bubble-in-text)",
+                            boxShadow: "var(--ww-shadow-sm)",
+                          }}
                         >
-                          <span>
-                            {new Date(m.at).toLocaleTimeString("pt-BR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                          {m.fromMe && (
-                            read ? (
-                              <CheckCheck className="size-3.5" style={{ color: "#53bdeb" }} />
-                            ) : delivered ? (
-                              <CheckCheck className="size-3.5" style={{ color: "#9aa6b2" }} />
-                            ) : (
-                              <Check className="size-3.5" style={{ color: "#9aa6b2" }} />
-                            )
-                          )}
+                          <MessageContent m={m} onOpenImage={(messageId, src, alt) => setViewer({ messageId, src, alt })} />
+                          <div
+                            className={cn(
+                              "flex items-center gap-1 mt-1 text-[10px]",
+                              m.fromMe ? "justify-end opacity-80" : "justify-end opacity-60",
+                            )}
+                          >
+                            <span>
+                              {new Date(m.at).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                            {m.fromMe && (
+                              read ? (
+                                <CheckCheck className="size-3.5" style={{ color: "#53bdeb" }} />
+                              ) : delivered ? (
+                                <CheckCheck className="size-3.5" style={{ color: "#9aa6b2" }} />
+                              ) : (
+                                <Check className="size-3.5" style={{ color: "#9aa6b2" }} />
+                              )
+                            )}
+                          </div>
                         </div>
+                        {!m.fromMe && (
+                          <MessageActionsMenu
+                            m={m}
+                            canForward={canForward}
+                            onReply={() => setReplyTo(m)}
+                            onForward={() => m.messageId && setForwardMessageId(m.messageId)}
+                          />
+                        )}
                       </div>
                     );
                   })
