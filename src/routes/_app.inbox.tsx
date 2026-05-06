@@ -659,6 +659,7 @@ function InboxPage() {
       if (!token) throw new Error("sessão expirada — faça login novamente");
 
       const caption = draft.trim() || undefined;
+      const quotedMessageId = replyTo?.messageId ?? undefined;
 
       const res = await fetch("/api/public/evolution/send-media-and-log", {
         method: "POST",
@@ -670,6 +671,7 @@ function InboxPage() {
           fileName: file.name,
           mimetype: mime,
           caption,
+          ...(quotedMessageId ? { quotedMessageId } : {}),
         }),
       });
       const raw = await res.text();
