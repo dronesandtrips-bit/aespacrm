@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
-import { playMessagePing, isSoundEnabled, getSoundVolume } from "@/lib/notification-sound";
+import { playMessagePing, isSoundEnabled, getSoundVolume, primeNotificationSoundOnGesture } from "@/lib/notification-sound";
 
 /**
  * Listener global: toca um ping para toda mensagem nova recebida (não-fromMe),
@@ -15,6 +15,7 @@ export function useGlobalMessagePing() {
     let channel: any;
     let cancelled = false;
     const groupCache = new Map<string, boolean>(); // contactId -> isGroup
+    const cleanupAudioUnlock = primeNotificationSoundOnGesture();
 
     (async () => {
       const c = await getSupabaseClient();
@@ -54,6 +55,7 @@ export function useGlobalMessagePing() {
 
     return () => {
       cancelled = true;
+      cleanupAudioUnlock();
       try {
         channel?.unsubscribe?.();
       } catch {
