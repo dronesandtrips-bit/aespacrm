@@ -9,13 +9,49 @@ function getCtx(): AudioContext | null {
   if (ctx) return ctx;
   try {
     const Ctor =
-      (window as any).AudioContext || (window as any).webkitAudioContext;
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return null;
     ctx = new Ctor();
     return ctx;
   } catch {
     return null;
   }
+}
+
+export function unlockNotificationSound() {
+  const c = getCtx();
+  if (!c) return;
+
+  try {
+    if (c.state === "suspended") c.resume().catch(() => {});
+
+    // Alguns navegadores só liberam áudio após uma ação real do usuário.
+    // Este beep silencioso "prepara" o AudioContext sem tocar notificação audível.
+    const t = c.currentTime;
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(0.00001, t);
+    gain.gain.exponentialRampToValueAtTime(0.000001, t + 0.03);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.04);
+  } catch {
+    /* noop */
+  }
+}
+
+export function primeNotificationSoundOnGesture() {
+  if (typeof window === "undefined") return () => {};
+
+  const unlock = () => unlockNotificationSound();
+  window.addEventListener("pointerdown", unlock, { passive: true });
+  window.addEventListener("keydown", unlock);
+
+  return () => {
+    window.removeEventListener("pointerdown", unlock);
+    window.removeEventListener("keydown", unlock);
+  };
 }
 
 export function playMessagePing(volume = 0.4) {
@@ -41,10 +77,7 @@ export function playMessagePing(volume = 0.4) {
       osc.frequency.value = tone.f;
       gain.gain.setValueAtTime(0, t + tone.start);
       gain.gain.linearRampToValueAtTime(volume, t + tone.start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(
-        0.0001,
-        t + tone.start + tone.dur,
-      );
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + tone.start + tone.dur);
       osc.connect(gain).connect(c.destination);
       osc.start(t + tone.start);
       osc.stop(t + tone.start + tone.dur + 0.02);
