@@ -100,6 +100,10 @@ export const Route = createFileRoute("/api/public/evolution/send-media-and-log")
             sendNumber = contact.phone_norm;
           }
 
+          const fallbackRemoteJid = contact.is_group ? (contact.wa_jid ?? "") : `${contact.phone_norm}@s.whatsapp.net`;
+          const quoted = parsed.quotedMessageId
+            ? await buildQuoted(sbAdmin, userId, parsed.quotedMessageId, fallbackRemoteJid)
+            : null;
           const evRes = await fetch(`${apiUrl}/message/sendMedia/${INSTANCE}`, {
             method: "POST",
             headers: { apikey: apiKey, "Content-Type": "application/json" },
@@ -110,6 +114,7 @@ export const Route = createFileRoute("/api/public/evolution/send-media-and-log")
               caption: parsed.caption,
               fileName: parsed.fileName,
               mimetype: parsed.mimetype,
+              ...(quoted ? { quoted } : {}),
             }),
           });
           const evText = await evRes.text();
