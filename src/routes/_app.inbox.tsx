@@ -1892,8 +1892,8 @@ function ImageLightbox({
   );
 }
 
-// ===================== Dialog de Encaminhar Imagem =====================
-function ForwardImageDialog({
+// ===================== Dialog de Encaminhar Mensagem (genérico) =====================
+function ForwardMessageDialog({
   messageId,
   contacts,
   onClose,
@@ -1904,14 +1904,12 @@ function ForwardImageDialog({
 }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [caption, setCaption] = useState("");
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (!messageId) {
       setSelected(new Set());
       setSearch("");
-      setCaption("");
     }
   }, [messageId]);
 
@@ -1943,20 +1941,19 @@ function ForwardImageDialog({
       const sess = await c.auth.getSession();
       const token = sess?.data?.session?.access_token;
       if (!token) throw new Error("sem token");
-      const res = await fetch("/api/public/evolution/forward-media", {
+      const res = await fetch("/api/public/evolution/forward-message", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           messageId,
           contactIds: Array.from(selected),
-          caption: caption.trim() || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok || !data?.ok) {
         throw new Error(data?.error ?? `HTTP ${res.status}`);
       }
-      toast.success(`Imagem encaminhada para ${data.sent}/${data.total} contato(s)`);
+      toast.success(`Encaminhada para ${data.sent}/${data.total} contato(s)`);
       onClose();
     } catch (e: any) {
       toast.error(`Falha ao encaminhar: ${e?.message ?? e}`);
@@ -1969,7 +1966,7 @@ function ForwardImageDialog({
     <Dialog open={!!messageId} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Encaminhar imagem</DialogTitle>
+          <DialogTitle>Encaminhar mensagem</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <Input
@@ -2005,12 +2002,6 @@ function ForwardImageDialog({
               ))
             )}
           </div>
-          <Textarea
-            placeholder="Legenda (opcional)"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            rows={2}
-          />
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={sending}>
@@ -2029,3 +2020,71 @@ function ForwardImageDialog({
     </Dialog>
   );
 }
+
+// ===================== Helpers + Menu de ações da mensagem =====================
+function replyPreviewText(m: ChatMessage): string {
+  const t = m.type ?? "text";
+  if (t === "image") return m.mediaCaption ? `📷 ${m.mediaCaption}` : "📷 Imagem";
+  if (t === "sticker") return "Sticker";
+  if (t === "audio") return "🎤 Mensagem de voz";
+  if (t === "video") return m.mediaCaption ? `🎬 ${m.mediaCaption}` : "🎬 Vídeo";
+  if (t === "document") return `📄 ${m.mediaCaption ?? m.body ?? "Documento"}`;
+  return m.body ?? "";
+}
+
+function MessageActionsMenu({
+  m,
+  canForward,
+  onReply,
+  onForward,
+}: {
+  m: ChatMessage;
+  canForward: boolean;
+  onReply: () => void;
+  onForward: () => void;
+}) {
+  const handleCopy = async () => {
+    const text = m.type === "text" || !m.type ? (m.body ?? "") : (m.mediaCaption ?? m.body ?? "");
+    if (!text) {
+      toast.error("Nada para copiar");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copiado");
+    } catch {
+      toast.error("Falha ao copiar");
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="opacity-0 group-hover/msg:opacity-100 transition-opacity self-center size-7 rounded-full grid place-items-center hover:bg-white/10 text-[color:var(--ww-text-muted)]"
+          aria-label="Ações da mensagem"
+        >
+          <ChevronDown className="size-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onReply(); }}>
+          <Reply className="size-4 opacity-70" />
+          <span>Responder</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleCopy(); }}>
+          <Copy className="size-4 opacity-70" />
+          <span>Copiar</span>
+        </DropdownMenuItem>
+        {canForward && (
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onForward(); }}>
+            <Forward className="size-4 opacity-70" />
+            <span>Encaminhar</span>
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
