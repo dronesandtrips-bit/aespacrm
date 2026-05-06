@@ -9,7 +9,9 @@ function getCtx(): AudioContext | null {
   if (ctx) return ctx;
   try {
     const Ctor =
-      (window as any).AudioContext || (window as any).webkitAudioContext;
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
     if (!Ctor) return null;
     ctx = new Ctor();
     return ctx;
@@ -76,10 +78,7 @@ export function playMessagePing(volume = 0.4) {
       osc.frequency.value = tone.f;
       gain.gain.setValueAtTime(0, t + tone.start);
       gain.gain.linearRampToValueAtTime(volume, t + tone.start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(
-        0.0001,
-        t + tone.start + tone.dur,
-      );
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + tone.start + tone.dur);
       osc.connect(gain).connect(c.destination);
       osc.start(t + tone.start);
       osc.stop(t + tone.start + tone.dur + 0.02);
