@@ -726,7 +726,21 @@ function ContactsPage() {
                     </TableCell>
                     <TableCell className="font-mono text-sm">{c.phone}</TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground">
-                      {c.email || "—"}
+                      <div className="flex flex-col gap-0.5">
+                        <span>{c.email || "—"}</span>
+                        {c.website && (
+                          <a
+                            href={/^https?:\/\//i.test(c.website) ? c.website : `https://${c.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline truncate max-w-[220px]"
+                            onClick={(e) => e.stopPropagation()}
+                            title={c.website}
+                          >
+                            {c.website.replace(/^https?:\/\//, "")}
+                          </a>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {tagObjs.length ? (
