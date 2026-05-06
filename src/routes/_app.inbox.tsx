@@ -54,6 +54,8 @@ function InboxPage() {
   const [lastByContact, setLastByContact] = useState<LastMap>({});
   const [replyPauseByContact, setReplyPauseByContact] = useState<PauseMap>({});
   const [loading, setLoading] = useState(true);
+  const [soundOn, setSoundOn] = useState<boolean>(true);
+  useEffect(() => { setSoundOn(isSoundEnabled()); }, []);
 
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string>("");
