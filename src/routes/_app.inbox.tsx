@@ -79,18 +79,29 @@ function InboxPage() {
   const [forwardMessageId, setForwardMessageId] = useState<string | null>(null);
   // Estado REAL do bot do Robo (ZapBot) para o contato ativo. null = desconhecido/loading.
   const [botPausedActive, setBotPausedActive] = useState<boolean | null>(null);
+  const [botPausedLoading, setBotPausedLoading] = useState(false);
   const activePhoneRef = useRef<string>("");
+  const botPausedAbortRef = useRef<AbortController | null>(null);
   const refetchBotPaused = useCallback(async () => {
     const phone = activePhoneRef.current;
     if (!phone) return;
+    botPausedAbortRef.current?.abort();
+    const controller = new AbortController();
+    botPausedAbortRef.current = controller;
+    setBotPausedLoading(true);
     try {
-      const res = await fetch(`https://robo.aespa.com.br/api/public/contacts/bot-paused?phone=${phone}`);
-      if (!res.ok) { setBotPausedActive(null); return; }
+      const res = await fetch(`https://robo.aespa.com.br/api/public/contacts/bot-paused?phone=${phone}`, { signal: controller.signal });
+      if (!res.ok) return;
       const data = await res.json().catch(() => null);
       if (activePhoneRef.current !== phone) return;
       setBotPausedActive(typeof data?.paused === "boolean" ? data.paused : null);
-    } catch {
-      setBotPausedActive(null);
+    } catch (error: any) {
+      if (error?.name !== "AbortError") setBotPausedActive(null);
+    } finally {
+      if (botPausedAbortRef.current === controller) {
+        botPausedAbortRef.current = null;
+        setBotPausedLoading(false);
+      }
     }
   }, []);
 
@@ -600,7 +611,11 @@ function InboxPage() {
     const phone = active?.phone?.replace(/\D/g, "") ?? "";
     activePhoneRef.current = phone;
     setBotPausedActive(null);
-    if (!phone) return;
+    if (!phone) {
+      botPausedAbortRef.current?.abort();
+      setBotPausedLoading(false);
+      return;
+    }
     refetchBotPaused();
   }, [active?.phone, refetchBotPaused]);
 
@@ -1114,7 +1129,7 @@ function InboxPage() {
                                 setTimeout(() => { refetchBotPaused(); }, 2000);
                               }}
                             >
-                              {togglingIgnore.has(active.id) || botPausedActive === null ? (
+                              {togglingIgnore.has(active.id) || botPausedLoading ? (
                                 <Loader2 className="size-4 animate-spin" />
                               ) : botPausedActive ? (
                                 <ShieldCheck className="size-4 text-emerald-400" />
@@ -1124,7 +1139,7 @@ function InboxPage() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {botPausedActive ? "Robo pausado — clique para retomar (/on)" : "Robo ativo — clique para pausar (/off)"}
+                            {botPausedLoading ? "Consultando ZapBot" : botPausedActive ? "Bot pausado no ZapBot" : "Bot ativo no ZapBot"}
                           </TooltipContent>
                         </Tooltip>
                       </>
