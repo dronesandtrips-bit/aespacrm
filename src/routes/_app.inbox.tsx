@@ -1267,6 +1267,30 @@ function InboxPage() {
                   borderTop: "1px solid var(--ww-border)",
                 }}
               >
+                {replyTo && (
+                  <div
+                    className="flex items-stretch gap-2 mb-2 rounded-md overflow-hidden"
+                    style={{ backgroundColor: "var(--ww-surface)" }}
+                  >
+                    <div className="w-1 shrink-0" style={{ backgroundColor: "#10b981" }} />
+                    <div className="flex-1 min-w-0 py-1.5 pr-2">
+                      <p className="text-[11px] font-semibold text-emerald-400">
+                        {replyTo.fromMe ? "Você" : (active?.name ?? "Contato")}
+                      </p>
+                      <p className="text-xs text-[color:var(--ww-text-muted)] truncate">
+                        {replyPreviewText(replyTo)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReplyTo(null)}
+                      className="px-2 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)]"
+                      aria-label="Cancelar resposta"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                )}
                 <div
                   className="flex items-center gap-2 rounded-full px-2 py-1"
                   style={{ backgroundColor: "var(--ww-surface)" }}
