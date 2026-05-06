@@ -294,6 +294,31 @@ function rowToContact(r: any): Contact {
 const CONTACT_COLUMNS =
   "id,name,phone,email,website,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,is_ignored,is_group,wa_jid,avatar_url";
 
+function normalizeContactPhone(phone: string | null | undefined): string {
+  return String(phone ?? "").replace(/\D/g, "");
+}
+
+function isDuplicateContactPhoneError(error: unknown): boolean {
+  const e = error as { code?: string; message?: string; details?: string } | null;
+  const text = `${e?.message ?? ""} ${e?.details ?? ""}`;
+  return e?.code === "23505" && text.includes("uq_crm_contacts_user_phone");
+}
+
+async function loadExistingContactByPhoneNorm(userId: string, phone: string): Promise<Contact | null> {
+  const norm = normalizeContactPhone(phone);
+  if (!norm) return null;
+  const c = await client();
+  const { data, error } = await c
+    .from("crm_contacts")
+    .select(CONTACT_COLUMNS)
+    .eq("user_id", userId)
+    .eq("is_group", false)
+    .eq("phone_norm", norm)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToContact(data) : null;
+}
+
 /**
  * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
  * Silencioso em caso de erro (não bloqueia a operação principal).
@@ -461,20 +486,23 @@ export const contactsDb = {
         : input.categoryId
           ? [input.categoryId]
           : [];
-    const { data, error } = await c
-      .from("crm_contacts")
-      .insert({
-        user_id,
-        name: input.name,
-        phone: input.phone,
-        email: input.email || null,
-        website: input.website || null,
-        notes: input.notes || null,
-        category_id: tags[0] ?? null,
-      })
-      .select(CONTACT_COLUMNS)
-      .single();
-    if (error) throw error;
+    const payload = {
+      user_id,
+      name: input.name,
+      phone: input.phone,
+      email: input.email || null,
+      website: input.website || null,
+      notes: input.notes || null,
+      category_id: tags[0] ?? null,
+    };
+    const { data, error } = await c.from("crm_contacts").insert(payload).select(CONTACT_COLUMNS).single();
+    if (error) {
+      if (isDuplicateContactPhoneError(error)) {
+        const existing = await loadExistingContactByPhoneNorm(user_id, input.phone);
+        if (existing) return existing;
+      }
+      throw error;
+    }
     const created = rowToContact(data);
     if (tags.length) {
       await setContactCategories(created.id, tags);
@@ -549,16 +577,13 @@ export const contactsDb = {
     const c = await client();
     const user_id = await uid();
 
-    // Dedupe interno do batch (por telefone normalizado).
-    // A dedupe contra o banco é feita pelo upsert(ignoreDuplicates) abaixo,
-    // que respeita a unique constraint (user_id, phone) sem precisar carregar
-    // a lista completa de contatos existentes (evita o limite de 1000 do PostgREST).
-    const toInsert: any[] = [];
+    // Dedupe interno e contra o banco pelo phone_norm, que é a coluna real da unique constraint.
+    const byNorm = new Map<string, any>();
     const tagsByPhone = new Map<string, string[]>();
     let skipped = 0;
     const seenInBatch = new Set<string>();
     for (const r of rows) {
-      const norm = r.phone.replace(/\D/g, "");
+      const norm = normalizeContactPhone(r.phone);
       if (!norm || seenInBatch.has(norm)) {
         skipped++;
         continue;
@@ -567,7 +592,7 @@ export const contactsDb = {
       const tags =
         r.categoryIds && r.categoryIds.length ? r.categoryIds : r.categoryId ? [r.categoryId] : [];
       tagsByPhone.set(norm, tags);
-      toInsert.push({
+      byNorm.set(norm, {
         user_id,
         name: r.name,
         phone: r.phone,
@@ -577,18 +602,32 @@ export const contactsDb = {
         category_id: tags[0] ?? null,
       });
     }
+    const toInsert = Array.from(byNorm.values());
     if (toInsert.length === 0) return { imported: 0, skipped };
 
-    // upsert com ignoreDuplicates: insere os novos e ignora silenciosamente
-    // os que já existem (mesmo user_id + phone). `inserted` traz só os efetivamente novos.
-    const { data: inserted, error } = await c
+    const norms = Array.from(byNorm.keys());
+    const { data: existing, error: existingError } = await c
       .from("crm_contacts")
-      .upsert(toInsert, { onConflict: "user_id,phone", ignoreDuplicates: true })
-      .select("id,phone");
+      .select("phone_norm")
+      .eq("user_id", user_id)
+      .eq("is_group", false)
+      .in("phone_norm", norms)
+      .range(0, norms.length - 1);
+    if (existingError) throw existingError;
+
+    for (const row of existing ?? []) {
+      byNorm.delete(String(row.phone_norm ?? ""));
+    }
+
+    const newRows = Array.from(byNorm.values());
+    skipped += toInsert.length - newRows.length;
+    if (newRows.length === 0) return { imported: 0, skipped };
+
+    const { data: inserted, error } = await c.from("crm_contacts").insert(newRows).select("id,phone");
     if (error) throw error;
 
     const insertedCount = inserted?.length ?? 0;
-    skipped += toInsert.length - insertedCount;
+    skipped += newRows.length - insertedCount;
 
     // Replica nas tags apenas dos efetivamente inseridos
     const ccRows: any[] = [];
