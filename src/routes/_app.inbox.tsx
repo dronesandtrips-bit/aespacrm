@@ -1549,12 +1549,15 @@ function MessageContent({
   }
 
   if (type === "audio") {
-    return (
-      <p className="italic opacity-70 flex items-center gap-1.5">
-        <FileText className="size-3.5" />
-        Áudio recebido
-      </p>
-    );
+    if (!m.messageId) {
+      return (
+        <p className="italic opacity-70 flex items-center gap-1.5">
+          <FileText className="size-3.5" />
+          Áudio indisponível
+        </p>
+      );
+    }
+    return <SecureAudio messageId={m.messageId} />;
   }
 
   if (type === "document" && m.mediaUrl) {
