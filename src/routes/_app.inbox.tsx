@@ -705,13 +705,18 @@ function InboxPage() {
       const token = sess?.session?.access_token;
       if (!token) throw new Error("sessão expirada — faça login novamente");
 
+      const quotedMessageId = replyTo?.messageId ?? undefined;
       const res = await fetch("/api/public/evolution/send-and-log", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ contactId: activeId, text: draft.trim() }),
+        body: JSON.stringify({
+          contactId: activeId,
+          text: draft.trim(),
+          ...(quotedMessageId ? { quotedMessageId } : {}),
+        }),
       });
       const rawBody = await res.text();
       let data: any = null;
@@ -728,6 +733,7 @@ function InboxPage() {
       setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
       setLastByContact((prev) => ({ ...prev, [activeId]: msg }));
       setDraft("");
+      setReplyTo(null);
     } catch (e: any) {
       toast.error(`Erro ao enviar: ${e.message ?? e}`);
     } finally {
