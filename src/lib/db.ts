@@ -276,6 +276,7 @@ function rowToContact(r: any): Contact {
     name: r.name,
     phone: r.phone,
     email: r.email,
+    website: r.website ?? null,
     notes: r.notes,
     categoryId: r.category_id,
     categoryIds: [],
@@ -291,7 +292,7 @@ function rowToContact(r: any): Contact {
 }
 
 const CONTACT_COLUMNS =
-  "id,name,phone,email,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,is_ignored,is_group,wa_jid,avatar_url";
+  "id,name,phone,email,website,notes,category_id,created_at,ai_persona_summary,urgency_level,last_ai_sync,is_ignored,is_group,wa_jid,avatar_url";
 
 /**
  * Se a categoria tem sequência associada, dispara o gatilho de inscrição.
