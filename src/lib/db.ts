@@ -486,20 +486,23 @@ export const contactsDb = {
         : input.categoryId
           ? [input.categoryId]
           : [];
-    const { data, error } = await c
-      .from("crm_contacts")
-      .insert({
-        user_id,
-        name: input.name,
-        phone: input.phone,
-        email: input.email || null,
-        website: input.website || null,
-        notes: input.notes || null,
-        category_id: tags[0] ?? null,
-      })
-      .select(CONTACT_COLUMNS)
-      .single();
-    if (error) throw error;
+    const payload = {
+      user_id,
+      name: input.name,
+      phone: input.phone,
+      email: input.email || null,
+      website: input.website || null,
+      notes: input.notes || null,
+      category_id: tags[0] ?? null,
+    };
+    const { data, error } = await c.from("crm_contacts").insert(payload).select(CONTACT_COLUMNS).single();
+    if (error) {
+      if (isDuplicateContactPhoneError(error)) {
+        const existing = await loadExistingContactByPhoneNorm(user_id, input.phone);
+        if (existing) return existing;
+      }
+      throw error;
+    }
     const created = rowToContact(data);
     if (tags.length) {
       await setContactCategories(created.id, tags);
