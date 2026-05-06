@@ -91,8 +91,9 @@ export const Route = createFileRoute("/api/public/evolution/media")({
         }
 
         const base64: string | undefined = evData?.base64 ?? evData?.media ?? evData?.data;
-        const mimetype: string =
-          evData?.mimetype ?? msgRow.media_mime ?? "image/jpeg";
+        const fallbackMime =
+          msgRow.type === "audio" ? "audio/ogg" : msgRow.type === "sticker" ? "image/webp" : "image/jpeg";
+        const mimetype: string = evData?.mimetype ?? msgRow.media_mime ?? fallbackMime;
 
         if (!base64 || typeof base64 !== "string") {
           return jsonResponse({ ok: false, error: "sem base64 no retorno", raw: evData }, 502);
