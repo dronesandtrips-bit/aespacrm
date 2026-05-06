@@ -17,7 +17,7 @@ import { Plus, Pencil, Trash2, User, LogOut, GripVertical, Plug, Save, Loader2, 
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { isSoundEnabled, setSoundEnabled, getSoundVolume, setSoundVolume, playMessagePing } from "@/lib/notification-sound";
+import { isSoundEnabled, setSoundEnabled, getSoundVolume, setSoundVolume, playMessagePing, unlockNotificationSound } from "@/lib/notification-sound";
 import { Volume2 } from "lucide-react";
 import { categoriesDb, pipelineDb, sequencesDb, widgetsDb, userSettingsDb, ignoredPhonesDb, parseBlacklistInput, type Category, type PipelineStage, type Sequence, type CaptureWidget, type IgnoredPhone } from "@/lib/db";
 import { Textarea } from "@/components/ui/textarea";
@@ -1591,6 +1591,7 @@ function NotificationsTab() {
             onCheckedChange={(v) => {
               setEnabled(v);
               setSoundEnabled(v);
+              if (v) unlockNotificationSound();
             }}
           />
         </div>
