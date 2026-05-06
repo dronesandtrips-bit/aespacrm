@@ -14,6 +14,8 @@ export type Contact = {
   name: string;
   phone: string;
   email?: string | null;
+  /** Site do contato (opcional — preenchido p.ex. via Explorar/Google Maps). */
+  website?: string | null;
   notes?: string | null;
   /** Categoria principal (espelho da 1ª tag — mantido pelo trigger no DB). */
   categoryId?: string | null;
