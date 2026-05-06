@@ -574,6 +574,7 @@ export const contactsDb = {
         name: r.name,
         phone: r.phone,
         email: r.email || null,
+        website: r.website || null,
         notes: r.notes || null,
         category_id: tags[0] ?? null,
       });
