@@ -596,6 +596,14 @@ function InboxPage() {
 
   const active = contacts.find((c) => c.id === activeId);
 
+  useEffect(() => {
+    const phone = active?.phone?.replace(/\D/g, "") ?? "";
+    activePhoneRef.current = phone;
+    setBotPausedActive(null);
+    if (!phone) return;
+    refetchBotPaused();
+  }, [active?.phone, refetchBotPaused]);
+
   const handleAttachClick = () => {
     if (!activeId || attaching || sending) return;
     fileInputRef.current?.click();
