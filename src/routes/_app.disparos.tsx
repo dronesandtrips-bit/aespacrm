@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,14 @@ import {
   AlertCircle,
   Users,
   Clock,
+  Paperclip,
+  X,
+  CalendarClock,
+  Pause,
+  Play,
+  Square,
+  Ban,
+  CalendarDays,
 } from "lucide-react";
 import {
   contactsDb,
@@ -45,6 +53,24 @@ function statusBadge(s: BulkSend["status"]) {
         <Loader2 className="size-3 animate-spin" /> Enviando
       </Badge>
     );
+  if (s === "scheduled")
+    return (
+      <Badge variant="outline" className="border-primary text-primary gap-1">
+        <CalendarClock className="size-3" /> Agendado
+      </Badge>
+    );
+  if (s === "paused")
+    return (
+      <Badge variant="outline" className="gap-1">
+        <Pause className="size-3" /> Pausado
+      </Badge>
+    );
+  if (s === "cancelled")
+    return (
+      <Badge variant="outline" className="border-muted-foreground text-muted-foreground gap-1">
+        <Ban className="size-3" /> Cancelado
+      </Badge>
+    );
   if (s === "error")
     return (
       <Badge variant="outline" className="border-destructive text-destructive gap-1">
@@ -54,6 +80,33 @@ function statusBadge(s: BulkSend["status"]) {
   return <Badge variant="secondary">Pendente</Badge>;
 }
 
+const VARIABLES: Array<{ key: string; desc: string }> = [
+  { key: "{nome}", desc: "Nome completo" },
+  { key: "{primeiro_nome}", desc: "Primeiro nome" },
+  { key: "{empresa}", desc: "Notas/empresa do contato" },
+  { key: "{categoria}", desc: "Categoria principal" },
+];
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const idx = result.indexOf(",");
+      resolve(idx >= 0 ? result.slice(idx + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function detectMediaType(mime: string): "image" | "video" | "audio" | "document" {
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  return "document";
+}
+
 function DisparosPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -61,11 +114,24 @@ function DisparosPage() {
   const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState("");
-  const [message, setMessage] = useState("Olá {nome}, tudo bem?");
+  const [message, setMessage] = useState("Olá {primeiro_nome}, tudo bem?");
   const [interval, setInterval] = useState(3);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState("");
+
+  // Mídia opcional
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [media, setMedia] = useState<{
+    file: File;
+    base64: string;
+    type: "image" | "video" | "audio" | "document";
+  } | null>(null);
+
+  // Agendamento opcional (datetime-local)
+  const [scheduleAt, setScheduleAt] = useState("");
+
+  const insertVar = (v: string) => setMessage((m) => `${m}${v}`);
 
   const load = async () => {
     try {
@@ -87,12 +153,9 @@ function DisparosPage() {
     load().finally(() => setLoading(false));
   }, []);
 
-  // Auto-refresh do histórico a cada 5s para refletir progresso do n8n
   useEffect(() => {
     const t = window.setInterval(async () => {
-      try {
-        setHistory(await bulkSendsDb.list());
-      } catch { /* silencioso */ }
+      try { setHistory(await bulkSendsDb.list()); } catch { /* silencioso */ }
     }, 5000);
     return () => window.clearInterval(t);
   }, []);
@@ -119,24 +182,67 @@ function DisparosPage() {
 
   const previewMessage = useMemo(() => {
     const sample = contacts.find((c) => selected.has(c.id)) || contacts[0];
-    return sample ? message.replaceAll("{nome}", sample.name.split(" ")[0]) : message;
-  }, [message, selected, contacts]);
+    if (!sample) return message;
+    const cat = categories.find((k) => k.id === sample.categoryId);
+    return message
+      .replaceAll("{nome}", sample.name)
+      .replaceAll("{primeiro_nome}", sample.name.split(" ")[0])
+      .replaceAll("{empresa}", (sample.notes ?? "").trim() || sample.name)
+      .replaceAll("{categoria}", cat?.name ?? "");
+  }, [message, selected, contacts, categories]);
+
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 15 * 1024 * 1024) {
+      toast.error("Arquivo muito grande (máx 15 MB)");
+      e.target.value = "";
+      return;
+    }
+    try {
+      const base64 = await fileToBase64(f);
+      setMedia({ file: f, base64, type: detectMediaType(f.type || "") });
+    } catch (err: any) {
+      toast.error(`Falha ao ler arquivo: ${err.message ?? err}`);
+    } finally {
+      e.target.value = "";
+    }
+  };
 
   const handleDispatch = async () => {
     if (!name.trim()) return toast.error("Dê um nome ao disparo");
-    if (!message.trim()) return toast.error("Escreva uma mensagem");
+    if (!message.trim() && !media) return toast.error("Escreva uma mensagem ou anexe mídia");
     if (selected.size === 0) return toast.error("Selecione ao menos 1 contato");
+
+    let scheduledAtIso: string | null = null;
+    if (scheduleAt) {
+      const d = new Date(scheduleAt);
+      if (isNaN(d.getTime())) return toast.error("Data/hora de agendamento inválida");
+      if (d.getTime() < Date.now() + 30_000) {
+        return toast.error("Agendamento deve ser pelo menos 30s no futuro");
+      }
+      scheduledAtIso = d.toISOString();
+    }
+
     setSubmitting(true);
     try {
-      // 1. Cria registro do disparo
       const bulk = await bulkSendsDb.create({
         name: name.trim(),
-        message: message.trim(),
+        message: message.trim() || (media?.file.name ?? ""),
         intervalSeconds: interval,
         totalContacts: selected.size,
+        scheduledAt: scheduledAtIso,
+        media: media
+          ? {
+              type: media.type,
+              base64: media.base64,
+              mime: media.file.type || null,
+              filename: media.file.name,
+              caption: message.trim() || null,
+            }
+          : null,
       });
 
-      // 2. Dispara worker em background (com JWT do usuário)
       const c = await getSupabaseClient();
       const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
       const token = sess?.session?.access_token;
@@ -151,29 +257,54 @@ function DisparosPage() {
         body: JSON.stringify({
           bulkId: bulk.id,
           contactIds: Array.from(selected),
-          message: message.trim(),
+          message: message.trim() || (media?.file.name ?? "[mídia]"),
           intervalSeconds: interval,
+          scheduledAt: scheduledAtIso,
+          media: media
+            ? {
+                type: media.type,
+                base64: media.base64,
+                mime: media.file.type || undefined,
+                filename: media.file.name,
+                caption: message.trim() || undefined,
+              }
+            : undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        // Marca como erro pra UI refletir
         await bulkSendsDb.update(bulk.id, { status: "error" });
-        throw new Error(
-          typeof data.error === "string" ? data.error : "falha ao iniciar disparo",
-        );
+        throw new Error(typeof data.error === "string" ? data.error : "falha ao iniciar disparo");
       }
 
-      toast.success(
-        `🚀 Disparo iniciado para ${selected.size} contatos (${interval}s entre envios)`,
-      );
+      if (scheduledAtIso) {
+        toast.success(`📅 Disparo agendado para ${new Date(scheduledAtIso).toLocaleString("pt-BR")}`);
+      } else {
+        toast.success(`🚀 Disparo iniciado para ${selected.size} contatos`);
+      }
       setHistory(await bulkSendsDb.list());
       setName("");
       setSelected(new Set());
+      setMedia(null);
+      setScheduleAt("");
     } catch (e: any) {
       toast.error(`Erro: ${e.message ?? e}`);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const setControl = async (b: BulkSend, control: "run" | "paused" | "cancelled") => {
+    try {
+      await bulkSendsDb.update(b.id, { control });
+      const label =
+        control === "paused" ? "Pausando…" :
+        control === "run" ? "Retomando…" :
+        "Cancelando…";
+      toast.success(label);
+      setHistory(await bulkSendsDb.list());
+    } catch (e: any) {
+      toast.error(`Falha: ${e.message ?? e}`);
     }
   };
 
@@ -185,7 +316,7 @@ function DisparosPage() {
           <div>
             <h3 className="font-semibold">Configurar disparo</h3>
             <p className="text-xs text-muted-foreground">
-              Use <code className="px-1 py-0.5 rounded bg-muted text-xs">{"{nome}"}</code> para personalizar
+              Use variáveis para personalizar a mensagem
             </p>
           </div>
           <div className="space-y-1.5">
@@ -198,20 +329,86 @@ function DisparosPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="dm">Mensagem</Label>
+            <Label htmlFor="dm">Mensagem {media && <span className="text-xs text-muted-foreground">(legenda da mídia)</span>}</Label>
             <Textarea id="dm" value={message} onChange={(e) => setMessage(e.target.value)} rows={4} />
+            <div className="flex flex-wrap gap-1.5">
+              {VARIABLES.map((v) => (
+                <button
+                  key={v.key}
+                  type="button"
+                  onClick={() => insertVar(v.key)}
+                  title={v.desc}
+                  className="px-2 py-0.5 rounded text-xs font-mono border bg-muted hover:bg-muted/70 transition"
+                >
+                  {v.key}
+                </button>
+              ))}
+            </div>
             <p className="text-xs text-muted-foreground">
               Prévia: <span className="text-foreground italic">"{previewMessage}"</span>
             </p>
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Intervalo entre envios</Label>
-              <Badge variant="secondary" className="gap-1">
-                <Clock className="size-3" /> {interval}s
-              </Badge>
+
+          {/* Mídia */}
+          <div className="space-y-1.5">
+            <Label>Mídia (opcional)</Label>
+            {media ? (
+              <div className="flex items-center justify-between gap-2 p-2 rounded-lg border bg-muted/30">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Paperclip className="size-4 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm truncate">{media.file.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {media.type} · {(media.file.size / 1024).toFixed(0)} KB
+                    </p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setMedia(null)}>
+                  <X className="size-4" />
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  hidden
+                  accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
+                  onChange={onPickFile}
+                />
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-2">
+                  <Paperclip className="size-4" /> Anexar arquivo (máx 15 MB)
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Intervalo entre envios</Label>
+                <Badge variant="secondary" className="gap-1">
+                  <Clock className="size-3" /> {interval}s
+                </Badge>
+              </div>
+              <Slider value={[interval]} onValueChange={([v]) => setInterval(v)} min={1} max={60} step={1} />
             </div>
-            <Slider value={[interval]} onValueChange={([v]) => setInterval(v)} min={1} max={60} step={1} />
+            <div className="space-y-1.5">
+              <Label htmlFor="ds" className="flex items-center gap-1.5">
+                <CalendarDays className="size-3.5" /> Agendar (opcional)
+              </Label>
+              <Input
+                id="ds"
+                type="datetime-local"
+                value={scheduleAt}
+                onChange={(e) => setScheduleAt(e.target.value)}
+              />
+              {scheduleAt && (
+                <p className="text-xs text-muted-foreground">
+                  Inicia em {new Date(scheduleAt).toLocaleString("pt-BR")}
+                </p>
+              )}
+            </div>
           </div>
         </Card>
 
@@ -303,8 +500,9 @@ function DisparosPage() {
 
         <div className="flex justify-end">
           <Button size="lg" onClick={handleDispatch} className="gap-2" disabled={submitting}>
-            {submitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-            Disparar para {selected.size} contatos
+            {submitting ? <Loader2 className="size-4 animate-spin" /> :
+             scheduleAt ? <CalendarClock className="size-4" /> : <Send className="size-4" />}
+            {scheduleAt ? "Agendar para" : "Disparar para"} {selected.size} contatos
           </Button>
         </div>
       </div>
@@ -321,14 +519,24 @@ function DisparosPage() {
           )}
           {history.slice(0, 20).map((b) => {
             const pct = b.totalContacts > 0 ? Math.round((b.sentCount / b.totalContacts) * 100) : 0;
+            const canPause = b.status === "in_progress" && b.control !== "paused";
+            const canResume = b.status === "paused" || b.control === "paused";
+            const canCancel = ["scheduled", "in_progress", "paused"].includes(b.status);
             return (
               <div key={b.id} className="border rounded-lg p-3 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{b.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(b.createdAt).toLocaleString("pt-BR")}
+                      {b.scheduledAt && b.status === "scheduled"
+                        ? `⏰ ${new Date(b.scheduledAt).toLocaleString("pt-BR")}`
+                        : new Date(b.createdAt).toLocaleString("pt-BR")}
                     </p>
+                    {b.hasMedia && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Paperclip className="size-3" /> {b.mediaType}
+                      </p>
+                    )}
                   </div>
                   {statusBadge(b.status)}
                 </div>
@@ -341,6 +549,25 @@ function DisparosPage() {
                     <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
+                {(canPause || canResume || canCancel) && (
+                  <div className="flex gap-1 pt-1">
+                    {canPause && (
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setControl(b, "paused")}>
+                        <Pause className="size-3" /> Pausar
+                      </Button>
+                    )}
+                    {canResume && (
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setControl(b, "run")}>
+                        <Play className="size-3" /> Retomar
+                      </Button>
+                    )}
+                    {canCancel && (
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-destructive" onClick={() => setControl(b, "cancelled")}>
+                        <Square className="size-3" /> Cancelar
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
