@@ -1,6 +1,20 @@
 import { useEffect } from "react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
-import { playMessagePing, isSoundEnabled, getSoundVolume, primeNotificationSoundOnGesture } from "@/lib/notification-sound";
+import {
+  playMessagePing,
+  isSoundEnabled,
+  getSoundVolume,
+  primeNotificationSoundOnGesture,
+} from "@/lib/notification-sound";
+
+type MessageInsert = {
+  contact_id?: string | null;
+  from_me?: boolean | null;
+};
+
+type ContactGroupFlag = {
+  is_group?: boolean | null;
+};
 
 /**
  * Listener global: toca um ping para toda mensagem nova recebida (não-fromMe),
@@ -12,7 +26,7 @@ import { playMessagePing, isSoundEnabled, getSoundVolume, primeNotificationSound
  */
 export function useGlobalMessagePing() {
   useEffect(() => {
-    let channel: any;
+    let channel: { unsubscribe?: () => void } | undefined;
     let cancelled = false;
     const groupCache = new Map<string, boolean>(); // contactId -> isGroup
     const cleanupAudioUnlock = primeNotificationSoundOnGesture();
@@ -25,12 +39,13 @@ export function useGlobalMessagePing() {
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "aespacrm", table: "crm_messages" },
-          async (payload: any) => {
+          async (payload: { new: MessageInsert }) => {
             const row = payload.new;
             if (row?.from_me) return;
             if (!isSoundEnabled()) return;
 
-            const contactId: string = row.contact_id;
+            const contactId = row.contact_id;
+            if (!contactId) return;
             let isGroup = groupCache.get(contactId);
             if (isGroup === undefined) {
               try {
@@ -40,7 +55,7 @@ export function useGlobalMessagePing() {
                   .select("is_group")
                   .eq("id", contactId)
                   .maybeSingle();
-                isGroup = !!(data as any)?.is_group;
+                isGroup = !!(data as ContactGroupFlag | null)?.is_group;
                 groupCache.set(contactId, isGroup);
               } catch {
                 isGroup = false;
