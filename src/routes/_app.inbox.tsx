@@ -790,11 +790,28 @@ function InboxPage() {
                 <div className="flex items-center gap-0.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5">
-                        <Bell className="size-4" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
+                        onClick={() => {
+                          const next = !soundOn;
+                          setSoundEnabled(next);
+                          setSoundOn(next);
+                          if (next) {
+                            // Desbloqueia áudio (gesto do usuário) e toca um ping de confirmação
+                            unlockNotificationSound();
+                            setTimeout(() => playMessagePing(getSoundVolume()), 50);
+                            toast.success("Notificações sonoras ativadas");
+                          } else {
+                            toast("Notificações sonoras silenciadas");
+                          }
+                        }}
+                      >
+                        {soundOn ? <Bell className="size-4" /> : <BellOff className="size-4" />}
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Notificações</TooltipContent>
+                    <TooltipContent side="bottom">{soundOn ? "Silenciar notificações" : "Ativar notificações"}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
