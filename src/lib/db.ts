@@ -549,19 +549,17 @@ export const contactsDb = {
     const c = await client();
     const user_id = await uid();
 
-    // Telefones já existentes (para reportar skipped)
-    const { data: existing } = await c.from("crm_contacts").select("phone");
-    const existingNorm = new Set(
-      (existing ?? []).map((e: any) => String(e.phone).replace(/\D/g, "")),
-    );
-
+    // Dedupe interno do batch (por telefone normalizado).
+    // A dedupe contra o banco é feita pelo upsert(ignoreDuplicates) abaixo,
+    // que respeita a unique constraint (user_id, phone) sem precisar carregar
+    // a lista completa de contatos existentes (evita o limite de 1000 do PostgREST).
     const toInsert: any[] = [];
     const tagsByPhone = new Map<string, string[]>();
     let skipped = 0;
     const seenInBatch = new Set<string>();
     for (const r of rows) {
       const norm = r.phone.replace(/\D/g, "");
-      if (!norm || existingNorm.has(norm) || seenInBatch.has(norm)) {
+      if (!norm || seenInBatch.has(norm)) {
         skipped++;
         continue;
       }
@@ -580,12 +578,19 @@ export const contactsDb = {
       });
     }
     if (toInsert.length === 0) return { imported: 0, skipped };
+
+    // upsert com ignoreDuplicates: insere os novos e ignora silenciosamente
+    // os que já existem (mesmo user_id + phone). `inserted` traz só os efetivamente novos.
     const { data: inserted, error } = await c
       .from("crm_contacts")
-      .insert(toInsert)
+      .upsert(toInsert, { onConflict: "user_id,phone", ignoreDuplicates: true })
       .select("id,phone");
     if (error) throw error;
-    // Replica nas tags
+
+    const insertedCount = inserted?.length ?? 0;
+    skipped += toInsert.length - insertedCount;
+
+    // Replica nas tags apenas dos efetivamente inseridos
     const ccRows: any[] = [];
     for (const row of inserted ?? []) {
       const norm = String(row.phone).replace(/\D/g, "");
@@ -598,7 +603,7 @@ export const contactsDb = {
       const { error: ccErr } = await c.from("crm_contact_categories").insert(ccRows);
       if (ccErr) console.error("bulkImport contact_categories", ccErr);
     }
-    return { imported: toInsert.length, skipped };
+    return { imported: insertedCount, skipped };
   },
   /** API pública para a UI: definir as tags de um contato. */
   setCategories: setContactCategories,
