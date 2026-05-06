@@ -468,6 +468,7 @@ export const contactsDb = {
         name: input.name,
         phone: input.phone,
         email: input.email || null,
+        website: input.website || null,
         notes: input.notes || null,
         category_id: tags[0] ?? null,
       })
