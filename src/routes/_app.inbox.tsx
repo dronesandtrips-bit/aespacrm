@@ -1473,8 +1473,8 @@ function InboxPage() {
         }}
       />
 
-      {/* Dialog de encaminhar imagem */}
-      <ForwardImageDialog
+      {/* Dialog de encaminhar mensagem (texto, imagem, sticker, áudio) */}
+      <ForwardMessageDialog
         messageId={forwardMessageId}
         contacts={contacts}
         onClose={() => setForwardMessageId(null)}
