@@ -577,10 +577,7 @@ export const contactsDb = {
     const c = await client();
     const user_id = await uid();
 
-    // Dedupe interno do batch (por telefone normalizado).
-    // A dedupe contra o banco é feita pelo upsert(ignoreDuplicates) abaixo,
-    // que respeita a unique constraint (user_id, phone) sem precisar carregar
-    // a lista completa de contatos existentes (evita o limite de 1000 do PostgREST).
+    // Dedupe interno e contra o banco pelo phone_norm, que é a coluna real da unique constraint.
     const byNorm = new Map<string, any>();
     const tagsByPhone = new Map<string, string[]>();
     let skipped = 0;
@@ -630,7 +627,7 @@ export const contactsDb = {
     if (error) throw error;
 
     const insertedCount = inserted?.length ?? 0;
-    skipped += toInsert.length - insertedCount;
+    skipped += newRows.length - insertedCount;
 
     // Replica nas tags apenas dos efetivamente inseridos
     const ccRows: any[] = [];
