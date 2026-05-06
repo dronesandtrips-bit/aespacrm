@@ -1129,7 +1129,7 @@ function InboxPage() {
                                 setTimeout(() => { refetchBotPaused(); }, 2000);
                               }}
                             >
-                              {togglingIgnore.has(active.id) || botPausedActive === null ? (
+                              {togglingIgnore.has(active.id) || botPausedLoading ? (
                                 <Loader2 className="size-4 animate-spin" />
                               ) : botPausedActive ? (
                                 <ShieldCheck className="size-4 text-emerald-400" />
@@ -1139,7 +1139,7 @@ function InboxPage() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {botPausedActive ? "Robo pausado — clique para retomar (/on)" : "Robo ativo — clique para pausar (/off)"}
+                            {botPausedLoading ? "Consultando ZapBot" : botPausedActive ? "Bot pausado no ZapBot" : "Bot ativo no ZapBot"}
                           </TooltipContent>
                         </Tooltip>
                       </>
