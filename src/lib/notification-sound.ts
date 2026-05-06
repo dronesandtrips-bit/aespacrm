@@ -18,6 +18,41 @@ function getCtx(): AudioContext | null {
   }
 }
 
+export function unlockNotificationSound() {
+  const c = getCtx();
+  if (!c) return;
+
+  try {
+    if (c.state === "suspended") c.resume().catch(() => {});
+
+    // Alguns navegadores só liberam áudio após uma ação real do usuário.
+    // Este beep silencioso "prepara" o AudioContext sem tocar notificação audível.
+    const t = c.currentTime;
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(0.00001, t);
+    gain.gain.exponentialRampToValueAtTime(0.000001, t + 0.03);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t);
+    osc.stop(t + 0.04);
+  } catch {
+    /* noop */
+  }
+}
+
+export function primeNotificationSoundOnGesture() {
+  if (typeof window === "undefined") return () => {};
+
+  const unlock = () => unlockNotificationSound();
+  window.addEventListener("pointerdown", unlock, { passive: true });
+  window.addEventListener("keydown", unlock);
+
+  return () => {
+    window.removeEventListener("pointerdown", unlock);
+    window.removeEventListener("keydown", unlock);
+  };
+}
+
 export function playMessagePing(volume = 0.4) {
   const c = getCtx();
   if (!c) return;
