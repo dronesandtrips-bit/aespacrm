@@ -232,6 +232,7 @@ function DisparosPage() {
         intervalSeconds: interval,
         totalContacts: selected.size,
         scheduledAt: scheduledAtIso,
+        contactIds: Array.from(selected),
         media: media
           ? {
               type: media.type,

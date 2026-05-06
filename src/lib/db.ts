@@ -904,6 +904,7 @@ export const bulkSendsDb = {
     intervalSeconds: number;
     totalContacts: number;
     scheduledAt?: string | null;
+    contactIds?: string[];
     media?: {
       type: BulkSendMediaType;
       base64: string;
@@ -927,6 +928,7 @@ export const bulkSendsDb = {
         sent_count: 0,
         scheduled_at: input.scheduledAt ?? null,
         control: "run",
+        contact_ids: input.contactIds ?? null,
         media_base64: input.media?.base64 ?? null,
         media_type: input.media?.type ?? null,
         media_mime: input.media?.mime ?? null,
