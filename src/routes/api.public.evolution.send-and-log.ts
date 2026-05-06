@@ -110,11 +110,15 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
           sendNumber = contact.phone_norm;
         }
 
-        // Envia via Evolution
+        // Envia via Evolution (com quoted opcional)
+        const fallbackRemoteJid = contact.is_group ? (contact.wa_jid ?? "") : `${contact.phone_norm}@s.whatsapp.net`;
+        const quoted = parsed.quotedMessageId
+          ? await buildQuoted(sbAdmin, userId, parsed.quotedMessageId, fallbackRemoteJid)
+          : null;
         const evRes = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
           method: "POST",
           headers: { apikey: apiKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ number: sendNumber, text: parsed.text }),
+          body: JSON.stringify({ number: sendNumber, text: parsed.text, ...(quoted ? { quoted } : {}) }),
         });
         const evText = await evRes.text();
         let evData: any = evText;
