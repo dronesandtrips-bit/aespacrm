@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward } from "lucide-react";
+import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Reply, Copy } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
 import { playMessagePing, isSoundEnabled, getSoundVolume } from "@/lib/notification-sound";
@@ -77,6 +77,8 @@ function InboxPage() {
   // Viewer de imagem (lightbox) + dialog de encaminhar
   const [viewer, setViewer] = useState<{ messageId: string; src: string; alt: string } | null>(null);
   const [forwardMessageId, setForwardMessageId] = useState<string | null>(null);
+  // Reply (responder) — mensagem em rascunho citada
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   // Estado REAL do bot do Robo (ZapBot) para o contato ativo. null = desconhecido/loading.
   const [botPausedActive, setBotPausedActive] = useState<boolean | null>(null);
   const [botPausedLoading, setBotPausedLoading] = useState(false);
@@ -414,8 +416,10 @@ function InboxPage() {
   useEffect(() => {
     if (!activeId) {
       setMessages([]);
+      setReplyTo(null);
       return;
     }
+    setReplyTo(null);
     let cancelled = false;
     (async () => {
       try {
@@ -657,6 +661,7 @@ function InboxPage() {
       if (!token) throw new Error("sessão expirada — faça login novamente");
 
       const caption = draft.trim() || undefined;
+      const quotedMessageId = replyTo?.messageId ?? undefined;
 
       const res = await fetch("/api/public/evolution/send-media-and-log", {
         method: "POST",
@@ -668,6 +673,7 @@ function InboxPage() {
           fileName: file.name,
           mimetype: mime,
           caption,
+          ...(quotedMessageId ? { quotedMessageId } : {}),
         }),
       });
       const raw = await res.text();
@@ -683,6 +689,7 @@ function InboxPage() {
       setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
       setLastByContact((prev) => ({ ...prev, [activeId]: msg }));
       if (caption) setDraft("");
+      setReplyTo(null);
       toast.success(isImage ? "Imagem enviada" : "Documento enviado");
     } catch (err: any) {
       toast.error(`Erro ao enviar anexo: ${err.message ?? err}`);
@@ -700,13 +707,18 @@ function InboxPage() {
       const token = sess?.session?.access_token;
       if (!token) throw new Error("sessão expirada — faça login novamente");
 
+      const quotedMessageId = replyTo?.messageId ?? undefined;
       const res = await fetch("/api/public/evolution/send-and-log", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ contactId: activeId, text: draft.trim() }),
+        body: JSON.stringify({
+          contactId: activeId,
+          text: draft.trim(),
+          ...(quotedMessageId ? { quotedMessageId } : {}),
+        }),
       });
       const rawBody = await res.text();
       let data: any = null;
@@ -723,6 +735,7 @@ function InboxPage() {
       setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
       setLastByContact((prev) => ({ ...prev, [activeId]: msg }));
       setDraft("");
+      setReplyTo(null);
     } catch (e: any) {
       toast.error(`Erro ao enviar: ${e.message ?? e}`);
     } finally {
@@ -1181,42 +1194,65 @@ function InboxPage() {
                     const hasLaterInboundReply = m.fromMe && messages.slice(index + 1).some((next) => !next.fromMe);
                     const delivered = isDeliveredStatus(status) || hasLaterInboundReply;
                     const read = isReadStatus(status) || hasLaterInboundReply;
+                    const canForward =
+                      !!m.messageId &&
+                      (m.type === "text" || !m.type || m.type === "image" || m.type === "sticker" || m.type === "audio");
                     return (
                       <div
                         key={m.id}
-                        className={cn(
-                          "max-w-[75%] rounded-2xl px-3 py-2 text-sm",
-                          m.fromMe ? "ml-auto rounded-br-sm" : "mr-auto rounded-bl-sm",
-                        )}
-                        style={{
-                          backgroundColor: m.fromMe ? "var(--ww-bubble-out)" : "var(--ww-bubble-in)",
-                          color: m.fromMe ? "var(--ww-bubble-out-text)" : "var(--ww-bubble-in-text)",
-                          boxShadow: "var(--ww-shadow-sm)",
-                        }}
+                        className={cn("group/msg flex items-start gap-1", m.fromMe ? "justify-end" : "justify-start")}
                       >
-                        <MessageContent m={m} onOpenImage={(messageId, src, alt) => setViewer({ messageId, src, alt })} />
+                        {m.fromMe && (
+                          <MessageActionsMenu
+                            m={m}
+                            canForward={canForward}
+                            onReply={() => setReplyTo(m)}
+                            onForward={() => m.messageId && setForwardMessageId(m.messageId)}
+                          />
+                        )}
                         <div
                           className={cn(
-                            "flex items-center gap-1 mt-1 text-[10px]",
-                            m.fromMe ? "justify-end opacity-80" : "justify-end opacity-60",
+                            "max-w-[75%] rounded-2xl px-3 py-2 text-sm relative",
+                            m.fromMe ? "rounded-br-sm" : "rounded-bl-sm",
                           )}
+                          style={{
+                            backgroundColor: m.fromMe ? "var(--ww-bubble-out)" : "var(--ww-bubble-in)",
+                            color: m.fromMe ? "var(--ww-bubble-out-text)" : "var(--ww-bubble-in-text)",
+                            boxShadow: "var(--ww-shadow-sm)",
+                          }}
                         >
-                          <span>
-                            {new Date(m.at).toLocaleTimeString("pt-BR", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                          {m.fromMe && (
-                            read ? (
-                              <CheckCheck className="size-3.5" style={{ color: "#53bdeb" }} />
-                            ) : delivered ? (
-                              <CheckCheck className="size-3.5" style={{ color: "#9aa6b2" }} />
-                            ) : (
-                              <Check className="size-3.5" style={{ color: "#9aa6b2" }} />
-                            )
-                          )}
+                          <MessageContent m={m} onOpenImage={(messageId, src, alt) => setViewer({ messageId, src, alt })} />
+                          <div
+                            className={cn(
+                              "flex items-center gap-1 mt-1 text-[10px]",
+                              m.fromMe ? "justify-end opacity-80" : "justify-end opacity-60",
+                            )}
+                          >
+                            <span>
+                              {new Date(m.at).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                            {m.fromMe && (
+                              read ? (
+                                <CheckCheck className="size-3.5" style={{ color: "#53bdeb" }} />
+                              ) : delivered ? (
+                                <CheckCheck className="size-3.5" style={{ color: "#9aa6b2" }} />
+                              ) : (
+                                <Check className="size-3.5" style={{ color: "#9aa6b2" }} />
+                              )
+                            )}
+                          </div>
                         </div>
+                        {!m.fromMe && (
+                          <MessageActionsMenu
+                            m={m}
+                            canForward={canForward}
+                            onReply={() => setReplyTo(m)}
+                            onForward={() => m.messageId && setForwardMessageId(m.messageId)}
+                          />
+                        )}
                       </div>
                     );
                   })
@@ -1231,6 +1267,30 @@ function InboxPage() {
                   borderTop: "1px solid var(--ww-border)",
                 }}
               >
+                {replyTo && (
+                  <div
+                    className="flex items-stretch gap-2 mb-2 rounded-md overflow-hidden"
+                    style={{ backgroundColor: "var(--ww-surface)" }}
+                  >
+                    <div className="w-1 shrink-0" style={{ backgroundColor: "#10b981" }} />
+                    <div className="flex-1 min-w-0 py-1.5 pr-2">
+                      <p className="text-[11px] font-semibold text-emerald-400">
+                        {replyTo.fromMe ? "Você" : (active?.name ?? "Contato")}
+                      </p>
+                      <p className="text-xs text-[color:var(--ww-text-muted)] truncate">
+                        {replyPreviewText(replyTo)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReplyTo(null)}
+                      className="px-2 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)]"
+                      aria-label="Cancelar resposta"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                )}
                 <div
                   className="flex items-center gap-2 rounded-full px-2 py-1"
                   style={{ backgroundColor: "var(--ww-surface)" }}
@@ -1413,8 +1473,8 @@ function InboxPage() {
         }}
       />
 
-      {/* Dialog de encaminhar imagem */}
-      <ForwardImageDialog
+      {/* Dialog de encaminhar mensagem (texto, imagem, sticker, áudio) */}
+      <ForwardMessageDialog
         messageId={forwardMessageId}
         contacts={contacts}
         onClose={() => setForwardMessageId(null)}
@@ -1832,8 +1892,8 @@ function ImageLightbox({
   );
 }
 
-// ===================== Dialog de Encaminhar Imagem =====================
-function ForwardImageDialog({
+// ===================== Dialog de Encaminhar Mensagem (genérico) =====================
+function ForwardMessageDialog({
   messageId,
   contacts,
   onClose,
@@ -1844,14 +1904,12 @@ function ForwardImageDialog({
 }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [caption, setCaption] = useState("");
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (!messageId) {
       setSelected(new Set());
       setSearch("");
-      setCaption("");
     }
   }, [messageId]);
 
@@ -1883,20 +1941,19 @@ function ForwardImageDialog({
       const sess = await c.auth.getSession();
       const token = sess?.data?.session?.access_token;
       if (!token) throw new Error("sem token");
-      const res = await fetch("/api/public/evolution/forward-media", {
+      const res = await fetch("/api/public/evolution/forward-message", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           messageId,
           contactIds: Array.from(selected),
-          caption: caption.trim() || undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok || !data?.ok) {
         throw new Error(data?.error ?? `HTTP ${res.status}`);
       }
-      toast.success(`Imagem encaminhada para ${data.sent}/${data.total} contato(s)`);
+      toast.success(`Encaminhada para ${data.sent}/${data.total} contato(s)`);
       onClose();
     } catch (e: any) {
       toast.error(`Falha ao encaminhar: ${e?.message ?? e}`);
@@ -1909,7 +1966,7 @@ function ForwardImageDialog({
     <Dialog open={!!messageId} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Encaminhar imagem</DialogTitle>
+          <DialogTitle>Encaminhar mensagem</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <Input
@@ -1945,12 +2002,6 @@ function ForwardImageDialog({
               ))
             )}
           </div>
-          <Textarea
-            placeholder="Legenda (opcional)"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            rows={2}
-          />
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={sending}>
@@ -1969,3 +2020,71 @@ function ForwardImageDialog({
     </Dialog>
   );
 }
+
+// ===================== Helpers + Menu de ações da mensagem =====================
+function replyPreviewText(m: ChatMessage): string {
+  const t = m.type ?? "text";
+  if (t === "image") return m.mediaCaption ? `📷 ${m.mediaCaption}` : "📷 Imagem";
+  if (t === "sticker") return "Sticker";
+  if (t === "audio") return "🎤 Mensagem de voz";
+  if (t === "video") return m.mediaCaption ? `🎬 ${m.mediaCaption}` : "🎬 Vídeo";
+  if (t === "document") return `📄 ${m.mediaCaption ?? m.body ?? "Documento"}`;
+  return m.body ?? "";
+}
+
+function MessageActionsMenu({
+  m,
+  canForward,
+  onReply,
+  onForward,
+}: {
+  m: ChatMessage;
+  canForward: boolean;
+  onReply: () => void;
+  onForward: () => void;
+}) {
+  const handleCopy = async () => {
+    const text = m.type === "text" || !m.type ? (m.body ?? "") : (m.mediaCaption ?? m.body ?? "");
+    if (!text) {
+      toast.error("Nada para copiar");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copiado");
+    } catch {
+      toast.error("Falha ao copiar");
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="opacity-0 group-hover/msg:opacity-100 transition-opacity self-center size-7 rounded-full grid place-items-center hover:bg-white/10 text-[color:var(--ww-text-muted)]"
+          aria-label="Ações da mensagem"
+        >
+          <ChevronDown className="size-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onReply(); }}>
+          <Reply className="size-4 opacity-70" />
+          <span>Responder</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); handleCopy(); }}>
+          <Copy className="size-4 opacity-70" />
+          <span>Copiar</span>
+        </DropdownMenuItem>
+        {canForward && (
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); onForward(); }}>
+            <Forward className="size-4 opacity-70" />
+            <span>Encaminhar</span>
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+

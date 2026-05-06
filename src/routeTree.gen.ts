@@ -45,6 +45,7 @@ import { Route as ApiPublicEvolutionSendAndLogRouteImport } from './routes/api.p
 import { Route as ApiPublicEvolutionSendRouteImport } from './routes/api.public.evolution.send'
 import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.evolution.qr'
 import { Route as ApiPublicEvolutionMediaRouteImport } from './routes/api.public.evolution.media'
+import { Route as ApiPublicEvolutionForwardMessageRouteImport } from './routes/api.public.evolution.forward-message'
 import { Route as ApiPublicEvolutionForwardMediaRouteImport } from './routes/api.public.evolution.forward-media'
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
 import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
@@ -250,6 +251,12 @@ const ApiPublicEvolutionMediaRoute = ApiPublicEvolutionMediaRouteImport.update({
   path: '/api/public/evolution/media',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEvolutionForwardMessageRoute =
+  ApiPublicEvolutionForwardMessageRouteImport.update({
+    id: '/api/public/evolution/forward-message',
+    path: '/api/public/evolution/forward-message',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEvolutionForwardMediaRoute =
   ApiPublicEvolutionForwardMediaRouteImport.update({
     id: '/api/public/evolution/forward-media',
@@ -370,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/forward-media': typeof ApiPublicEvolutionForwardMediaRoute
+  '/api/public/evolution/forward-message': typeof ApiPublicEvolutionForwardMessageRoute
   '/api/public/evolution/media': typeof ApiPublicEvolutionMediaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
@@ -422,6 +430,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/forward-media': typeof ApiPublicEvolutionForwardMediaRoute
+  '/api/public/evolution/forward-message': typeof ApiPublicEvolutionForwardMessageRoute
   '/api/public/evolution/media': typeof ApiPublicEvolutionMediaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
@@ -476,6 +485,7 @@ export interface FileRoutesById {
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
   '/api/public/evolution/forward-media': typeof ApiPublicEvolutionForwardMediaRoute
+  '/api/public/evolution/forward-message': typeof ApiPublicEvolutionForwardMessageRoute
   '/api/public/evolution/media': typeof ApiPublicEvolutionMediaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
@@ -530,6 +540,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/forward-media'
+    | '/api/public/evolution/forward-message'
     | '/api/public/evolution/media'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
@@ -582,6 +593,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/forward-media'
+    | '/api/public/evolution/forward-message'
     | '/api/public/evolution/media'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
@@ -635,6 +647,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
     | '/api/public/evolution/forward-media'
+    | '/api/public/evolution/forward-message'
     | '/api/public/evolution/media'
     | '/api/public/evolution/qr'
     | '/api/public/evolution/send'
@@ -676,6 +689,7 @@ export interface RootRouteChildren {
   ApiPublicEvolutionConfigureWebhookRoute: typeof ApiPublicEvolutionConfigureWebhookRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
   ApiPublicEvolutionForwardMediaRoute: typeof ApiPublicEvolutionForwardMediaRoute
+  ApiPublicEvolutionForwardMessageRoute: typeof ApiPublicEvolutionForwardMessageRoute
   ApiPublicEvolutionMediaRoute: typeof ApiPublicEvolutionMediaRoute
   ApiPublicEvolutionQrRoute: typeof ApiPublicEvolutionQrRoute
   ApiPublicEvolutionSendRoute: typeof ApiPublicEvolutionSendRoute
@@ -951,6 +965,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionMediaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution/forward-message': {
+      id: '/api/public/evolution/forward-message'
+      path: '/api/public/evolution/forward-message'
+      fullPath: '/api/public/evolution/forward-message'
+      preLoaderRoute: typeof ApiPublicEvolutionForwardMessageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/forward-media': {
       id: '/api/public/evolution/forward-media'
       path: '/api/public/evolution/forward-media'
@@ -1114,6 +1135,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicEvolutionConfigureWebhookRoute,
   ApiPublicEvolutionCreateRoute: ApiPublicEvolutionCreateRoute,
   ApiPublicEvolutionForwardMediaRoute: ApiPublicEvolutionForwardMediaRoute,
+  ApiPublicEvolutionForwardMessageRoute: ApiPublicEvolutionForwardMessageRoute,
   ApiPublicEvolutionMediaRoute: ApiPublicEvolutionMediaRoute,
   ApiPublicEvolutionQrRoute: ApiPublicEvolutionQrRoute,
   ApiPublicEvolutionSendRoute: ApiPublicEvolutionSendRoute,

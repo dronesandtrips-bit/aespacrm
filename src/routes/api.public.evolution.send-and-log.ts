@@ -18,7 +18,34 @@ function normalizeUrl(value: string) {
 const Schema = z.object({
   contactId: z.string().uuid(),
   text: z.string().trim().min(1).max(4096),
+  quotedMessageId: z.string().trim().min(1).max(200).optional(),
 });
+
+// Monta o objeto `quoted` do Evolution a partir de uma mensagem do CRM.
+// Retorna null se não encontrar — o envio segue normal sem citação.
+async function buildQuoted(
+  sbAdmin: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  quotedMessageId: string,
+  fallbackRemoteJid: string,
+): Promise<any | null> {
+  const { data: q } = await sbAdmin
+    .from("crm_messages")
+    .select("message_id, from_me, remote_jid, body, type, media_caption")
+    .eq("user_id", userId)
+    .eq("message_id", quotedMessageId)
+    .maybeSingle();
+  if (!q || !q.message_id) return null;
+  const text = q.type === "text" ? (q.body ?? "") : (q.media_caption ?? q.body ?? "");
+  return {
+    key: {
+      id: q.message_id,
+      fromMe: !!q.from_me,
+      remoteJid: q.remote_jid ?? fallbackRemoteJid,
+    },
+    message: { conversation: text || "" },
+  };
+}
 
 export const Route = createFileRoute("/api/public/evolution/send-and-log")({
   server: {
@@ -83,11 +110,15 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
           sendNumber = contact.phone_norm;
         }
 
-        // Envia via Evolution
+        // Envia via Evolution (com quoted opcional)
+        const fallbackRemoteJid = contact.is_group ? (contact.wa_jid ?? "") : `${contact.phone_norm}@s.whatsapp.net`;
+        const quoted = parsed.quotedMessageId
+          ? await buildQuoted(sbAdmin, userId, parsed.quotedMessageId, fallbackRemoteJid)
+          : null;
         const evRes = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
           method: "POST",
           headers: { apikey: apiKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ number: sendNumber, text: parsed.text }),
+          body: JSON.stringify({ number: sendNumber, text: parsed.text, ...(quoted ? { quoted } : {}) }),
         });
         const evText = await evRes.text();
         let evData: any = evText;
