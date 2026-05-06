@@ -50,6 +50,7 @@ import { Route as ApiPublicEvolutionForwardMediaRouteImport } from './routes/api
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
 import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
 import { Route as ApiPublicEvolutionCheckNumberRouteImport } from './routes/api.public.evolution.check-number'
+import { Route as ApiPublicEvolutionBulkTickRouteImport } from './routes/api.public.evolution.bulk-tick'
 import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api.public.evolution.bulk-dispatch'
 import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
 import { Route as ApiPublicContactsBlacklistToggleRouteImport } from './routes/api.public.contacts.blacklist-toggle'
@@ -281,6 +282,12 @@ const ApiPublicEvolutionCheckNumberRoute =
     path: '/api/public/evolution/check-number',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicEvolutionBulkTickRoute =
+  ApiPublicEvolutionBulkTickRouteImport.update({
+    id: '/api/public/evolution/bulk-tick',
+    path: '/api/public/evolution/bulk-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEvolutionBulkDispatchRoute =
   ApiPublicEvolutionBulkDispatchRouteImport.update({
     id: '/api/public/evolution/bulk-dispatch',
@@ -373,6 +380,7 @@ export interface FileRoutesByFullPath {
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
+  '/api/public/evolution/bulk-tick': typeof ApiPublicEvolutionBulkTickRoute
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -426,6 +434,7 @@ export interface FileRoutesByTo {
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
+  '/api/public/evolution/bulk-tick': typeof ApiPublicEvolutionBulkTickRoute
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -481,6 +490,7 @@ export interface FileRoutesById {
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
+  '/api/public/evolution/bulk-tick': typeof ApiPublicEvolutionBulkTickRoute
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -536,6 +546,7 @@ export interface FileRouteTypes {
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
+    | '/api/public/evolution/bulk-tick'
     | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -589,6 +600,7 @@ export interface FileRouteTypes {
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
+    | '/api/public/evolution/bulk-tick'
     | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -643,6 +655,7 @@ export interface FileRouteTypes {
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
+    | '/api/public/evolution/bulk-tick'
     | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -685,6 +698,7 @@ export interface RootRouteChildren {
   ApiPublicContactsBlacklistToggleRoute: typeof ApiPublicContactsBlacklistToggleRoute
   ApiPublicContactsCleanupRoute: typeof ApiPublicContactsCleanupRoute
   ApiPublicEvolutionBulkDispatchRoute: typeof ApiPublicEvolutionBulkDispatchRoute
+  ApiPublicEvolutionBulkTickRoute: typeof ApiPublicEvolutionBulkTickRoute
   ApiPublicEvolutionCheckNumberRoute: typeof ApiPublicEvolutionCheckNumberRoute
   ApiPublicEvolutionConfigureWebhookRoute: typeof ApiPublicEvolutionConfigureWebhookRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
@@ -1000,6 +1014,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionCheckNumberRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution/bulk-tick': {
+      id: '/api/public/evolution/bulk-tick'
+      path: '/api/public/evolution/bulk-tick'
+      fullPath: '/api/public/evolution/bulk-tick'
+      preLoaderRoute: typeof ApiPublicEvolutionBulkTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/bulk-dispatch': {
       id: '/api/public/evolution/bulk-dispatch'
       path: '/api/public/evolution/bulk-dispatch'
@@ -1130,6 +1151,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicContactsBlacklistToggleRoute: ApiPublicContactsBlacklistToggleRoute,
   ApiPublicContactsCleanupRoute: ApiPublicContactsCleanupRoute,
   ApiPublicEvolutionBulkDispatchRoute: ApiPublicEvolutionBulkDispatchRoute,
+  ApiPublicEvolutionBulkTickRoute: ApiPublicEvolutionBulkTickRoute,
   ApiPublicEvolutionCheckNumberRoute: ApiPublicEvolutionCheckNumberRoute,
   ApiPublicEvolutionConfigureWebhookRoute:
     ApiPublicEvolutionConfigureWebhookRoute,
