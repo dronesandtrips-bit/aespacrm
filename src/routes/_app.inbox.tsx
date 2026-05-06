@@ -84,7 +84,7 @@ function InboxPage() {
     const phone = activePhoneRef.current;
     if (!phone) return;
     try {
-      const res = await fetch(`https://roboaespa.lovable.app/api/public/contacts/bot-paused?phone=${phone}`);
+      const res = await fetch(`https://robo.aespa.com.br/api/public/contacts/bot-paused?phone=${phone}`);
       if (!res.ok) { setBotPausedActive(null); return; }
       const data = await res.json().catch(() => null);
       if (activePhoneRef.current !== phone) return;
