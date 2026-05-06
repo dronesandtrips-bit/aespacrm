@@ -50,6 +50,7 @@ export function ContactDialog({
         name: name.trim(),
         phone: phone.trim(),
         email: email.trim() || undefined,
+        website: website.trim() || undefined,
         notes: notes.trim() || undefined,
         categoryIds: selectedIds,
       });
