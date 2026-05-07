@@ -92,11 +92,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const hydrate = async (client: AuthSupabaseClient, s: Session | null) => {
-    setSession(s);
     if (!s?.user) {
+      setSession(s);
       setUser(null);
       return;
     }
+    const allowed = await isAllowedUser(client, s.user.id);
+    if (!allowed) {
+      // eslint-disable-next-line no-console
+      console.warn("[auth] session rejected — user not in allowlist:", s.user.email);
+      await client.auth.signOut();
+      setSession(null);
+      setUser(null);
+      return;
+    }
+    setSession(s);
     const profile = await fetchProfile(client, s.user.id);
     setUser(profileToUser(profile, s.user.email ?? "", s.user.id));
   };
@@ -118,17 +128,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const { data: sub } = client.auth.onAuthStateChange((_event, s) => {
-          setSession(s);
-          if (s?.user) {
-            setTimeout(() => {
-              fetchProfile(client, s.user.id).then((p) => {
-                if (!active) return;
-                setUser(profileToUser(p, s.user.email ?? "", s.user.id));
-              });
-            }, 0);
-          } else {
+          if (!s?.user) {
+            setSession(s);
             setUser(null);
+            return;
           }
+          setTimeout(async () => {
+            const allowed = await isAllowedUser(client, s.user.id);
+            if (!active) return;
+            if (!allowed) {
+              // eslint-disable-next-line no-console
+              console.warn("[auth] auth-state session rejected — not in allowlist:", s.user.email);
+              await client.auth.signOut();
+              setSession(null);
+              setUser(null);
+              return;
+            }
+            setSession(s);
+            const p = await fetchProfile(client, s.user.id);
+            if (!active) return;
+            setUser(profileToUser(p, s.user.email ?? "", s.user.id));
+          }, 0);
         });
 
         unsubscribe = () => sub.subscription.unsubscribe();
@@ -163,8 +183,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const client = await ensureClient();
-    const { error } = await client.auth.signInWithPassword({ email, password });
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    if (!data.user) throw new Error("Falha no login");
+    const allowed = await isAllowedUser(client, data.user.id);
+    if (!allowed) {
+      await client.auth.signOut();
+      throw new Error(ACCESS_DENIED_MSG);
+    }
   };
 
   const logout = async () => {
