@@ -187,6 +187,37 @@ function InboxPage() {
     }
   };
 
+  const [syncing, setSyncing] = useState(false);
+  const handleSync = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    const t = toast.loading("Sincronizando mensagens recentes…");
+    try {
+      const c = await getSupabaseClient();
+      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("sessão expirada — faça login novamente");
+      const res = await fetch("/api/public/evolution/sync-messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ days: 3 }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || j?.ok === false) {
+        throw new Error(j?.error || j?.detail || `HTTP ${res.status}`);
+      }
+      await refreshInbox();
+      toast.success(
+        `Sincronizado: ${j.messagesImported ?? 0} mensagens em ${j.contactsWithMessages ?? 0} conversas`,
+        { id: t },
+      );
+    } catch (e: any) {
+      toast.error(`Falha na sincronização: ${e.message ?? e}`, { id: t });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleEnrich = async (c: Contact) => {
     if (enriching.has(c.id)) return;
     let webhookUrl: string | null = null;
@@ -835,12 +866,13 @@ function InboxPage() {
                         variant="ghost"
                         size="icon"
                         className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
-                        onClick={() => refreshContacts()}
+                        onClick={() => handleSync()}
+                        disabled={syncing}
                       >
-                        <RefreshCw className="size-4" />
+                        <RefreshCw className={cn("size-4", syncing && "animate-spin")} />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Sincronizar</TooltipContent>
+                    <TooltipContent side="bottom">{syncing ? "Sincronizando…" : "Sincronizar mensagens recentes"}</TooltipContent>
                   </Tooltip>
                 </div>
               </TooltipProvider>
