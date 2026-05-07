@@ -42,12 +42,18 @@ export async function runBulkDispatch(opts: {
 
   await sb.from("crm_bulk_sends").update({ status: "in_progress" }).eq("id", bulkId);
 
-  const { data: contacts } = await sb
+  const { data: contacts, error: contactsError } = await sb
     .from("crm_contacts")
-    .select("id, name, phone_norm, notes, category_id, crm_categories(name)")
+    .select("id, name, phone_norm, notes, category_id, category:crm_categories!crm_contacts_category_id_fkey(name)")
     .eq("user_id", userId)
     .eq("is_group", false)
     .in("id", contactIds);
+
+  if (contactsError) {
+    console.error("[bulk] contacts query failed", contactsError);
+    await sb.from("crm_bulk_sends").update({ status: "error" }).eq("id", bulkId).eq("user_id", userId);
+    throw contactsError;
+  }
 
   const valid = (contacts ?? []).filter((c: any) => c.phone_norm);
   let sent = 0;
@@ -83,7 +89,7 @@ export async function runBulkDispatch(opts: {
     const fullName = String(c.name ?? "");
     const firstName = fullName.split(" ")[0] ?? fullName;
     const company = String(c.notes ?? "").trim() || fullName;
-    const category = (c.crm_categories?.name as string) ?? "";
+    const category = (c.category?.name as string) ?? "";
     const text = applyVars(message, { name: fullName, firstName, company, category });
 
     try {
