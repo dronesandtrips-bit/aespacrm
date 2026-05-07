@@ -238,7 +238,7 @@ export const Route = createFileRoute("/api/public/evolution/sync-messages")({
                       sort: { messageTimestamp: "desc" },
                       limit: MAX_MESSAGES_PER_CONTACT,
                       page: 1,
-                      offset: MAX_MESSAGES_PER_CONTACT,
+                      offset: 0,
                     }),
                   });
                   if (!r.ok) {
