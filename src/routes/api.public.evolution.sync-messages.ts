@@ -226,15 +226,19 @@ export const Route = createFileRoute("/api/public/evolution/sync-messages")({
                 // Filtros equivalentes: where.key.remoteJid + where.messageTimestamp.
                 let evMsgs: any[] = [];
                 try {
+                  // IMPORTANTE: Evolution v2 ignora silenciosamente o filtro
+                  // messageTimestamp.gte e devolve em ordem ASC. Para garantir
+                  // que pegamos as mensagens MAIS RECENTES, pedimos sort DESC
+                  // por messageTimestamp e filtramos por janela client-side.
                   const r = await fetch(`${apiUrl}/chat/findMessages/${INSTANCE}`, {
                     method: "POST",
                     headers: { apikey: apiKey, "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      where: {
-                        key: { remoteJid },
-                        messageTimestamp: { gte: sinceSec },
-                      },
+                      where: { key: { remoteJid } },
+                      sort: { messageTimestamp: "desc" },
                       limit: MAX_MESSAGES_PER_CONTACT,
+                      page: 1,
+                      offset: MAX_MESSAGES_PER_CONTACT,
                     }),
                   });
                   if (!r.ok) {
