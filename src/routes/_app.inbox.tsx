@@ -866,12 +866,13 @@ function InboxPage() {
                         variant="ghost"
                         size="icon"
                         className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
-                        onClick={() => refreshContacts()}
+                        onClick={() => handleSync()}
+                        disabled={syncing}
                       >
-                        <RefreshCw className="size-4" />
+                        <RefreshCw className={cn("size-4", syncing && "animate-spin")} />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Sincronizar</TooltipContent>
+                    <TooltipContent side="bottom">{syncing ? "Sincronizando…" : "Sincronizar mensagens recentes"}</TooltipContent>
                   </Tooltip>
                 </div>
               </TooltipProvider>
