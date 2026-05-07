@@ -97,10 +97,15 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
 
           const ctx: any = (globalThis as any).__cloudflare_context__ ?? null;
           if (ctx?.waitUntil) ctx.waitUntil(promise);
-          else void promise;
+          else picked_promises.push(promise);
 
           picked.push({ bulkId: row.id, userId: row.user_id, contacts: contactIds.length });
         }
+
+        // Sem waitUntil disponível no runtime: aguarda os dispatches dentro do
+        // próprio request. Sleeps/fetches não consomem CPU no Worker, então é
+        // seguro mesmo com vários contatos (limite real é wall-clock do request).
+        if (picked_promises.length) await Promise.allSettled(picked_promises);
 
         return jsonResponse({ ok: true, picked, skipped });
       },
