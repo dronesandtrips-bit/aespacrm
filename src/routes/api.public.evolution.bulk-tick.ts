@@ -44,6 +44,7 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
 
         const picked: any[] = [];
         const skipped: any[] = [];
+        const picked_promises: Promise<any>[] = [];
 
         for (const row of due ?? []) {
           if (row.control === "cancelled") {
