@@ -42,6 +42,28 @@ function profileToUser(p: Profile | null, fallbackEmail: string, fallbackId: str
   };
 }
 
+const ACCESS_DENIED_MSG = "Acesso negado: usuário não autorizado neste CRM.";
+
+async function isAllowedUser(client: AuthSupabaseClient, userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await client
+      .from("crm_allowed_users")
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.warn("[auth] isAllowedUser error:", error.message);
+      return false;
+    }
+    return Boolean(data);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[auth] isAllowedUser exception:", err);
+    return false;
+  }
+}
+
 async function fetchProfile(client: AuthSupabaseClient, userId: string): Promise<Profile | null> {
   const { data, error } = await client
     .from("profiles")
