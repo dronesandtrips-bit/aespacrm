@@ -408,13 +408,28 @@ async function setContactCategories(contactId: string, categoryIds: string[]) {
     }
   }
   if (toInsert.length) {
-    const rows = toInsert.map((cid) => ({
+    const baseRows = toInsert.map((cid) => ({
       contact_id: contactId,
       category_id: cid,
       user_id,
-      source: "manual",
     }));
-    const { error } = await c.from("crm_contact_categories").insert(rows);
+    // Tenta com source='manual' (após rodar SUPABASE_MIGRATION_TAG_SOURCE.sql).
+    // Se a coluna ainda não existir no banco, refaz o insert sem ela.
+    const rowsWithSource = baseRows.map((r) => ({ ...r, source: "manual" }));
+    let { error } = await c.from("crm_contact_categories").insert(rowsWithSource);
+    if (error) {
+      const msg = (error.message || "").toLowerCase();
+      const isMissingSourceCol =
+        msg.includes("source") &&
+        (msg.includes("column") || msg.includes("schema cache") || msg.includes("does not exist"));
+      if (isMissingSourceCol) {
+        console.warn(
+          "[contacts] coluna 'source' ausente em crm_contact_categories — rode SUPABASE_MIGRATION_TAG_SOURCE.sql. Inserindo sem 'source'.",
+        );
+        const retry = await c.from("crm_contact_categories").insert(baseRows);
+        error = retry.error;
+      }
+    }
     if (error) {
       console.warn("[contacts] falha ao inserir tags; usando category_id legado:", error.message);
       const { error: legacyError } = await c
