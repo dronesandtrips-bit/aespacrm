@@ -11,7 +11,6 @@ import {
 } from "@/integrations/supabase/server";
 
 const Schema = z.object({
-  user_id: z.string().uuid(),
   message: z.string().min(1).max(4096),
   contact_name: z.string().max(120).optional(),
   typing_seconds: z.number().int().min(0).max(60).optional(),
