@@ -450,18 +450,24 @@ async function setContactCategories(contactId: string, categoryIds: string[]) {
 async function loadContactCategoriesMap(): Promise<Map<string, string[]>> {
   const c = await client();
   const map = new Map<string, string[]>();
-  const { data, error } = await c
-    .from("crm_contact_categories")
-    .select("contact_id,category_id,created_at")
-    .order("created_at", { ascending: true });
-  if (error) {
-    console.warn("[contacts] crm_contact_categories indisponível:", error.message);
-    return map;
-  }
-  for (const row of data ?? []) {
-    const list = map.get(row.contact_id) ?? [];
-    list.push(row.category_id);
-    map.set(row.contact_id, list);
+  const pageSize = 1000;
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await c
+      .from("crm_contact_categories")
+      .select("contact_id,category_id,created_at")
+      .order("created_at", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) {
+      console.warn("[contacts] crm_contact_categories indisponível:", error.message);
+      return map;
+    }
+    for (const row of data ?? []) {
+      const list = map.get(row.contact_id) ?? [];
+      list.push(row.category_id);
+      map.set(row.contact_id, list);
+    }
+    if (!data || data.length < pageSize) break;
   }
   return map;
 }
