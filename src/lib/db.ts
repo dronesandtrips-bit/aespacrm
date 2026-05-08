@@ -653,7 +653,7 @@ export const contactsDb = {
       const norm = String(row.phone).replace(/\D/g, "");
       const tags = tagsByPhone.get(norm) ?? [];
       for (const cid of tags) {
-        ccRows.push({ contact_id: row.id, category_id: cid, user_id });
+        ccRows.push({ contact_id: row.id, category_id: cid, user_id, source: "manual" });
       }
     }
     if (ccRows.length) {
