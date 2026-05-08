@@ -48,6 +48,36 @@ function isReadStatus(status: string) {
   return ["4", "5", "read", "read_ack", "played", "played_ack"].includes(status);
 }
 
+async function getFreshAccessToken(forceRefresh = false) {
+  const c = await getSupabaseClient();
+  if (!c) throw new Error("Supabase indisponível");
+
+  let { data: { session } } = await c.auth.getSession();
+  const expiresAt = session?.expires_at ?? 0;
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  if (forceRefresh || !session || expiresAt - nowSec < 120) {
+    const refreshed = await c.auth.refreshSession();
+    if (refreshed.data.session) session = refreshed.data.session;
+  }
+
+  const token = session?.access_token;
+  if (!token) throw new Error("sessão expirada — faça login novamente");
+  return token;
+}
+
+async function fetchWithAuthRetry(input: RequestInfo | URL, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${await getFreshAccessToken()}`);
+
+  const first = await fetch(input, { ...init, headers });
+  if (first.status !== 401) return first;
+
+  const retryHeaders = new Headers(init.headers);
+  retryHeaders.set("Authorization", `Bearer ${await getFreshAccessToken(true)}`);
+  return fetch(input, { ...init, headers: retryHeaders });
+}
+
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
