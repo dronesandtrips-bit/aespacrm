@@ -412,6 +412,7 @@ async function setContactCategories(contactId: string, categoryIds: string[]) {
       contact_id: contactId,
       category_id: cid,
       user_id,
+      source: "manual",
     }));
     const { error } = await c.from("crm_contact_categories").insert(rows);
     if (error) {
