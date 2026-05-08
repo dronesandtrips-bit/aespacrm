@@ -7,10 +7,10 @@ import {
   getSupabaseAdmin,
   PUBLIC_CORS,
   jsonResponse,
+  requireUserJwt,
 } from "@/integrations/supabase/server";
 
 const Schema = z.object({
-  user_id: z.string().uuid(),
   message: z.string().min(1).max(4096),
   contact_name: z.string().max(120).optional(),
   typing_seconds: z.number().int().min(0).max(60).optional(),
@@ -34,12 +34,18 @@ export const Route = createFileRoute("/api/public/sequences/test-send")({
       OPTIONS: async () => new Response(null, { status: 204, headers: PUBLIC_CORS }),
       POST: async ({ request }) => {
         try {
+          // Auth obrigatório: pega user_id do JWT (não confia no body).
+          const auth = await requireUserJwt(request);
+          if ("error" in auth) {
+            return jsonResponse({ error: auth.error }, auth.status);
+          }
+          const user_id = auth.userId;
           const body = await request.json();
           const parsed = Schema.safeParse(body);
           if (!parsed.success) {
             return jsonResponse({ error: "Invalid body" }, 400);
           }
-          const { user_id, message, contact_name, typing_seconds } = parsed.data;
+          const { message, contact_name, typing_seconds } = parsed.data;
           const admin = getSupabaseAdmin();
           const { data: settings } = await admin
             .from("crm_user_settings")

@@ -1,13 +1,22 @@
 // GET /api/public/evolution/status
 // Retorna o status da instância `zapcrm` na Evolution API.
 import { createFileRoute } from "@tanstack/react-router";
+import { checkApiKey, requireUserJwt } from "@/integrations/supabase/server";
 
 const INSTANCE = "zapcrm";
 
 export const Route = createFileRoute("/api/public/evolution/status")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
+        // Auth: aceita Bearer JWT (frontend) OU x-api-key (n8n)
+        if (!checkApiKey(request)) {
+          const auth = await requireUserJwt(request);
+          if ("error" in auth) {
+            return Response.json({ ok: false, error: auth.error }, { status: auth.status });
+          }
+        }
+
         const url = (process.env.EVOLUTION_API_URL ?? "").replace(/\/+$/, "");
         const apiKey = process.env.EVOLUTION_API_KEY ?? "";
         if (!url || !apiKey) {

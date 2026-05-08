@@ -56,9 +56,20 @@ function WhatsAppPage() {
   const [loadingQr, setLoadingQr] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const authHeaders = useCallback(async (): Promise<Record<string, string> | null> => {
+    const c = await getSupabaseClient();
+    if (!c) return null;
+    const { data: sess } = await c.auth.getSession();
+    const token = sess?.session?.access_token;
+    if (!token) return null;
+    return { Authorization: `Bearer ${token}` };
+  }, []);
+
   const fetchStatus = useCallback(async () => {
     try {
-      const r = await fetch("/api/public/evolution/status");
+      const headers = await authHeaders();
+      if (!headers) return; // sem sessão, ignora silenciosamente
+      const r = await fetch("/api/public/evolution/status", { headers });
       const j: StatusResp = await r.json();
       setStatus(j);
       if (!j.ok) setError(j.reason ?? "Erro ao consultar status");
@@ -68,12 +79,17 @@ function WhatsAppPage() {
     } finally {
       setLoadingStatus(false);
     }
-  }, []);
+  }, [authHeaders]);
 
   const fetchQr = useCallback(async () => {
     setLoadingQr(true);
     try {
-      const r = await fetch("/api/public/evolution/qr");
+      const headers = await authHeaders();
+      if (!headers) {
+        toast.error("Sessão expirada");
+        return;
+      }
+      const r = await fetch("/api/public/evolution/qr", { headers });
       const j: QrResp = await r.json();
       setQr(j);
       if (!j.ok) toast.error("Não foi possível gerar o QR");
@@ -82,7 +98,7 @@ function WhatsAppPage() {
     } finally {
       setLoadingQr(false);
     }
-  }, []);
+  }, [authHeaders]);
 
   // Status polling: 5s
   useEffect(() => {
@@ -254,6 +270,15 @@ function SendTestCard({ disabled }: { disabled: boolean }) {
 
   const cleanNumber = number.replace(/\D/g, "");
 
+  async function getAuthHeader(): Promise<Record<string, string> | null> {
+    const c = await getSupabaseClient();
+    if (!c) return null;
+    const { data: sess } = await c.auth.getSession();
+    const token = sess?.session?.access_token;
+    if (!token) return null;
+    return { Authorization: `Bearer ${token}` };
+  }
+
   async function sendText() {
     if (!cleanNumber || !text.trim()) {
       toast.error("Informe número e texto");
@@ -261,9 +286,11 @@ function SendTestCard({ disabled }: { disabled: boolean }) {
     }
     setSending(true);
     try {
+      const auth = await getAuthHeader();
+      if (!auth) throw new Error("Sessão expirada — faça login de novo");
       const res = await fetch("/api/public/evolution/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...auth },
         body: JSON.stringify({ number: cleanNumber, text: text.trim() }),
       });
       const data = await res.json();
@@ -284,9 +311,11 @@ function SendTestCard({ disabled }: { disabled: boolean }) {
     }
     setSending(true);
     try {
+      const auth = await getAuthHeader();
+      if (!auth) throw new Error("Sessão expirada — faça login de novo");
       const res = await fetch("/api/public/evolution/send-media", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...auth },
         body: JSON.stringify({
           number: cleanNumber,
           mediatype,

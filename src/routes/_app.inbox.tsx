@@ -300,9 +300,17 @@ function InboxPage() {
       //    O Robo escuta fromMe e pausa/retoma. Se falhar, abortamos para não
       //    deixar a blacklist dessincronizada do estado real do Robo.
       const phoneDigits = c.phone.replace(/\D/g, "");
+      const sb = await getSupabaseClient();
+      if (!sb) throw new Error("Supabase indisponível");
+      const { data: sess } = await sb.auth.getSession();
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("Sessão expirada — faça login de novo");
       const sendRes = await fetch("/api/public/evolution/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ number: phoneDigits, text: command }),
       });
       const sendJson = await sendRes.json().catch(() => ({}));

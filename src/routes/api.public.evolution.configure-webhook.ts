@@ -2,6 +2,7 @@
 // Registra na Evolution API o webhook que aponta de volta pro ZapCRM.
 // Idempotente — pode ser chamado quantas vezes quiser.
 import { createFileRoute } from "@tanstack/react-router";
+import { checkApiKey, requireUserJwt } from "@/integrations/supabase/server";
 
 const INSTANCE = "zapcrm";
 
@@ -18,6 +19,14 @@ export const Route = createFileRoute("/api/public/evolution/configure-webhook")(
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // Auth: x-api-key (n8n/admin) ou Bearer JWT do usuário logado.
+        if (!checkApiKey(request)) {
+          const auth = await requireUserJwt(request);
+          if ("error" in auth) {
+            return Response.json({ ok: false, error: auth.error }, { status: auth.status });
+          }
+        }
+
         const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
         const apiKey = process.env.EVOLUTION_API_KEY?.trim();
         if (!apiUrl || !apiKey) {
