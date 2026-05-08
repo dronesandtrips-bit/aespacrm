@@ -270,6 +270,15 @@ function SendTestCard({ disabled }: { disabled: boolean }) {
 
   const cleanNumber = number.replace(/\D/g, "");
 
+  async function getAuthHeader(): Promise<Record<string, string> | null> {
+    const c = await getSupabaseClient();
+    if (!c) return null;
+    const { data: sess } = await c.auth.getSession();
+    const token = sess?.session?.access_token;
+    if (!token) return null;
+    return { Authorization: `Bearer ${token}` };
+  }
+
   async function sendText() {
     if (!cleanNumber || !text.trim()) {
       toast.error("Informe número e texto");
@@ -277,9 +286,11 @@ function SendTestCard({ disabled }: { disabled: boolean }) {
     }
     setSending(true);
     try {
+      const auth = await getAuthHeader();
+      if (!auth) throw new Error("Sessão expirada — faça login de novo");
       const res = await fetch("/api/public/evolution/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...auth },
         body: JSON.stringify({ number: cleanNumber, text: text.trim() }),
       });
       const data = await res.json();
@@ -300,9 +311,11 @@ function SendTestCard({ disabled }: { disabled: boolean }) {
     }
     setSending(true);
     try {
+      const auth = await getAuthHeader();
+      if (!auth) throw new Error("Sessão expirada — faça login de novo");
       const res = await fetch("/api/public/evolution/send-media", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...auth },
         body: JSON.stringify({
           number: cleanNumber,
           mediatype,
