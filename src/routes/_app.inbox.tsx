@@ -301,6 +301,7 @@ function InboxPage() {
       //    deixar a blacklist dessincronizada do estado real do Robo.
       const phoneDigits = c.phone.replace(/\D/g, "");
       const sb = await getSupabaseClient();
+      if (!sb) throw new Error("Supabase indisponível");
       const { data: sess } = await sb.auth.getSession();
       const token = sess?.session?.access_token;
       if (!token) throw new Error("Sessão expirada — faça login de novo");
