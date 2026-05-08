@@ -7,6 +7,7 @@ import {
   getSupabaseAdmin,
   PUBLIC_CORS,
   jsonResponse,
+  requireUserJwt,
 } from "@/integrations/supabase/server";
 
 const Schema = z.object({
