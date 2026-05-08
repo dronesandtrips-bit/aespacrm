@@ -744,7 +744,14 @@ function InboxPage() {
     setSending(true);
     try {
       const c = await getSupabaseClient();
-      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      let { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      // Se o token está prestes a expirar (ou já expirou), força refresh para evitar "invalid token" no servidor.
+      const expiresAt = sess?.session?.expires_at ?? 0;
+      const nowSec = Math.floor(Date.now() / 1000);
+      if (!sess?.session || expiresAt - nowSec < 60) {
+        const refreshed = await c?.auth.refreshSession();
+        if (refreshed?.data?.session) sess = { session: refreshed.data.session } as any;
+      }
       const token = sess?.session?.access_token;
       if (!token) throw new Error("sessão expirada — faça login novamente");
 
