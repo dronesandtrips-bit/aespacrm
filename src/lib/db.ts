@@ -366,7 +366,13 @@ async function maybeTriggerCategorySequence(contactId: string, categoryId: strin
  */
 async function setContactCategories(contactId: string, categoryIds: string[]) {
   const c = await client();
-  const user_id = await uid();
+  const { data: owner, error: ownerError } = await c
+    .from("crm_contacts")
+    .select("user_id")
+    .eq("id", contactId)
+    .maybeSingle();
+  if (ownerError) throw ownerError;
+  const user_id = owner?.user_id ?? (await uid());
   const wanted = Array.from(new Set(categoryIds.filter(Boolean)));
 
   const { data: current, error: currentError } = await c
