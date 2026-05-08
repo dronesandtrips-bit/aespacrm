@@ -2,11 +2,20 @@
 // Testa a conexão com a Evolution API usando EVOLUTION_API_URL + EVOLUTION_API_KEY.
 // Retorna status, lista de instâncias (se houver) ou o erro recebido.
 import { createFileRoute } from "@tanstack/react-router";
+import { checkApiKey, requireUserJwt } from "@/integrations/supabase/server";
 
 export const Route = createFileRoute("/api/public/evolution/test")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
+        // Auth: x-api-key (n8n/admin) ou Bearer JWT do usuário logado.
+        if (!checkApiKey(request)) {
+          const auth = await requireUserJwt(request);
+          if ("error" in auth) {
+            return Response.json({ ok: false, error: auth.error }, { status: auth.status });
+          }
+        }
+
         const rawUrl = process.env.EVOLUTION_API_URL ?? "";
         const apiKey = process.env.EVOLUTION_API_KEY ?? "";
         const url = rawUrl.replace(/\/+$/, "");
