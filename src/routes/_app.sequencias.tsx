@@ -395,13 +395,15 @@ function SequenceEditorDialog({
       const c = await getSupabaseClient();
       if (!c) throw new Error("Supabase não configurado");
       const { data: sess } = await c.auth.getSession();
-      const userId = sess.session?.user.id;
-      if (!userId) throw new Error("Não autenticado");
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("Não autenticado");
       const res = await fetch("/api/public/sequences/test-send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          user_id: userId,
           message: step.message,
           typing_seconds: step.typingSeconds,
         }),
