@@ -48,6 +48,36 @@ function isReadStatus(status: string) {
   return ["4", "5", "read", "read_ack", "played", "played_ack"].includes(status);
 }
 
+async function getFreshAccessToken(forceRefresh = false) {
+  const c = await getSupabaseClient();
+  if (!c) throw new Error("Supabase indisponível");
+
+  let { data: { session } } = await c.auth.getSession();
+  const expiresAt = session?.expires_at ?? 0;
+  const nowSec = Math.floor(Date.now() / 1000);
+
+  if (forceRefresh || !session || expiresAt - nowSec < 120) {
+    const refreshed = await c.auth.refreshSession();
+    if (refreshed.data.session) session = refreshed.data.session;
+  }
+
+  const token = session?.access_token;
+  if (!token) throw new Error("sessão expirada — faça login novamente");
+  return token;
+}
+
+async function fetchWithAuthRetry(input: RequestInfo | URL, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${await getFreshAccessToken()}`);
+
+  const first = await fetch(input, { ...init, headers });
+  if (first.status !== 401) return first;
+
+  const retryHeaders = new Headers(init.headers);
+  retryHeaders.set("Authorization", `Bearer ${await getFreshAccessToken(true)}`);
+  return fetch(input, { ...init, headers: retryHeaders });
+}
+
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -300,16 +330,10 @@ function InboxPage() {
       //    O Robo escuta fromMe e pausa/retoma. Se falhar, abortamos para não
       //    deixar a blacklist dessincronizada do estado real do Robo.
       const phoneDigits = c.phone.replace(/\D/g, "");
-      const sb = await getSupabaseClient();
-      if (!sb) throw new Error("Supabase indisponível");
-      const { data: sess } = await sb.auth.getSession();
-      const token = sess?.session?.access_token;
-      if (!token) throw new Error("Sessão expirada — faça login de novo");
-      const sendRes = await fetch("/api/public/evolution/send", {
+      const sendRes = await fetchWithAuthRetry("/api/public/evolution/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ number: phoneDigits, text: command }),
       });
@@ -696,17 +720,12 @@ function InboxPage() {
         reader.readAsDataURL(file);
       });
 
-      const c = await getSupabaseClient();
-      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
-      const token = sess?.session?.access_token;
-      if (!token) throw new Error("sessão expirada — faça login novamente");
-
       const caption = draft.trim() || undefined;
       const quotedMessageId = replyTo?.messageId ?? undefined;
 
-      const res = await fetch("/api/public/evolution/send-media-and-log", {
+      const res = await fetchWithAuthRetry("/api/public/evolution/send-media-and-log", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contactId: activeId,
           mediatype,
@@ -743,24 +762,11 @@ function InboxPage() {
     if (!draft.trim() || !activeId) return;
     setSending(true);
     try {
-      const c = await getSupabaseClient();
-      let { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
-      // Se o token está prestes a expirar (ou já expirou), força refresh para evitar "invalid token" no servidor.
-      const expiresAt = sess?.session?.expires_at ?? 0;
-      const nowSec = Math.floor(Date.now() / 1000);
-      if (!sess?.session || expiresAt - nowSec < 60) {
-        const refreshed = await c?.auth.refreshSession();
-        if (refreshed?.data?.session) sess = { session: refreshed.data.session } as any;
-      }
-      const token = sess?.session?.access_token;
-      if (!token) throw new Error("sessão expirada — faça login novamente");
-
       const quotedMessageId = replyTo?.messageId ?? undefined;
-      const res = await fetch("/api/public/evolution/send-and-log", {
+      const res = await fetchWithAuthRetry("/api/public/evolution/send-and-log", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           contactId: activeId,
