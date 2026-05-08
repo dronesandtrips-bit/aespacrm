@@ -44,6 +44,29 @@ export function checkApiKey(request: Request): boolean {
   return Boolean(got && got === expected);
 }
 
+// Valida o JWT do usuário (login Supabase) presente em "Authorization: Bearer <token>".
+// Retorna { userId } se válido, ou { error, status } caso contrário.
+export async function requireUserJwt(
+  request: Request,
+): Promise<{ userId: string } | { error: string; status: number }> {
+  const supaUrl = process.env.AESPACRM_SUPA_URL;
+  const anonKey = process.env.AESPACRM_SUPA_ANON_KEY?.trim();
+  if (!supaUrl || !anonKey) return { error: "auth config missing", status: 500 };
+  const url = normalizeSupabaseUrl(supaUrl);
+  if (!url) return { error: "auth config missing", status: 500 };
+
+  const auth = request.headers.get("authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) return { error: "unauthorized", status: 401 };
+
+  const client = createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await client.auth.getUser(token);
+  if (error || !data?.user) return { error: "invalid token", status: 401 };
+  return { userId: data.user.id };
+}
+
 export const PUBLIC_CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
