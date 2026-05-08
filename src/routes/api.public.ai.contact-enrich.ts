@@ -18,7 +18,9 @@
 //
 // Comportamento de categorias:
 //   - mode=merge   (default): adiciona as tags enviadas às já existentes.
-//   - mode=replace: substitui TODAS as tags do contato pelas enviadas.
+//   - mode=replace: substitui apenas as tags adicionadas pela IA. Tags
+//     adicionadas manualmente pelo usuário (source='manual') NUNCA são
+//     removidas pela IA — INTEGRIDADE garantida.
 //   - Categorias com nome inexistente são CRIADAS automaticamente.
 //   - A 1ª categoria do array (índice 0) é espelhada em crm_contacts.category_id.
 //
@@ -497,6 +499,8 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
         }
 
         // -------- Aplica categorias (merge ou replace) --------
+        // IMPORTANTE: replace só apaga tags de origem 'ai' — tags manuais
+        // (source='manual') NUNCA são removidas pela IA.
         let categoriesAdded = 0;
         let categoriesRemoved = 0;
         let finalCategoryIds: string[] = [];
@@ -504,19 +508,38 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
         if (orderedIds.length > 0) {
           const { data: current, error: currentErr } = await sb
             .from("crm_contact_categories")
-            .select("category_id")
+            .select("category_id, source")
             .eq("contact_id", contactId);
           if (currentErr) {
             console.error("contact-enrich read bridge", currentErr);
             return jsonResponse({ ok: false, error: currentErr.message }, 500);
           }
-          const currentIds = new Set<string>(
-            (current ?? []).map((r: any) => String(r.category_id)),
+          const currentRows = (current ?? []) as Array<{ category_id: string; source?: string | null }>;
+          const currentIds = new Set<string>(currentRows.map((r) => String(r.category_id)));
+          const aiIds = new Set<string>(
+            currentRows.filter((r) => (r.source ?? "manual") === "ai").map((r) => String(r.category_id)),
           );
 
           let targetIds: string[];
           if (mode === "replace") {
-            targetIds = [...orderedIds];
+            // No replace, mantemos todas as manuais + as novas da IA
+            const merged: string[] = [];
+            const seenIds = new Set<string>();
+            // novas da IA primeiro (preserva índice 0 como categoria principal)
+            for (const id of orderedIds) {
+              if (seenIds.has(id)) continue;
+              seenIds.add(id);
+              merged.push(id);
+            }
+            // depois, todas as manuais existentes
+            for (const r of currentRows) {
+              const id = String(r.category_id);
+              if ((r.source ?? "manual") === "manual" && !seenIds.has(id)) {
+                seenIds.add(id);
+                merged.push(id);
+              }
+            }
+            targetIds = merged;
           } else {
             const merged: string[] = [];
             const seenIds = new Set<string>();
@@ -531,9 +554,10 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
 
           const targetSet = new Set(targetIds);
           const toInsert = targetIds.filter((id) => !currentIds.has(id));
+          // Em replace, só apagamos linhas que (a) estão fora do alvo E (b) são source='ai'
           const toDelete =
             mode === "replace"
-              ? [...currentIds].filter((id) => !targetSet.has(id))
+              ? [...aiIds].filter((id) => !targetSet.has(id))
               : [];
 
           if (toInsert.length) {
@@ -541,6 +565,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
               contact_id: contactId,
               category_id: cid,
               user_id: ownerUserId,
+              source: "ai",
             }));
             const { error: insErr } = await sb
               .from("crm_contact_categories")
@@ -556,6 +581,7 @@ export const Route = createFileRoute("/api/public/ai/contact-enrich")({
               .from("crm_contact_categories")
               .delete()
               .eq("contact_id", contactId)
+              .eq("source", "ai")
               .in("category_id", toDelete);
             if (delErr) {
               console.error("contact-enrich delete categories", delErr);

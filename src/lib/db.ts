@@ -412,6 +412,7 @@ async function setContactCategories(contactId: string, categoryIds: string[]) {
       contact_id: contactId,
       category_id: cid,
       user_id,
+      source: "manual",
     }));
     const { error } = await c.from("crm_contact_categories").insert(rows);
     if (error) {
@@ -652,7 +653,7 @@ export const contactsDb = {
       const norm = String(row.phone).replace(/\D/g, "");
       const tags = tagsByPhone.get(norm) ?? [];
       for (const cid of tags) {
-        ccRows.push({ contact_id: row.id, category_id: cid, user_id });
+        ccRows.push({ contact_id: row.id, category_id: cid, user_id, source: "manual" });
       }
     }
     if (ccRows.length) {
