@@ -3,6 +3,7 @@
 // Body: { number, mediatype: "image"|"video"|"document"|"audio", media: <url|base64>, caption?, fileName?, mimetype? }
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { checkApiKey, requireUserJwt } from "@/integrations/supabase/server";
 
 const INSTANCE = "zapcrm";
 
@@ -26,6 +27,14 @@ export const Route = createFileRoute("/api/public/evolution/send-media")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        // Auth: aceita Bearer JWT (frontend) OU x-api-key (n8n)
+        if (!checkApiKey(request)) {
+          const auth = await requireUserJwt(request);
+          if ("error" in auth) {
+            return Response.json({ ok: false, error: auth.error }, { status: auth.status });
+          }
+        }
+
         const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
         const apiKey = process.env.EVOLUTION_API_KEY?.trim();
         if (!apiUrl || !apiKey) {
