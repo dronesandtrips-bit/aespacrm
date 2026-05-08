@@ -18,7 +18,9 @@
 //
 // Comportamento de categorias:
 //   - mode=merge   (default): adiciona as tags enviadas às já existentes.
-//   - mode=replace: substitui TODAS as tags do contato pelas enviadas.
+//   - mode=replace: substitui apenas as tags adicionadas pela IA. Tags
+//     adicionadas manualmente pelo usuário (source='manual') NUNCA são
+//     removidas pela IA — INTEGRIDADE garantida.
 //   - Categorias com nome inexistente são CRIADAS automaticamente.
 //   - A 1ª categoria do array (índice 0) é espelhada em crm_contacts.category_id.
 //
