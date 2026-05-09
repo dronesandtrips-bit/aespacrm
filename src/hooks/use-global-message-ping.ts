@@ -1,18 +1,21 @@
 import { useEffect } from "react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import {
-  playMessagePing,
-  isSoundEnabled,
-  getSoundVolume,
+  notifyIncomingMessage,
   primeNotificationSoundOnGesture,
 } from "@/lib/notification-sound";
 
 type MessageInsert = {
+  id?: string | null;
+  message_id?: string | null;
   contact_id?: string | null;
+  body?: string | null;
   from_me?: boolean | null;
+  at?: string | null;
 };
 
-type ContactGroupFlag = {
+type ContactNotificationInfo = {
+  name?: string | null;
   is_group?: boolean | null;
 };
 
@@ -28,7 +31,7 @@ export function useGlobalMessagePing() {
   useEffect(() => {
     let channel: { unsubscribe?: () => void } | undefined;
     let cancelled = false;
-    const groupCache = new Map<string, boolean>(); // contactId -> isGroup
+    const contactCache = new Map<string, ContactNotificationInfo>();
     const cleanupAudioUnlock = primeNotificationSoundOnGesture();
 
     (async () => {
@@ -42,27 +45,34 @@ export function useGlobalMessagePing() {
           async (payload: { new: MessageInsert }) => {
             const row = payload.new;
             if (row?.from_me) return;
-            if (!isSoundEnabled()) return;
 
             const contactId = row.contact_id;
             if (!contactId) return;
-            let isGroup = groupCache.get(contactId);
-            if (isGroup === undefined) {
+            let contact = contactCache.get(contactId);
+            if (!contact) {
               try {
                 const { data } = await c
                   .schema("aespacrm")
                   .from("crm_contacts")
-                  .select("is_group")
+                  .select("name,is_group")
                   .eq("id", contactId)
                   .maybeSingle();
-                isGroup = !!(data as ContactGroupFlag | null)?.is_group;
-                groupCache.set(contactId, isGroup);
+                contact = (data as ContactNotificationInfo | null) ?? {};
+                contactCache.set(contactId, contact);
               } catch {
-                isGroup = false;
+                contact = {};
               }
             }
-            if (isGroup) return;
-            playMessagePing(getSoundVolume());
+            notifyIncomingMessage({
+              id: row.id,
+              messageId: row.message_id,
+              contactId,
+              contactName: contact.name,
+              body: row.body,
+              fromMe: row.from_me,
+              isGroup: contact.is_group,
+              at: row.at,
+            });
           },
         )
         .subscribe();
