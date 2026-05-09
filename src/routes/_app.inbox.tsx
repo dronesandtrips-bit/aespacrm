@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, BellOff, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Reply, Copy } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
-import { playMessagePing, isSoundEnabled, getSoundVolume, setSoundEnabled, unlockNotificationSound } from "@/lib/notification-sound";
+import { activateNotifications, isSoundEnabled, notifyIncomingMessage, setSoundEnabled } from "@/lib/notification-sound";
 import { getSupabaseClient, getSupabaseClientSync } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -535,13 +535,18 @@ function InboxPage() {
                 prev.find((m) => m.id === msg.id) ? prev : [...prev, msg],
               );
             }
-            // 🔔 Som de notificação para mensagens recebidas (ignora grupos e fromMe)
-            if (!msg.fromMe && isSoundEnabled()) {
-              const sender = contactsRef.current.find((x) => x.id === msg.contactId);
-              if (!sender?.isGroup) {
-                playMessagePing(getSoundVolume());
-              }
-            }
+            // 🔔 Notificação para mensagens recebidas (ignora grupos e fromMe)
+            const sender = contactsRef.current.find((x) => x.id === msg.contactId);
+            notifyIncomingMessage({
+              id: msg.id,
+              messageId: msg.messageId,
+              contactId: msg.contactId,
+              contactName: sender?.name,
+              body: msg.body,
+              fromMe: msg.fromMe,
+              isGroup: sender?.isGroup,
+              at: msg.at,
+            });
             // Se o contato ainda não está na lista, recarrega contatos.
             setContacts((prev) => {
               if (prev.some((x) => x.id === msg.contactId)) return prev;
@@ -846,16 +851,20 @@ function InboxPage() {
                         variant="ghost"
                         size="icon"
                         className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
-                        onClick={() => {
+                        onClick={async () => {
                           const next = !soundOn;
-                          setSoundEnabled(next);
                           setSoundOn(next);
                           if (next) {
-                            // Desbloqueia áudio (gesto do usuário) e toca um ping de confirmação
-                            unlockNotificationSound();
-                            setTimeout(() => playMessagePing(getSoundVolume()), 50);
-                            toast.success("Notificações sonoras ativadas");
+                            const result = await activateNotifications();
+                            if (result.browserPermission === "denied") {
+                              toast.error("Notificações do navegador bloqueadas", {
+                                description: "Libere as notificações deste site nas permissões do navegador.",
+                              });
+                            } else {
+                              toast.success("Notificações ativadas");
+                            }
                           } else {
+                            setSoundEnabled(false);
                             toast("Notificações sonoras silenciadas");
                           }
                         }}
