@@ -206,7 +206,6 @@ export function showBrowserNotification(title: string, body?: string | null) {
     const n = new window.Notification(title, {
       body: safeNotificationBody(body),
       tag: `zapcrm-${title}`,
-      renotify: true,
       silent: true,
     });
     n.onclick = () => {
