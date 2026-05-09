@@ -170,8 +170,9 @@ export async function requestBrowserNotificationPermission(): Promise<BrowserNot
 export async function activateNotifications() {
   setSoundEnabled(true);
   setBrowserNotificationsEnabled(true);
-  const audioReady = await unlockNotificationSound();
+  const audioReadyPromise = unlockNotificationSound();
   const browserPermission = await requestBrowserNotificationPermission();
+  const audioReady = await audioReadyPromise;
   return { audioReady, browserPermission };
 }
 
