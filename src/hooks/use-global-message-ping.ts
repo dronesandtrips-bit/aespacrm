@@ -1,18 +1,21 @@
 import { useEffect } from "react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import {
-  playMessagePing,
-  isSoundEnabled,
-  getSoundVolume,
+  notifyIncomingMessage,
   primeNotificationSoundOnGesture,
 } from "@/lib/notification-sound";
 
 type MessageInsert = {
+  id?: string | null;
+  message_id?: string | null;
   contact_id?: string | null;
+  body?: string | null;
   from_me?: boolean | null;
+  at?: string | null;
 };
 
-type ContactGroupFlag = {
+type ContactNotificationInfo = {
+  name?: string | null;
   is_group?: boolean | null;
 };
 
@@ -28,49 +31,86 @@ export function useGlobalMessagePing() {
   useEffect(() => {
     let channel: { unsubscribe?: () => void } | undefined;
     let cancelled = false;
-    const groupCache = new Map<string, boolean>(); // contactId -> isGroup
+    let pollId: number | null = null;
+    const contactCache = new Map<string, ContactNotificationInfo>();
+    const seenMessageIds = new Set<string>();
+    const startedAt = Date.now();
     const cleanupAudioUnlock = primeNotificationSoundOnGesture();
+
+    const notifyIfNeeded = async (row: MessageInsert, c: Awaited<ReturnType<typeof getSupabaseClient>>) => {
+      if (!c || row?.from_me) return;
+      const contactId = row.contact_id;
+      const key = row.message_id || row.id;
+      if (!contactId || !key || seenMessageIds.has(key)) return;
+      if (row.at && new Date(row.at).getTime() < startedAt - 5_000) return;
+      seenMessageIds.add(key);
+
+      let contact = contactCache.get(contactId);
+      if (!contact) {
+        try {
+          const { data } = await c
+            .schema("aespacrm")
+            .from("crm_contacts")
+            .select("name,is_group")
+            .eq("id", contactId)
+            .maybeSingle();
+          contact = (data as ContactNotificationInfo | null) ?? {};
+          contactCache.set(contactId, contact);
+        } catch {
+          contact = {};
+        }
+      }
+      notifyIncomingMessage({
+        id: row.id,
+        messageId: row.message_id,
+        contactId,
+        contactName: contact.name,
+        body: row.body,
+        fromMe: row.from_me,
+        isGroup: contact.is_group,
+        at: row.at,
+      });
+    };
 
     (async () => {
       const c = await getSupabaseClient();
       if (!c || cancelled) return;
+      const pollLatestIncoming = async () => {
+        try {
+          const { data } = await c
+            .schema("aespacrm")
+            .from("crm_messages")
+            .select("id,message_id,contact_id,body,from_me,at")
+            .eq("from_me", false)
+            .order("at", { ascending: false })
+            .limit(5);
+          for (const row of (data ?? []).reverse()) {
+            if (cancelled) return;
+            await notifyIfNeeded(row as MessageInsert, c);
+          }
+        } catch {
+          /* Realtime continua sendo o caminho principal; polling é fallback silencioso. */
+        }
+      };
+
       channel = c
         .channel(`crm_messages_global_ping_${Math.random().toString(36).slice(2)}`)
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "aespacrm", table: "crm_messages" },
           async (payload: { new: MessageInsert }) => {
-            const row = payload.new;
-            if (row?.from_me) return;
-            if (!isSoundEnabled()) return;
-
-            const contactId = row.contact_id;
-            if (!contactId) return;
-            let isGroup = groupCache.get(contactId);
-            if (isGroup === undefined) {
-              try {
-                const { data } = await c
-                  .schema("aespacrm")
-                  .from("crm_contacts")
-                  .select("is_group")
-                  .eq("id", contactId)
-                  .maybeSingle();
-                isGroup = !!(data as ContactGroupFlag | null)?.is_group;
-                groupCache.set(contactId, isGroup);
-              } catch {
-                isGroup = false;
-              }
-            }
-            if (isGroup) return;
-            playMessagePing(getSoundVolume());
+            await notifyIfNeeded(payload.new, c);
           },
         )
         .subscribe();
+      pollId = window.setInterval(pollLatestIncoming, 10_000);
+      pollLatestIncoming();
     })();
 
     return () => {
       cancelled = true;
       cleanupAudioUnlock();
+      if (pollId != null) window.clearInterval(pollId);
       try {
         channel?.unsubscribe?.();
       } catch {
