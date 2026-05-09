@@ -23,7 +23,11 @@ import {
   getSoundVolume,
   setSoundVolume,
   playMessagePing,
-  unlockNotificationSound,
+  activateNotifications,
+  areBrowserNotificationsEnabled,
+  getBrowserNotificationPermission,
+  setBrowserNotificationsEnabled,
+  showTestBrowserNotification,
 } from "@/lib/notification-sound";
 import { Volume2 } from "lucide-react";
 import { categoriesDb, pipelineDb, sequencesDb, widgetsDb, userSettingsDb, ignoredPhonesDb, parseBlacklistInput, type Category, type PipelineStage, type Sequence, type CaptureWidget, type IgnoredPhone } from "@/lib/db";
