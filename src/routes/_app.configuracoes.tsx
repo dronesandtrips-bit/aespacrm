@@ -1575,10 +1575,14 @@ function BlacklistTab() {
 
 function NotificationsTab() {
   const [enabled, setEnabled] = useState(true);
+  const [browserEnabled, setBrowserEnabled] = useState(true);
+  const [permission, setPermission] = useState(getBrowserNotificationPermission());
   const [volume, setVolume] = useState(0.4);
 
   useEffect(() => {
     setEnabled(isSoundEnabled());
+    setBrowserEnabled(areBrowserNotificationsEnabled());
+    setPermission(getBrowserNotificationPermission());
     setVolume(getSoundVolume());
   }, []);
 
@@ -1599,10 +1603,54 @@ function NotificationsTab() {
           <Switch
             id="notif-enabled"
             checked={enabled}
-            onCheckedChange={(v) => {
+            onCheckedChange={async (v) => {
               setEnabled(v);
-              setSoundEnabled(v);
-              if (v) unlockNotificationSound();
+              if (v) {
+                const result = await activateNotifications();
+                setPermission(result.browserPermission);
+                setBrowserEnabled(result.browserPermission === "granted");
+                if (result.browserPermission === "denied") {
+                  toast.error("Notificações bloqueadas no navegador", {
+                    description: "Libere este site nas permissões do navegador para receber avisos fora da aba.",
+                  });
+                } else {
+                  toast.success("Notificações ativadas");
+                }
+              } else {
+                setSoundEnabled(false);
+                setBrowserNotificationsEnabled(false);
+                setBrowserEnabled(false);
+              }
+            }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <Label htmlFor="notif-browser" className="text-sm">
+              Aviso do navegador
+            </Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              Status: {permission === "unsupported" ? "não suportado" : permission === "granted" ? "permitido" : permission === "denied" ? "bloqueado" : "aguardando permissão"}
+            </p>
+          </div>
+          <Switch
+            id="notif-browser"
+            checked={browserEnabled && permission === "granted"}
+            disabled={!enabled || permission === "unsupported"}
+            onCheckedChange={async (v) => {
+              if (!v) {
+                setBrowserNotificationsEnabled(false);
+                setBrowserEnabled(false);
+                return;
+              }
+              setBrowserNotificationsEnabled(true);
+              const nextPermission = await showTestBrowserNotification();
+              setPermission(nextPermission);
+              setBrowserEnabled(nextPermission === "granted");
+              if (nextPermission === "denied") {
+                toast.error("Permissão bloqueada no navegador");
+              }
             }}
           />
         </div>
