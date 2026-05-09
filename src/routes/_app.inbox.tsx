@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, BellOff, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Reply, Copy } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
-import { activateNotifications, isSoundEnabled, notifyIncomingMessage, setSoundEnabled } from "@/lib/notification-sound";
+import { activateNotifications, isSoundEnabled, notifyIncomingMessage, setBrowserNotificationsEnabled, setSoundEnabled } from "@/lib/notification-sound";
 import { getSupabaseClient, getSupabaseClientSync } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -865,6 +865,7 @@ function InboxPage() {
                             }
                           } else {
                             setSoundEnabled(false);
+                            setBrowserNotificationsEnabled(false);
                             toast("Notificações sonoras silenciadas");
                           }
                         }}
