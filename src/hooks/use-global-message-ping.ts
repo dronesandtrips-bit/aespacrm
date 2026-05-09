@@ -31,6 +31,7 @@ export function useGlobalMessagePing() {
   useEffect(() => {
     let channel: { unsubscribe?: () => void } | undefined;
     let cancelled = false;
+    let pollId: number | null = null;
     const contactCache = new Map<string, ContactNotificationInfo>();
     const seenMessageIds = new Set<string>();
     const startedAt = Date.now();
@@ -102,20 +103,14 @@ export function useGlobalMessagePing() {
           },
         )
         .subscribe();
-      const pollId = window.setInterval(pollLatestIncoming, 10_000);
+      pollId = window.setInterval(pollLatestIncoming, 10_000);
       pollLatestIncoming();
-
-      channel.unsubscribe = new Proxy(channel.unsubscribe ?? (() => {}), {
-        apply(target, thisArg, argArray) {
-          window.clearInterval(pollId);
-          return Reflect.apply(target, thisArg, argArray);
-        },
-      });
     })();
 
     return () => {
       cancelled = true;
       cleanupAudioUnlock();
+      if (pollId != null) window.clearInterval(pollId);
       try {
         channel?.unsubscribe?.();
       } catch {
