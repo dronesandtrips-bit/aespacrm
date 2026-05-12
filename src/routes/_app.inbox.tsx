@@ -1404,13 +1404,19 @@ function InboxPage() {
                   >
                     {attaching ? <Loader2 className="size-5 animate-spin" /> : <Paperclip className="size-5" />}
                   </Button>
-                  <Input
+                  <Textarea
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !sending && handleSend()}
-                    placeholder="Digite uma mensagem..."
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        if (!sending) handleSend();
+                      }
+                    }}
+                    placeholder="Digite uma mensagem... (Shift+Enter para nova linha)"
                     disabled={sending}
-                    className="flex-1 border-0 bg-transparent shadow-none h-10 px-1 text-sm placeholder:text-[color:var(--ww-text-dim)] focus-visible:ring-0 text-[color:var(--ww-text)]"
+                    rows={1}
+                    className="flex-1 border-0 bg-transparent shadow-none min-h-10 max-h-40 px-1 py-2 text-sm placeholder:text-[color:var(--ww-text-dim)] focus-visible:ring-0 text-[color:var(--ww-text)] resize-none"
                   />
                   {draft.trim() ? (
                     <Button
