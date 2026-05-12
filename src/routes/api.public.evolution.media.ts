@@ -97,7 +97,13 @@ export const Route = createFileRoute("/api/public/evolution/media")({
 
         const base64: string | undefined = evData?.base64 ?? evData?.media ?? evData?.data;
         const fallbackMime =
-          msgRow.type === "audio" ? "audio/ogg" : msgRow.type === "sticker" ? "image/webp" : "image/jpeg";
+          msgRow.type === "audio"
+            ? "audio/ogg"
+            : msgRow.type === "sticker"
+            ? "image/webp"
+            : msgRow.type === "document"
+            ? "application/pdf"
+            : "image/jpeg";
         const mimetype: string = evData?.mimetype ?? msgRow.media_mime ?? fallbackMime;
 
         if (!base64 || typeof base64 !== "string") {
