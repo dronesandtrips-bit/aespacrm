@@ -1404,13 +1404,19 @@ function InboxPage() {
                   >
                     {attaching ? <Loader2 className="size-5 animate-spin" /> : <Paperclip className="size-5" />}
                   </Button>
-                  <Input
+                  <Textarea
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !sending && handleSend()}
-                    placeholder="Digite uma mensagem..."
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        if (!sending) handleSend();
+                      }
+                    }}
+                    placeholder="Digite uma mensagem... (Shift+Enter para nova linha)"
                     disabled={sending}
-                    className="flex-1 border-0 bg-transparent shadow-none h-10 px-1 text-sm placeholder:text-[color:var(--ww-text-dim)] focus-visible:ring-0 text-[color:var(--ww-text)]"
+                    rows={1}
+                    className="flex-1 border-0 bg-transparent shadow-none min-h-10 max-h-40 px-1 py-2 text-sm placeholder:text-[color:var(--ww-text-dim)] focus-visible:ring-0 text-[color:var(--ww-text)] resize-none"
                   />
                   {draft.trim() ? (
                     <Button
@@ -1749,6 +1755,93 @@ function SecureAudio({ messageId }: { messageId: string }) {
   );
 }
 
+function SecureDocument({
+  messageId,
+  fileName,
+  mime,
+}: {
+  messageId: string;
+  fileName: string;
+  mime: string | null;
+}) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    if (src || loading) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const c = await getSupabaseClient();
+      if (!c) throw new Error("sem sessão");
+      const sess = await c.auth.getSession();
+      const token = sess?.data?.session?.access_token;
+      if (!token) throw new Error("sem token");
+      const res = await fetch("/api/public/evolution/media", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const typed = mime ? new Blob([blob], { type: mime }) : blob;
+      setSrc(URL.createObjectURL(typed));
+    } catch (e: any) {
+      setError(e?.message ?? "erro");
+    } finally {
+      setLoading(false);
+    }
+  }, [messageId, src, loading, mime]);
+
+  useEffect(() => {
+    return () => {
+      if (src) URL.revokeObjectURL(src);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src]);
+
+  if (src) {
+    return (
+      <a
+        href={src}
+        target="_blank"
+        rel="noreferrer"
+        download={fileName}
+        className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition"
+      >
+        <FileText className="size-5 shrink-0" />
+        <span className="flex-1 text-xs truncate">{fileName}</span>
+        <Download className="size-4 opacity-60" />
+      </a>
+    );
+  }
+  if (error) {
+    return (
+      <button
+        type="button"
+        onClick={() => { setSrc(null); load(); }}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 hover:bg-black/20 text-xs"
+      >
+        <FileText className="size-4" />
+        Falha ao carregar documento — tentar novamente
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={load}
+      disabled={loading}
+      className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition text-left w-full"
+    >
+      {loading ? <Loader2 className="size-4 animate-spin shrink-0" /> : <FileText className="size-5 shrink-0" />}
+      <span className="flex-1 text-xs truncate">{fileName}</span>
+      <Download className="size-4 opacity-60" />
+    </button>
+  );
+}
+
 function MessageContent({
   m,
   onOpenImage,
@@ -1805,19 +1898,34 @@ function MessageContent({
     return <SecureAudio messageId={m.messageId} />;
   }
 
-  if (type === "document" && m.mediaUrl) {
-    const fileName = caption || m.mediaUrl.split("/").pop() || "documento";
+  if (type === "document") {
+    const fileName =
+      caption ||
+      (m.mediaUrl ? m.mediaUrl.split("/").pop() : null) ||
+      (m.body && m.body !== "[documento]" ? m.body : null) ||
+      "documento";
+    if (m.mediaUrl) {
+      return (
+        <a
+          href={m.mediaUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition"
+        >
+          <FileText className="size-5 shrink-0" />
+          <span className="flex-1 text-xs truncate">{fileName}</span>
+          <Download className="size-4 opacity-60" />
+        </a>
+      );
+    }
+    if (m.messageId) {
+      return <SecureDocument messageId={m.messageId} fileName={fileName} mime={m.mediaMime ?? null} />;
+    }
     return (
-      <a
-        href={m.mediaUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition"
-      >
-        <FileText className="size-5 shrink-0" />
-        <span className="flex-1 text-xs truncate">{fileName}</span>
-        <Download className="size-4 opacity-60" />
-      </a>
+      <p className="italic opacity-70 flex items-center gap-1.5">
+        <FileText className="size-3.5" />
+        Documento indisponível
+      </p>
     );
   }
 
@@ -1832,7 +1940,7 @@ function MessageContent({
     );
   }
 
-  if (type === "document" || type === "sticker") {
+  if (type === "sticker") {
     return (
       <p className="italic opacity-70 flex items-center gap-1.5">
         <ImageIcon className="size-3.5" />
