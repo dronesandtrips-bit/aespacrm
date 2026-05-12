@@ -66,8 +66,13 @@ export const Route = createFileRoute("/api/public/evolution/media")({
         if (msgErr || !msgRow) {
           return jsonResponse({ ok: false, error: "mensagem não encontrada" }, 404);
         }
-        // Política: imagens, stickers e áudios. Vídeo/documento NÃO são baixados.
-        if (msgRow.type !== "image" && msgRow.type !== "sticker" && msgRow.type !== "audio") {
+        // Política: imagens, stickers, áudios e documentos. Vídeo NÃO é baixado.
+        if (
+          msgRow.type !== "image" &&
+          msgRow.type !== "sticker" &&
+          msgRow.type !== "audio" &&
+          msgRow.type !== "document"
+        ) {
           return jsonResponse({ ok: false, error: "tipo de mídia não permitido" }, 403);
         }
 
