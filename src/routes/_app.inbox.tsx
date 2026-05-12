@@ -1811,19 +1811,34 @@ function MessageContent({
     return <SecureAudio messageId={m.messageId} />;
   }
 
-  if (type === "document" && m.mediaUrl) {
-    const fileName = caption || m.mediaUrl.split("/").pop() || "documento";
+  if (type === "document") {
+    const fileName =
+      caption ||
+      (m.mediaUrl ? m.mediaUrl.split("/").pop() : null) ||
+      (m.body && m.body !== "[documento]" ? m.body : null) ||
+      "documento";
+    if (m.mediaUrl) {
+      return (
+        <a
+          href={m.mediaUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition"
+        >
+          <FileText className="size-5 shrink-0" />
+          <span className="flex-1 text-xs truncate">{fileName}</span>
+          <Download className="size-4 opacity-60" />
+        </a>
+      );
+    }
+    if (m.messageId) {
+      return <SecureDocument messageId={m.messageId} fileName={fileName} mime={m.mediaMime ?? null} />;
+    }
     return (
-      <a
-        href={m.mediaUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition"
-      >
-        <FileText className="size-5 shrink-0" />
-        <span className="flex-1 text-xs truncate">{fileName}</span>
-        <Download className="size-4 opacity-60" />
-      </a>
+      <p className="italic opacity-70 flex items-center gap-1.5">
+        <FileText className="size-3.5" />
+        Documento indisponível
+      </p>
     );
   }
 
@@ -1838,7 +1853,7 @@ function MessageContent({
     );
   }
 
-  if (type === "document" || type === "sticker") {
+  if (type === "sticker") {
     return (
       <p className="italic opacity-70 flex items-center gap-1.5">
         <ImageIcon className="size-3.5" />
