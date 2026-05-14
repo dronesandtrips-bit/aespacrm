@@ -42,6 +42,7 @@ import {
   contactsDb,
   pipelineDb,
   templatesDb,
+  categoriesDb,
   type Sequence,
   type SequenceStep,
   type SequenceStepMetric,
@@ -49,6 +50,7 @@ import {
   type Contact,
   type ContactSequence,
   type PipelineStage,
+  type Category,
 } from "@/lib/db";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
