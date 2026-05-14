@@ -1904,6 +1904,11 @@ function MessageContent({
       (m.mediaUrl ? m.mediaUrl.split("/").pop() : null) ||
       (m.body && m.body !== "[documento]" ? m.body : null) ||
       "documento";
+    // mediaUrl do WhatsApp é criptografada (.enc) — não dá pra abrir direto.
+    // Sempre passamos pelo SecureDocument, que descriptografa via Evolution API.
+    if (m.messageId) {
+      return <SecureDocument messageId={m.messageId} fileName={fileName} mime={m.mediaMime ?? null} />;
+    }
     if (m.mediaUrl) {
       return (
         <a
@@ -1917,9 +1922,6 @@ function MessageContent({
           <Download className="size-4 opacity-60" />
         </a>
       );
-    }
-    if (m.messageId) {
-      return <SecureDocument messageId={m.messageId} fileName={fileName} mime={m.mediaMime ?? null} />;
     }
     return (
       <p className="italic opacity-70 flex items-center gap-1.5">
