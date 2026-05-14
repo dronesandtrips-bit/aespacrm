@@ -379,7 +379,7 @@ function ContactsPage() {
   const pageItems = sorted.slice(pageStart, pageStart + PAGE_SIZE);
 
   const goto = (
-    next: Partial<{ page: number; q: string; cat: string; persona: string; sort: SortKey; dir: "asc" | "desc" }>,
+    next: Partial<{ page: number; q: string; cat: string; persona: string; letter: string; sort: SortKey; dir: "asc" | "desc" }>,
   ) => navigate({ search: (prev: any) => ({ ...prev, ...next }) });
 
   const toggleSort = (key: SortKey) => {
