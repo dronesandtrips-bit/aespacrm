@@ -60,9 +60,12 @@ const searchSchema = z.object({
   q: fallback(z.string(), "").default(""),
   cat: fallback(z.string(), ALL).default(ALL),
   persona: fallback(z.string(), "").default(""),
+  letter: fallback(z.string(), "").default(""),
   sort: fallback(z.enum(SORT_KEYS), "name").default("name"),
   dir: fallback(z.enum(["asc", "desc"]), "asc").default("asc"),
 });
+
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export const Route = createFileRoute("/_app/contatos")({
   validateSearch: zodValidator(searchSchema),
