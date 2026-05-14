@@ -172,7 +172,13 @@ function DisparosPage() {
     else setSelected(new Set(contacts.map((c) => c.id)));
   };
   const selectByCategory = (catId: string) => {
-    const ids = contacts.filter((c) => c.categoryId === catId).map((c) => c.id);
+    const ids = contacts
+      .filter((c) =>
+        (c.categoryIds && c.categoryIds.length
+          ? c.categoryIds.includes(catId)
+          : c.categoryId === catId),
+      )
+      .map((c) => c.id);
     setSelected((p) => {
       const n = new Set(p);
       ids.forEach((i) => n.add(i));
