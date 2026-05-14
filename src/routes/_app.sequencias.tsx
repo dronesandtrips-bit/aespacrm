@@ -990,11 +990,39 @@ function SequenceEditorDialog({
             </Card>
 
             <Card className="p-3 space-y-2">
-              <div className="text-sm font-medium flex items-center gap-2">
+              <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
                 <Users className="size-3.5" /> Contatos inscritos
                 <Badge variant="secondary" className="text-[10px]">
                   {enrolled.length}
                 </Badge>
+                {enrolled.length > 0 && (
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="text-[11px] text-muted-foreground hover:underline"
+                      onClick={() => {
+                        if (bulkSelected.size === enrolled.length) {
+                          setBulkSelected(new Set());
+                        } else {
+                          setBulkSelected(new Set(enrolled.map((e) => e.id)));
+                        }
+                      }}
+                    >
+                      {bulkSelected.size === enrolled.length ? "Desmarcar todos" : "Selecionar todos"}
+                    </button>
+                    {bulkSelected.size > 0 && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={bulkDeleting}
+                        onClick={bulkDeleteEnrolled}
+                      >
+                        {bulkDeleting && <Loader2 className="size-3.5 mr-1 animate-spin" />}
+                        Excluir ({bulkSelected.size})
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
               {enrolled.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-2 text-center">
