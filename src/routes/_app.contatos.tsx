@@ -73,7 +73,7 @@ export const Route = createFileRoute("/_app/contatos")({
 });
 
 function ContactsPage() {
-  const { page, q, cat, persona, sort, dir } = Route.useSearch();
+  const { page, q, cat, persona, letter, sort, dir } = Route.useSearch();
   const navigate = useNavigate({ from: "/contatos" });
 
   const [contacts, setContacts] = useState<Contact[]>([]);
