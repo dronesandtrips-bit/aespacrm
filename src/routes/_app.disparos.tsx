@@ -457,18 +457,28 @@ function DisparosPage() {
             <div className="py-10 text-center text-sm text-muted-foreground">
               Nenhum contato. Importe ou crie contatos antes de disparar.
             </div>
-          ) : (
+          ) : (() => {
+            const q = search.trim().toLowerCase();
+            const filtered = contacts.filter((c) => {
+              if (selected.has(c.id)) return true;
+              if (q) {
+                return (
+                  c.name.toLowerCase().includes(q) ||
+                  c.phone.toLowerCase().includes(q)
+                );
+              }
+              return false;
+            });
+            if (filtered.length === 0) {
+              return (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  Pesquise um contato acima ou clique em uma TAG para listar.
+                </div>
+              );
+            }
+            return (
             <div className="max-h-[320px] overflow-auto space-y-1">
-              {contacts
-                .filter((c) => {
-                  const q = search.trim().toLowerCase();
-                  if (!q) return true;
-                  return (
-                    c.name.toLowerCase().includes(q) ||
-                    c.phone.toLowerCase().includes(q)
-                  );
-                })
-                .map((c) => {
+              {filtered.map((c) => {
                 const cat = categories.find((k) => k.id === c.categoryId);
                 const checked = selected.has(c.id);
                 return (
