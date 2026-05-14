@@ -852,47 +852,121 @@ function SequenceEditorDialog({
                 onChange={(e) => setEnrollSearch(e.target.value)}
               />
 
-              <div className="max-h-56 overflow-auto rounded border bg-background divide-y">
-                {(() => {
-                  const enrolledIds = new Set(enrolled.map((e) => e.contactId));
-                  const q = enrollSearch.trim().toLowerCase();
-                  const filtered = contacts.filter((c) => {
-                    if (enrolledIds.has(c.id)) return false;
-                    if (!q) return true;
-                    return (
-                      c.name.toLowerCase().includes(q) ||
-                      c.phone.toLowerCase().includes(q)
-                    );
-                  });
-                  if (filtered.length === 0) {
-                    return (
-                      <div className="p-3 text-xs text-muted-foreground text-center">
-                        Nenhum contato disponível.
-                      </div>
-                    );
-                  }
-                  return filtered.map((c) => {
-                    const checked = enrollIds.includes(c.id);
-                    return (
-                      <label
-                        key={c.id}
-                        className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted/50"
+              {categories.length > 0 && (
+                <div className="space-y-1">
+                  <div className="text-[11px] text-muted-foreground">
+                    Filtrar por TAG (selecione uma ou mais para listar contatos):
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {categories.map((cat) => {
+                      const active = enrollTagIds.includes(cat.id);
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => toggleEnrollTag(cat.id)}
+                          className="rounded-md border px-2 py-0.5 text-[11px] font-semibold transition-all"
+                          style={{
+                            borderColor: cat.color,
+                            color: active ? "#fff" : cat.color,
+                            backgroundColor: active ? cat.color : "transparent",
+                          }}
+                        >
+                          {cat.name}
+                        </button>
+                      );
+                    })}
+                    {enrollTagIds.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setEnrollTagIds([])}
+                        className="text-[11px] text-muted-foreground underline ml-1"
                       >
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() => toggleEnrollId(c.id)}
-                        />
-                        <span className="flex-1 truncate">
-                          {c.name}{" "}
-                          <span className="text-xs text-muted-foreground">
-                            · {c.phone}
-                          </span>
-                        </span>
-                      </label>
-                    );
-                  });
-                })()}
-              </div>
+                        limpar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {(() => {
+                const q = enrollSearch.trim().toLowerCase();
+                const hasFilter = q.length > 0 || enrollTagIds.length > 0 || enrollIds.length > 0;
+                if (!hasFilter) {
+                  return (
+                    <div className="rounded border bg-background p-3 text-xs text-muted-foreground text-center">
+                      Pesquise um contato acima ou selecione uma TAG para listar.
+                    </div>
+                  );
+                }
+                const enrolledIds = new Set(enrolled.map((e) => e.contactId));
+                const tagSet = new Set(enrollTagIds);
+                const filtered = contacts.filter((c) => {
+                  if (enrolledIds.has(c.id) && !enrollIds.includes(c.id)) return false;
+                  if (tagSet.size > 0) {
+                    const ids = c.categoryIds && c.categoryIds.length
+                      ? c.categoryIds
+                      : c.categoryId ? [c.categoryId] : [];
+                    if (!ids.some((id) => tagSet.has(id))) return false;
+                  }
+                  if (q) {
+                    if (
+                      !c.name.toLowerCase().includes(q) &&
+                      !c.phone.toLowerCase().includes(q)
+                    ) return false;
+                  }
+                  return true;
+                });
+                return (
+                  <div className="max-h-56 overflow-auto rounded border bg-background divide-y">
+                    {filtered.length === 0 ? (
+                      <div className="p-3 text-xs text-muted-foreground text-center">
+                        Nenhum contato encontrado.
+                      </div>
+                    ) : (
+                      <>
+                        {enrollTagIds.length > 0 && (
+                          <div className="flex items-center justify-between px-2 py-1.5 bg-muted/30 text-[11px]">
+                            <span className="text-muted-foreground">
+                              {filtered.length} contato(s)
+                            </span>
+                            <button
+                              type="button"
+                              className="font-semibold text-primary hover:underline"
+                              onClick={() => {
+                                const ids = filtered.map((c) => c.id);
+                                setEnrollIds((prev) => Array.from(new Set([...prev, ...ids])));
+                              }}
+                            >
+                              Selecionar todos
+                            </button>
+                          </div>
+                        )}
+                        {filtered.map((c) => {
+                          const checked = enrollIds.includes(c.id);
+                          return (
+                            <label
+                              key={c.id}
+                              className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted/50"
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={() => toggleEnrollId(c.id)}
+                              />
+                              <span className="flex-1 truncate">
+                                {c.name}{" "}
+                                <span className="text-xs text-muted-foreground">
+                                  · {c.phone}
+                                </span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
 
               <div className="flex gap-2">
                 {enrollIds.length > 0 && (
