@@ -272,6 +272,10 @@ function SequenceEditorDialog({
   const [enrollIds, setEnrollIds] = useState<string[]>([]);
   const [enrollSearch, setEnrollSearch] = useState("");
   const [enrolled, setEnrolled] = useState<ContactSequence[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [enrollTagIds, setEnrollTagIds] = useState<string[]>([]);
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [startHour, setStartHour] = useState<number>(sequence.windowStartHour);
   const [endHour, setEndHour] = useState<number>(sequence.windowEndHour);
   const [days, setDays] = useState<number[]>(sequence.windowDays);
