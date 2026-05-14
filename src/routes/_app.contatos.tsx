@@ -626,6 +626,26 @@ function ContactsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Select
               value=""
+              onValueChange={(v) => handleBulkAddTag(v)}
+              disabled={bulkMoving || categories.length === 0}
+            >
+              <SelectTrigger className="h-9 w-[220px] gap-2">
+                {bulkMoving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <SelectValue placeholder="+ Aplicar TAG (mantém atuais)" />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value=""
               onValueChange={(v) => handleBulkMoveToCategory(v)}
               disabled={bulkMoving || categories.length === 0}
             >
@@ -633,7 +653,7 @@ function ContactsPage() {
                 {bulkMoving ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <SelectValue placeholder="Mover para categoria..." />
+                  <SelectValue placeholder="Mover para categoria (substitui)" />
                 )}
               </SelectTrigger>
               <SelectContent>
