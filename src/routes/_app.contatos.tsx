@@ -166,7 +166,44 @@ function ContactsPage() {
     }
   };
 
-  const handleCleanInvalid = async () => {
+  const handleBulkAddTag = async (categoryId: string) => {
+    const ids = Array.from(selected);
+    if (ids.length === 0 || !categoryId) return;
+    const cat = categories.find((c) => c.id === categoryId);
+    if (!cat) return;
+    if (!confirm(`Adicionar a TAG "${cat.name}" a ${ids.length} contato${ids.length > 1 ? "s" : ""}? (As TAGs existentes serão mantidas)`)) return;
+    setBulkMoving(true);
+    let ok = 0;
+    let fail = 0;
+    let skipped = 0;
+    try {
+      for (const id of ids) {
+        const c = contacts.find((x) => x.id === id);
+        if (!c) { fail++; continue; }
+        const current = c.categoryIds && c.categoryIds.length
+          ? c.categoryIds
+          : c.categoryId
+            ? [c.categoryId]
+            : [];
+        if (current.includes(categoryId)) { skipped++; continue; }
+        try {
+          await contactsDb.update(id, { categoryIds: [...current, categoryId] });
+          ok++;
+        } catch {
+          fail++;
+        }
+      }
+      await refresh();
+      setSelected(new Set());
+      const parts = [`${ok} marcado${ok !== 1 ? "s" : ""} com "${cat.name}"`];
+      if (skipped) parts.push(`${skipped} já tinha${skipped !== 1 ? "m" : ""} a TAG`);
+      if (fail) parts.push(`${fail} falharam`);
+      if (fail === 0) toast.success(parts.join(" · "));
+      else toast.warning(parts.join(" · "));
+    } finally {
+      setBulkMoving(false);
+    }
+  };
     try {
       setCleaning(true);
       const preview = await previewInvalidContacts();
