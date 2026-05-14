@@ -314,13 +314,14 @@ function SequenceEditorDialog({
     let cancelled = false;
     (async () => {
       try {
-        const [s, c, st, all, tpls, mets] = await Promise.all([
+        const [s, c, st, all, tpls, mets, cats] = await Promise.all([
           sequencesDb.listSteps(sequence.id),
           contactsDb.list(),
           pipelineDb.listStages(),
           sequencesDb.listContactSequences(),
           templatesDb.list().catch(() => []),
           sequencesDb.stepMetrics(sequence.id).catch(() => []),
+          categoriesDb.list().catch(() => [] as Category[]),
         ]);
         if (cancelled) return;
         setSteps(
