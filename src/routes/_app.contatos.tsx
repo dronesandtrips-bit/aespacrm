@@ -204,6 +204,8 @@ function ContactsPage() {
       setBulkMoving(false);
     }
   };
+
+  const handleCleanInvalid = async () => {
     try {
       setCleaning(true);
       const preview = await previewInvalidContacts();
