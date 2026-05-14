@@ -698,10 +698,8 @@ function InboxPage() {
     fileInputRef.current?.click();
   };
 
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !activeId) return;
+  const uploadFile = async (file: File) => {
+    if (!activeId) return;
     const MAX = 16 * 1024 * 1024;
     if (file.size > MAX) {
       toast.error("Arquivo maior que 16MB não é suportado pelo WhatsApp.");
