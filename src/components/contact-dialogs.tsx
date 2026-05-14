@@ -60,11 +60,11 @@ export function ContactDialog({
   };
 
   return (
-    <DialogContent className="max-w-md">
+    <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{initial ? "Editar contato" : "Novo contato"}</DialogTitle>
       </DialogHeader>
-      <form onSubmit={handle} className="space-y-3">
+      <form onSubmit={handle} className="space-y-3 pb-2">
         <div className="space-y-1.5">
           <Label htmlFor="n">Nome *</Label>
           <Input id="n" value={name} onChange={(e) => setName(e.target.value)} required />
