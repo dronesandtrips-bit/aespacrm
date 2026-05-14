@@ -1435,7 +1435,8 @@ function InboxPage() {
                         if (!sending) handleSend();
                       }
                     }}
-                    placeholder="Digite uma mensagem... (Shift+Enter para nova linha)"
+                    onPaste={handlePasteIntoComposer}
+                    placeholder="Digite uma mensagem... (Shift+Enter para nova linha, Ctrl+V para colar imagem)"
                     disabled={sending}
                     rows={1}
                     className="flex-1 border-0 bg-transparent shadow-none min-h-10 max-h-40 px-1 py-2 text-sm placeholder:text-[color:var(--ww-text-dim)] focus-visible:ring-0 text-[color:var(--ww-text)] resize-none"
