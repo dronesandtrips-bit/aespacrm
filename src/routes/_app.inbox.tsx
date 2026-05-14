@@ -698,10 +698,8 @@ function InboxPage() {
     fileInputRef.current?.click();
   };
 
-  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !activeId) return;
+  const uploadFile = async (file: File) => {
+    if (!activeId) return;
     const MAX = 16 * 1024 * 1024;
     if (file.size > MAX) {
       toast.error("Arquivo maior que 16MB não é suportado pelo WhatsApp.");
@@ -760,6 +758,30 @@ function InboxPage() {
       toast.error(`Erro ao enviar anexo: ${err.message ?? err}`);
     } finally {
       setAttaching(false);
+    }
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    await uploadFile(file);
+  };
+
+  const handlePasteIntoComposer = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    if (!activeId || attaching || sending) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.kind === "file") {
+        const file = it.getAsFile();
+        if (file) {
+          e.preventDefault();
+          void uploadFile(file);
+          return;
+        }
+      }
     }
   };
 
@@ -1413,7 +1435,8 @@ function InboxPage() {
                         if (!sending) handleSend();
                       }
                     }}
-                    placeholder="Digite uma mensagem... (Shift+Enter para nova linha)"
+                    onPaste={handlePasteIntoComposer}
+                    placeholder="Digite uma mensagem... (Shift+Enter para nova linha, Ctrl+V para colar imagem)"
                     disabled={sending}
                     rows={1}
                     className="flex-1 border-0 bg-transparent shadow-none min-h-10 max-h-40 px-1 py-2 text-sm placeholder:text-[color:var(--ww-text-dim)] focus-visible:ring-0 text-[color:var(--ww-text)] resize-none"
