@@ -309,13 +309,24 @@ function ContactsPage() {
           : c.categoryId
             ? [c.categoryId]
             : [];
-        const matchCat = cat === ALL || tags.includes(cat);
+        const matchCat =
+          cat === ALL
+            ? true
+            : cat === NONE
+              ? tags.length === 0
+              : tags.includes(cat);
         const matchPersona =
           !persona ||
           (c.aiPersonaSummary ?? "").toLowerCase().includes(persona.toLowerCase());
-        return matchSearch && matchCat && matchPersona;
+        const firstChar = (c.name || "").trim().charAt(0).toUpperCase();
+        const matchLetter =
+          !letter ||
+          (letter === "#"
+            ? !/^[A-Z]/.test(firstChar)
+            : firstChar === letter);
+        return matchSearch && matchCat && matchPersona && matchLetter;
       }),
-    [contacts, q, cat, persona],
+    [contacts, q, cat, persona, letter],
   );
 
   const URGENCY_RANK: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
