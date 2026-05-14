@@ -761,6 +761,30 @@ function InboxPage() {
     }
   };
 
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    await uploadFile(file);
+  };
+
+  const handlePasteIntoComposer = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    if (!activeId || attaching || sending) return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.kind === "file") {
+        const file = it.getAsFile();
+        if (file) {
+          e.preventDefault();
+          void uploadFile(file);
+          return;
+        }
+      }
+    }
+  };
+
   const handleSend = async () => {
     if (!draft.trim() || !activeId) return;
     setSending(true);
