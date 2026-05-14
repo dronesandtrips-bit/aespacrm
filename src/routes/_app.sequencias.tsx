@@ -340,6 +340,7 @@ function SequenceEditorDialog({
         setEnrolled(all.filter((x) => x.sequenceId === sequence.id));
         setTemplates(tpls);
         setMetrics(mets);
+        setCategories(cats);
       } catch (e: any) {
         toast.error(`Erro: ${e.message ?? e}`);
       } finally {
