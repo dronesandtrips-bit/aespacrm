@@ -495,6 +495,38 @@ function SequenceEditorDialog({
     }
   };
 
+  const toggleBulkSelected = (id: string) => {
+    setBulkSelected((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
+
+  const bulkDeleteEnrolled = async () => {
+    if (bulkSelected.size === 0) return;
+    if (!confirm(`Remover ${bulkSelected.size} contato(s) da sequência?`)) return;
+    setBulkDeleting(true);
+    try {
+      const ids = [...bulkSelected];
+      for (const id of ids) {
+        await sequencesDb.removeContact(id);
+      }
+      toast.success(`${ids.length} removido(s)`);
+      setBulkSelected(new Set());
+      await reloadEnrolled();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const toggleEnrollTag = (id: string) => {
+    setEnrollTagIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  };
+
   const toggleEnrollId = (id: string) => {
     setEnrollIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   };
