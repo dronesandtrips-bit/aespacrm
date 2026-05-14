@@ -506,10 +506,16 @@ function DisparosPage() {
                 );
               })}
             </div>
-          )}
+            );
+          })()}
         </Card>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {selected.size > 0 && (
+            <Button size="lg" variant="outline" onClick={() => setSelected(new Set())} className="gap-2">
+              <X className="size-4" /> Limpar seleção
+            </Button>
+          )}
           <Button size="lg" onClick={handleDispatch} className="gap-2" disabled={submitting}>
             {submitting ? <Loader2 className="size-4 animate-spin" /> :
              scheduleAt ? <CalendarClock className="size-4" /> : <Send className="size-4" />}
