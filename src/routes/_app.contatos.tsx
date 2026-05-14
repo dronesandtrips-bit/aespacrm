@@ -688,7 +688,7 @@ function ContactsPage() {
         </div>
       )}
 
-      <Card className="p-4">
+      <Card className="p-4 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -705,6 +705,7 @@ function ContactsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>Todas categorias</SelectItem>
+              <SelectItem value={NONE}>Sem TAG</SelectItem>
               {categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}
@@ -712,6 +713,46 @@ function ContactsPage() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="flex flex-wrap items-center gap-1">
+          <span className="text-xs text-muted-foreground mr-1">Filtrar por letra:</span>
+          <button
+            type="button"
+            onClick={() => goto({ letter: "", page: 1 })}
+            className={`h-7 min-w-[28px] px-2 rounded-md text-xs font-medium transition-colors ${
+              !letter
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted hover:bg-muted/70 text-muted-foreground"
+            }`}
+          >
+            Todas
+          </button>
+          {LETTERS.map((L) => (
+            <button
+              key={L}
+              type="button"
+              onClick={() => goto({ letter: letter === L ? "" : L, page: 1 })}
+              className={`h-7 min-w-[28px] px-2 rounded-md text-xs font-medium transition-colors ${
+                letter === L
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted hover:bg-muted/70 text-muted-foreground"
+              }`}
+            >
+              {L}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => goto({ letter: letter === "#" ? "" : "#", page: 1 })}
+            className={`h-7 min-w-[28px] px-2 rounded-md text-xs font-medium transition-colors ${
+              letter === "#"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted hover:bg-muted/70 text-muted-foreground"
+            }`}
+            title="Nomes começando com número ou símbolo"
+          >
+            #
+          </button>
         </div>
       </Card>
 
