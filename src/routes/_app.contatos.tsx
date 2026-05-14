@@ -60,9 +60,12 @@ const searchSchema = z.object({
   q: fallback(z.string(), "").default(""),
   cat: fallback(z.string(), ALL).default(ALL),
   persona: fallback(z.string(), "").default(""),
+  letter: fallback(z.string(), "").default(""),
   sort: fallback(z.enum(SORT_KEYS), "name").default("name"),
   dir: fallback(z.enum(["asc", "desc"]), "asc").default("asc"),
 });
+
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export const Route = createFileRoute("/_app/contatos")({
   validateSearch: zodValidator(searchSchema),
@@ -70,7 +73,7 @@ export const Route = createFileRoute("/_app/contatos")({
 });
 
 function ContactsPage() {
-  const { page, q, cat, persona, sort, dir } = Route.useSearch();
+  const { page, q, cat, persona, letter, sort, dir } = Route.useSearch();
   const navigate = useNavigate({ from: "/contatos" });
 
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -158,6 +161,45 @@ function ContactsPage() {
       setSelected(new Set());
       if (fail === 0) toast.success(`${ok} contato${ok > 1 ? "s" : ""} movido${ok > 1 ? "s" : ""} para "${cat.name}"`);
       else toast.warning(`${ok} movidos, ${fail} falharam`);
+    } finally {
+      setBulkMoving(false);
+    }
+  };
+
+  const handleBulkAddTag = async (categoryId: string) => {
+    const ids = Array.from(selected);
+    if (ids.length === 0 || !categoryId) return;
+    const cat = categories.find((c) => c.id === categoryId);
+    if (!cat) return;
+    if (!confirm(`Adicionar a TAG "${cat.name}" a ${ids.length} contato${ids.length > 1 ? "s" : ""}? (As TAGs existentes serão mantidas)`)) return;
+    setBulkMoving(true);
+    let ok = 0;
+    let fail = 0;
+    let skipped = 0;
+    try {
+      for (const id of ids) {
+        const c = contacts.find((x) => x.id === id);
+        if (!c) { fail++; continue; }
+        const current = c.categoryIds && c.categoryIds.length
+          ? c.categoryIds
+          : c.categoryId
+            ? [c.categoryId]
+            : [];
+        if (current.includes(categoryId)) { skipped++; continue; }
+        try {
+          await contactsDb.update(id, { categoryIds: [...current, categoryId] });
+          ok++;
+        } catch {
+          fail++;
+        }
+      }
+      await refresh();
+      setSelected(new Set());
+      const parts = [`${ok} marcado${ok !== 1 ? "s" : ""} com "${cat.name}"`];
+      if (skipped) parts.push(`${skipped} já tinha${skipped !== 1 ? "m" : ""} a TAG`);
+      if (fail) parts.push(`${fail} falharam`);
+      if (fail === 0) toast.success(parts.join(" · "));
+      else toast.warning(parts.join(" · "));
     } finally {
       setBulkMoving(false);
     }
@@ -306,13 +348,24 @@ function ContactsPage() {
           : c.categoryId
             ? [c.categoryId]
             : [];
-        const matchCat = cat === ALL || tags.includes(cat);
+        const matchCat =
+          cat === ALL
+            ? true
+            : cat === NONE
+              ? tags.length === 0
+              : tags.includes(cat);
         const matchPersona =
           !persona ||
           (c.aiPersonaSummary ?? "").toLowerCase().includes(persona.toLowerCase());
-        return matchSearch && matchCat && matchPersona;
+        const firstChar = (c.name || "").trim().charAt(0).toUpperCase();
+        const matchLetter =
+          !letter ||
+          (letter === "#"
+            ? !/^[A-Z]/.test(firstChar)
+            : firstChar === letter);
+        return matchSearch && matchCat && matchPersona && matchLetter;
       }),
-    [contacts, q, cat, persona],
+    [contacts, q, cat, persona, letter],
   );
 
   const URGENCY_RANK: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
@@ -365,7 +418,7 @@ function ContactsPage() {
   const pageItems = sorted.slice(pageStart, pageStart + PAGE_SIZE);
 
   const goto = (
-    next: Partial<{ page: number; q: string; cat: string; persona: string; sort: SortKey; dir: "asc" | "desc" }>,
+    next: Partial<{ page: number; q: string; cat: string; persona: string; letter: string; sort: SortKey; dir: "asc" | "desc" }>,
   ) => navigate({ search: (prev: any) => ({ ...prev, ...next }) });
 
   const toggleSort = (key: SortKey) => {
@@ -573,6 +626,26 @@ function ContactsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Select
               value=""
+              onValueChange={(v) => handleBulkAddTag(v)}
+              disabled={bulkMoving || categories.length === 0}
+            >
+              <SelectTrigger className="h-9 w-[220px] gap-2">
+                {bulkMoving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <SelectValue placeholder="+ Aplicar TAG (mantém atuais)" />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value=""
               onValueChange={(v) => handleBulkMoveToCategory(v)}
               disabled={bulkMoving || categories.length === 0}
             >
@@ -580,7 +653,7 @@ function ContactsPage() {
                 {bulkMoving ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <SelectValue placeholder="Mover para categoria..." />
+                  <SelectValue placeholder="Mover para categoria (substitui)" />
                 )}
               </SelectTrigger>
               <SelectContent>
@@ -615,7 +688,7 @@ function ContactsPage() {
         </div>
       )}
 
-      <Card className="p-4">
+      <Card className="p-4 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -632,6 +705,7 @@ function ContactsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>Todas categorias</SelectItem>
+              <SelectItem value={NONE}>Sem TAG</SelectItem>
               {categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}
@@ -639,6 +713,46 @@ function ContactsPage() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="flex flex-wrap items-center gap-1">
+          <span className="text-xs text-muted-foreground mr-1">Filtrar por letra:</span>
+          <button
+            type="button"
+            onClick={() => goto({ letter: "", page: 1 })}
+            className={`h-7 min-w-[28px] px-2 rounded-md text-xs font-medium transition-colors ${
+              !letter
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted hover:bg-muted/70 text-muted-foreground"
+            }`}
+          >
+            Todas
+          </button>
+          {LETTERS.map((L) => (
+            <button
+              key={L}
+              type="button"
+              onClick={() => goto({ letter: letter === L ? "" : L, page: 1 })}
+              className={`h-7 min-w-[28px] px-2 rounded-md text-xs font-medium transition-colors ${
+                letter === L
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted hover:bg-muted/70 text-muted-foreground"
+              }`}
+            >
+              {L}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => goto({ letter: letter === "#" ? "" : "#", page: 1 })}
+            className={`h-7 min-w-[28px] px-2 rounded-md text-xs font-medium transition-colors ${
+              letter === "#"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted hover:bg-muted/70 text-muted-foreground"
+            }`}
+            title="Nomes começando com número ou símbolo"
+          >
+            #
+          </button>
         </div>
       </Card>
 
