@@ -2273,6 +2273,7 @@ function replyPreviewText(m: ChatMessage): string {
   if (t === "audio") return "🎤 Mensagem de voz";
   if (t === "video") return m.mediaCaption ? `🎬 ${m.mediaCaption}` : "🎬 Vídeo";
   if (t === "document") return `📄 ${m.mediaCaption ?? m.body ?? "Documento"}`;
+  if (t === "location") return `📍 ${m.mediaCaption ?? "Localização"}`;
   return m.body ?? "";
 }
 
