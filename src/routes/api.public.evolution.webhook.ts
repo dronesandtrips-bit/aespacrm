@@ -112,7 +112,22 @@ function detectMessageType(msg: any): {
     return { type: "sticker", body: "[sticker]", media_url: m.stickerMessage.url ?? null, media_mime: m.stickerMessage.mimetype ?? null, media_caption: null };
   }
   if (m.locationMessage) {
-    return { type: "location", body: "[localização]", media_url: null, media_mime: null, media_caption: null };
+    const lat = m.locationMessage.degreesLatitude ?? m.locationMessage.latitude ?? null;
+    const lng = m.locationMessage.degreesLongitude ?? m.locationMessage.longitude ?? null;
+    const name = (m.locationMessage.name ?? "").toString().trim();
+    const address = (m.locationMessage.address ?? "").toString().trim();
+    const mapsUrl =
+      lat != null && lng != null
+        ? `https://www.google.com/maps?q=${lat},${lng}`
+        : null;
+    const label = [name, address].filter(Boolean).join(" — ");
+    return {
+      type: "location",
+      body: label || "[localização]",
+      media_url: mapsUrl,
+      media_mime: lat != null && lng != null ? `geo:${lat},${lng}` : null,
+      media_caption: label || null,
+    };
   }
   if (m.reactionMessage) {
     return { type: "reaction", body: m.reactionMessage.text ?? "👍", media_url: null, media_mime: null, media_caption: null };
