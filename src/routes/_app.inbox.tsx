@@ -1974,6 +1974,35 @@ function MessageContent({
     );
   }
 
+  if (type === "location") {
+    const url = m.mediaUrl;
+    const label = m.mediaCaption || (m.body && m.body !== "[localização]" ? m.body : "Localização compartilhada");
+    const coords = m.mediaMime?.startsWith("geo:") ? m.mediaMime.slice(4) : null;
+    if (url) {
+      return (
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-start gap-2 p-2 rounded-lg bg-black/10 hover:bg-black/20 transition min-w-[220px]"
+        >
+          <MapPin className="size-5 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium truncate">{label}</p>
+            {coords ? <p className="text-[10px] opacity-70 truncate">{coords}</p> : null}
+            <p className="text-[10px] opacity-70">Abrir no Google Maps</p>
+          </div>
+        </a>
+      );
+    }
+    return (
+      <p className="italic opacity-70 flex items-center gap-1.5">
+        <MapPin className="size-3.5" />
+        {label}
+      </p>
+    );
+  }
+
   return <p className="whitespace-pre-wrap break-words">{m.body}</p>;
 }
 
