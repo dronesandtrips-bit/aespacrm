@@ -1559,6 +1559,53 @@ function BlacklistTab() {
         </div>
       </Card>
 
+      <Card className="p-5 space-y-4 border-dashed">
+        <div className="flex items-start gap-3">
+          <div className="size-10 rounded-full bg-muted grid place-items-center shrink-0">
+            <ShieldOff className="size-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1">
+            <h2 className="font-semibold">Importar lista de descadastros</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Cole uma lista de números (recebida por outro canal) para
+              descadastrar em massa. Apenas <strong>adiciona</strong> à
+              blacklist — não remove ninguém existente. Sequências ativas
+              desses contatos são pausadas automaticamente.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="bulk-blacklist-input">
+            Telefones (um por linha, ou separados por vírgula)
+          </Label>
+          <Textarea
+            id="bulk-blacklist-input"
+            placeholder={"5511999999999\n5511888888888\n+55 (11) 7777-7777"}
+            value={bulkDraft}
+            onChange={(e) => setBulkDraft(e.target.value)}
+            rows={6}
+            className="font-mono text-sm"
+            disabled={bulkImporting}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">
+            {bulkParsed.length} número(s) válido(s) para descadastrar
+          </div>
+          <Button
+            onClick={handleBulkImport}
+            disabled={bulkImporting || bulkParsed.length === 0}
+            className="gap-2"
+          >
+            {bulkImporting && <Loader2 className="size-4 animate-spin" />}
+            <ShieldOff className="size-4" />
+            Descadastrar {bulkParsed.length > 0 ? `${bulkParsed.length} ` : ""}número(s)
+          </Button>
+        </div>
+      </Card>
+
       <Card className="p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">Lista atual ({items.length})</h3>
