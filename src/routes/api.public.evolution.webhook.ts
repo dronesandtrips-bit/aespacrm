@@ -19,8 +19,17 @@ import { isStrictValidPhone } from "@/server/phone-validation";
 const INSTANCE = "zapcrm";
 
 // Opt-out / opt-in por palavra-chave em mensagens inbound (1:1).
-// Comparação case/acento-insensitive, palavra inteira.
-const OPT_OUT_RE = /\bDESCADASTRAR\b/;
+// Detecção robusta: case/acento-insensitive, tolerante a separadores
+// (hífen, ponto, espaço, underline) e a variantes morfológicas do verbo
+// (descadastrar, descadastra, descadastre, descadastro, descadastramento).
+//
+// Estratégia:
+//   - normalizeKeyword: NFD + remove diacríticos + UPPERCASE → usado para
+//     OPT-IN ("VOLTAR") com \b para evitar falsos positivos ("REVOLTAR").
+//   - compactKeyword:   normalizeKeyword + remove tudo que não é A-Z →
+//     usado para OPT-OUT (stem "DESCADASTR"), pegando "des-cadastrar",
+//     "des cadastrar", "des.cadastrar", "DESCADASTRO", etc.
+const OPT_OUT_STEM_RE = /DESCADASTR/;
 const OPT_IN_RE = /\bVOLTAR\b/;
 
 function normalizeKeyword(s: string): string {
@@ -28,6 +37,10 @@ function normalizeKeyword(s: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase();
+}
+
+function compactKeyword(s: string): string {
+  return normalizeKeyword(s).replace(/[^A-Z]/g, "");
 }
 
 async function sendWhatsAppText(number: string, text: string): Promise<void> {
