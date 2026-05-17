@@ -18,6 +18,33 @@ import { isStrictValidPhone } from "@/server/phone-validation";
 
 const INSTANCE = "zapcrm";
 
+// Opt-out / opt-in por palavra-chave em mensagens inbound (1:1).
+// Comparação case/acento-insensitive, palavra inteira.
+const OPT_OUT_RE = /\bDESCADASTRAR\b/;
+const OPT_IN_RE = /\bVOLTAR\b/;
+
+function normalizeKeyword(s: string): string {
+  return String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+}
+
+async function sendWhatsAppText(number: string, text: string): Promise<void> {
+  const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
+  const apiKey = process.env.EVOLUTION_API_KEY?.trim();
+  if (!apiUrl || !apiKey || !number) return;
+  try {
+    await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
+      method: "POST",
+      headers: { apikey: apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ number, text, delay: 800 }),
+    });
+  } catch (e) {
+    console.error("[opt-out] sendWhatsAppText error", e);
+  }
+}
+
 // Aceita JIDs de contatos individuais do WhatsApp.
 function isIndividualJid(jid: string | undefined | null): boolean {
   if (!jid) return false;
