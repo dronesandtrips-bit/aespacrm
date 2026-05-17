@@ -1424,6 +1424,33 @@ function BlacklistTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState("");
+  const [bulkDraft, setBulkDraft] = useState("");
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const bulkParsed = parseBlacklistInput(bulkDraft);
+
+  async function handleBulkImport() {
+    if (bulkParsed.length === 0) {
+      toast.error("Cole pelo menos um número válido");
+      return;
+    }
+    setBulkImporting(true);
+    try {
+      const result = await ignoredPhonesDb.addMany(
+        bulkParsed,
+        "import:descadastros",
+      );
+      toast.success(
+        `${result.added} número(s) descadastrado(s)` +
+          (result.skipped > 0 ? ` · ${result.skipped} já existente(s)/inválido(s)` : ""),
+      );
+      setBulkDraft("");
+      await load();
+    } catch (e: any) {
+      toast.error("Falha ao importar", { description: e?.message });
+    } finally {
+      setBulkImporting(false);
+    }
+  }
 
   async function load() {
     setLoading(true);
