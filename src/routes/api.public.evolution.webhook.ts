@@ -419,7 +419,8 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                 if (parsed.type === "text") {
                   const phone = normalizePhone(remoteJid);
                   const norm = normalizeKeyword(parsed.body || "");
-                  if (phone && OPT_OUT_RE.test(norm)) {
+                  const compact = compactKeyword(parsed.body || "");
+                  if (phone && OPT_OUT_STEM_RE.test(compact)) {
                     const { error: insErr } = await sb
                       .from("crm_ignored_phones")
                       .upsert(
