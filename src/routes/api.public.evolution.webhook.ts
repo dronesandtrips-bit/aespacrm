@@ -18,6 +18,33 @@ import { isStrictValidPhone } from "@/server/phone-validation";
 
 const INSTANCE = "zapcrm";
 
+// Opt-out / opt-in por palavra-chave em mensagens inbound (1:1).
+// Comparação case/acento-insensitive, palavra inteira.
+const OPT_OUT_RE = /\bDESCADASTRAR\b/;
+const OPT_IN_RE = /\bVOLTAR\b/;
+
+function normalizeKeyword(s: string): string {
+  return String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+}
+
+async function sendWhatsAppText(number: string, text: string): Promise<void> {
+  const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
+  const apiKey = process.env.EVOLUTION_API_KEY?.trim();
+  if (!apiUrl || !apiKey || !number) return;
+  try {
+    await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
+      method: "POST",
+      headers: { apikey: apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ number, text, delay: 800 }),
+    });
+  } catch (e) {
+    console.error("[opt-out] sendWhatsAppText error", e);
+  }
+}
+
 // Aceita JIDs de contatos individuais do WhatsApp.
 function isIndividualJid(jid: string | undefined | null): boolean {
   if (!jid) return false;
@@ -373,6 +400,46 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                   .eq("user_id", ownerUserId)
                   .eq("contact_id", contactId)
                   .eq("status", "active");
+
+                // Opt-out / opt-in por palavra-chave (DESCADASTRAR / VOLTAR).
+                // Só processa em mensagens de texto, ignora outros tipos.
+                if (parsed.type === "text") {
+                  const phone = normalizePhone(remoteJid);
+                  const norm = normalizeKeyword(parsed.body || "");
+                  if (phone && OPT_OUT_RE.test(norm)) {
+                    const { error: insErr } = await sb
+                      .from("crm_ignored_phones")
+                      .upsert(
+                        {
+                          user_id: ownerUserId,
+                          phone_norm: phone,
+                          reason: "whatsapp:descadastrar",
+                        },
+                        { onConflict: "user_id,phone_norm", ignoreDuplicates: true },
+                      );
+                    if (!insErr) {
+                      await sendWhatsAppText(
+                        phone,
+                        "✅ Pronto! Você foi descadastrado e não receberá mais mensagens automáticas.\n\nSe quiser voltar a receber, é só responder *VOLTAR*.",
+                      );
+                    } else {
+                      console.error("[opt-out] insert blacklist error", insErr);
+                    }
+                  } else if (phone && OPT_IN_RE.test(norm)) {
+                    const { data: removed, error: delErr } = await sb
+                      .from("crm_ignored_phones")
+                      .delete()
+                      .eq("user_id", ownerUserId)
+                      .eq("phone_norm", phone)
+                      .select("id");
+                    if (!delErr && removed && removed.length > 0) {
+                      await sendWhatsAppText(
+                        phone,
+                        "✅ Você voltou a receber nossas mensagens. Obrigado!",
+                      );
+                    }
+                  }
+                }
               }
             }
           } else if (event === "messages.update") {
