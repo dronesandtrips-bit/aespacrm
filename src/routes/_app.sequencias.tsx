@@ -660,7 +660,7 @@ function SequenceEditorDialog({
                     onRemove={() => removeStep(i)}
                     onClone={() => cloneStep(i)}
                     onUpdate={(patch) => updateStep(i, patch)}
-                    onLoadTemplate={(c) => loadTemplate(i, c)}
+                    onLoadTemplate={(t) => loadTemplate(i, t)}
                     onSendTest={() => sendTest(i)}
                   />
                 ))}
