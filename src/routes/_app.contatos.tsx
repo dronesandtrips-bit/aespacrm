@@ -1430,10 +1430,14 @@ function ImportDialog({
                         <TableCell className="font-mono text-xs">{r.phone}</TableCell>
                         <TableCell className="text-muted-foreground text-xs">
                           {r.categoryName ??
-                            (defaultTagId !== "__none__"
-                              ? categories.find((c) => c.id === defaultTagId)?.name ?? "—"
+                            (defaultTagIds.length
+                              ? defaultTagIds
+                                  .map((id) => categories.find((c) => c.id === id)?.name)
+                                  .filter(Boolean)
+                                  .join(", ") || "—"
                               : "—")}
                         </TableCell>
+
                       </TableRow>
                     ))}
                   </TableBody>
