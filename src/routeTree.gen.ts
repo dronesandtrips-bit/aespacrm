@@ -33,6 +33,9 @@ import { Route as ApiPublicSequencesTestSendRouteImport } from './routes/api.pub
 import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.sequences.sent'
 import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.public.sequences.inbound'
 import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.sequences.due'
+import { Route as ApiPublicOptoutReverseRouteImport } from './routes/api.public.optout.reverse'
+import { Route as ApiPublicOptoutInfoRouteImport } from './routes/api.public.optout.info'
+import { Route as ApiPublicOptoutConfirmRouteImport } from './routes/api.public.optout.confirm'
 import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api.public.evolution.webhook'
 import { Route as ApiPublicEvolutionTestRouteImport } from './routes/api.public.evolution.test'
 import { Route as ApiPublicEvolutionSyncMessagesRouteImport } from './routes/api.public.evolution.sync-messages'
@@ -183,6 +186,21 @@ const ApiPublicSequencesInboundRoute =
 const ApiPublicSequencesDueRoute = ApiPublicSequencesDueRouteImport.update({
   id: '/api/public/sequences/due',
   path: '/api/public/sequences/due',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOptoutReverseRoute = ApiPublicOptoutReverseRouteImport.update({
+  id: '/api/public/optout/reverse',
+  path: '/api/public/optout/reverse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOptoutInfoRoute = ApiPublicOptoutInfoRouteImport.update({
+  id: '/api/public/optout/info',
+  path: '/api/public/optout/info',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOptoutConfirmRoute = ApiPublicOptoutConfirmRouteImport.update({
+  id: '/api/public/optout/confirm',
+  path: '/api/public/optout/confirm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicEvolutionWebhookRoute =
@@ -405,6 +423,9 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
+  '/api/public/optout/confirm': typeof ApiPublicOptoutConfirmRoute
+  '/api/public/optout/info': typeof ApiPublicOptoutInfoRoute
+  '/api/public/optout/reverse': typeof ApiPublicOptoutReverseRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
@@ -460,6 +481,9 @@ export interface FileRoutesByTo {
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
+  '/api/public/optout/confirm': typeof ApiPublicOptoutConfirmRoute
+  '/api/public/optout/info': typeof ApiPublicOptoutInfoRoute
+  '/api/public/optout/reverse': typeof ApiPublicOptoutReverseRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
@@ -517,6 +541,9 @@ export interface FileRoutesById {
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
+  '/api/public/optout/confirm': typeof ApiPublicOptoutConfirmRoute
+  '/api/public/optout/info': typeof ApiPublicOptoutInfoRoute
+  '/api/public/optout/reverse': typeof ApiPublicOptoutReverseRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
@@ -574,6 +601,9 @@ export interface FileRouteTypes {
     | '/api/public/evolution/sync-messages'
     | '/api/public/evolution/test'
     | '/api/public/evolution/webhook'
+    | '/api/public/optout/confirm'
+    | '/api/public/optout/info'
+    | '/api/public/optout/reverse'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
@@ -629,6 +659,9 @@ export interface FileRouteTypes {
     | '/api/public/evolution/sync-messages'
     | '/api/public/evolution/test'
     | '/api/public/evolution/webhook'
+    | '/api/public/optout/confirm'
+    | '/api/public/optout/info'
+    | '/api/public/optout/reverse'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
@@ -685,6 +718,9 @@ export interface FileRouteTypes {
     | '/api/public/evolution/sync-messages'
     | '/api/public/evolution/test'
     | '/api/public/evolution/webhook'
+    | '/api/public/optout/confirm'
+    | '/api/public/optout/info'
+    | '/api/public/optout/reverse'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
@@ -729,6 +765,9 @@ export interface RootRouteChildren {
   ApiPublicEvolutionSyncMessagesRoute: typeof ApiPublicEvolutionSyncMessagesRoute
   ApiPublicEvolutionTestRoute: typeof ApiPublicEvolutionTestRoute
   ApiPublicEvolutionWebhookRoute: typeof ApiPublicEvolutionWebhookRoute
+  ApiPublicOptoutConfirmRoute: typeof ApiPublicOptoutConfirmRoute
+  ApiPublicOptoutInfoRoute: typeof ApiPublicOptoutInfoRoute
+  ApiPublicOptoutReverseRoute: typeof ApiPublicOptoutReverseRoute
   ApiPublicSequencesDueRoute: typeof ApiPublicSequencesDueRoute
   ApiPublicSequencesInboundRoute: typeof ApiPublicSequencesInboundRoute
   ApiPublicSequencesSentRoute: typeof ApiPublicSequencesSentRoute
@@ -906,6 +945,27 @@ declare module '@tanstack/react-router' {
       path: '/api/public/sequences/due'
       fullPath: '/api/public/sequences/due'
       preLoaderRoute: typeof ApiPublicSequencesDueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/reverse': {
+      id: '/api/public/optout/reverse'
+      path: '/api/public/optout/reverse'
+      fullPath: '/api/public/optout/reverse'
+      preLoaderRoute: typeof ApiPublicOptoutReverseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/info': {
+      id: '/api/public/optout/info'
+      path: '/api/public/optout/info'
+      fullPath: '/api/public/optout/info'
+      preLoaderRoute: typeof ApiPublicOptoutInfoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/confirm': {
+      id: '/api/public/optout/confirm'
+      path: '/api/public/optout/confirm'
+      fullPath: '/api/public/optout/confirm'
+      preLoaderRoute: typeof ApiPublicOptoutConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/evolution/webhook': {
@@ -1192,6 +1252,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEvolutionSyncMessagesRoute: ApiPublicEvolutionSyncMessagesRoute,
   ApiPublicEvolutionTestRoute: ApiPublicEvolutionTestRoute,
   ApiPublicEvolutionWebhookRoute: ApiPublicEvolutionWebhookRoute,
+  ApiPublicOptoutConfirmRoute: ApiPublicOptoutConfirmRoute,
+  ApiPublicOptoutInfoRoute: ApiPublicOptoutInfoRoute,
+  ApiPublicOptoutReverseRoute: ApiPublicOptoutReverseRoute,
   ApiPublicSequencesDueRoute: ApiPublicSequencesDueRoute,
   ApiPublicSequencesInboundRoute: ApiPublicSequencesInboundRoute,
   ApiPublicSequencesSentRoute: ApiPublicSequencesSentRoute,
