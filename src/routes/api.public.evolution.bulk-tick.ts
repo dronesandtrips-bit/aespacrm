@@ -129,7 +129,10 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
             apiKey,
           }).catch(async (err) => {
             console.error("[bulk-tick] dispatch failed", row.id, err);
-            await sb.from("crm_bulk_sends").update({ status: "error" }).eq("id", row.id);
+            await sb
+              .from("crm_bulk_sends")
+              .update({ status: "error", claimed_at: null })
+              .eq("id", row.id);
           });
 
           const ctx: any = (globalThis as any).__cloudflare_context__ ?? null;
