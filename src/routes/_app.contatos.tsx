@@ -961,8 +961,10 @@ function ContactsPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         categories={categories}
+        existingContacts={contacts}
         onImported={refresh}
       />
+
 
       <EnrollDialog
         contact={enrollContact}
@@ -1083,25 +1085,62 @@ type ParsedRow = {
   categoryName?: string;
 };
 
+type DupAction = "skip" | "merge" | "replace";
+type DupStrategy = DupAction | "per_row";
+
+function normPhone(s: string): string {
+  return String(s ?? "").replace(/\D/g, "");
+}
+
 function ImportDialog({
   open,
   onOpenChange,
   categories,
+  existingContacts,
   onImported,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   categories: Category[];
+  existingContacts: Contact[];
   onImported: () => void | Promise<void>;
 }) {
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState<string>("");
   const [importing, setImporting] = useState(false);
+  const [defaultTagId, setDefaultTagId] = useState<string>("__none__");
+  const [strategy, setStrategy] = useState<DupStrategy>("skip");
+  const [perRow, setPerRow] = useState<Record<string, DupAction>>({});
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const existingByNorm = useMemo(() => {
+    const m = new Map<string, Contact>();
+    for (const c of existingContacts) {
+      const n = normPhone(c.phone);
+      if (n) m.set(n, c);
+    }
+    return m;
+  }, [existingContacts]);
+
+  const { newRows, dupRows } = useMemo(() => {
+    const news: Array<ParsedRow & { norm: string }> = [];
+    const dups: Array<ParsedRow & { norm: string; existing: Contact }> = [];
+    for (const r of rows) {
+      const n = normPhone(r.phone);
+      if (!n) continue;
+      const ex = existingByNorm.get(n);
+      if (ex) dups.push({ ...r, norm: n, existing: ex });
+      else news.push({ ...r, norm: n });
+    }
+    return { newRows: news, dupRows: dups };
+  }, [rows, existingByNorm]);
 
   const reset = () => {
     setRows([]);
     setFileName("");
+    setDefaultTagId("__none__");
+    setStrategy("skip");
+    setPerRow({});
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -1132,6 +1171,7 @@ function ImportDialog({
           })
           .filter((r) => r.name && r.phone);
         setRows(parsed);
+        setPerRow({});
         if (parsed.length === 0) {
           toast.error("Nenhuma linha válida encontrada (precisa ter Nome e Telefone)");
         }
@@ -1140,22 +1180,81 @@ function ImportDialog({
     });
   };
 
+  const resolveTagsForRow = (r: ParsedRow): string[] => {
+    const tags = new Set<string>();
+    if (r.categoryName) {
+      const found = categories.find(
+        (c) => c.name.toLowerCase() === r.categoryName!.toLowerCase(),
+      );
+      if (found) tags.add(found.id);
+    }
+    if (defaultTagId && defaultTagId !== "__none__") tags.add(defaultTagId);
+    return Array.from(tags);
+  };
+
   const confirm = async () => {
     setImporting(true);
     try {
-      const toImport = rows.map((r) => ({
-        name: r.name,
-        phone: r.phone,
-        email: r.email,
-        notes: r.notes,
-        categoryId: r.categoryName
-          ? categories.find((c) => c.name.toLowerCase() === r.categoryName!.toLowerCase())?.id
-          : undefined,
-      }));
-      const result = await contactsDb.bulkImport(toImport);
-      toast.success(
-        `✅ ${result.imported} importados${result.skipped > 0 ? ` · ⚠️ ${result.skipped} ignorados` : ""}`,
-      );
+      // 1) Novos contatos → bulkImport
+      let importedNew = 0;
+      let skippedNew = 0;
+      if (newRows.length) {
+        const toImport = newRows.map((r) => ({
+          name: r.name,
+          phone: r.phone,
+          email: r.email,
+          notes: r.notes,
+          categoryIds: resolveTagsForRow(r),
+        }));
+        const res = await contactsDb.bulkImport(toImport);
+        importedNew = res.imported;
+        skippedNew = res.skipped;
+      }
+
+      // 2) Duplicados → aplicar ação conforme estratégia
+      let merged = 0;
+      let replaced = 0;
+      let skippedDup = 0;
+      for (const d of dupRows) {
+        const action: DupAction =
+          strategy === "per_row" ? (perRow[d.norm] ?? "skip") : (strategy as DupAction);
+        if (action === "skip") {
+          skippedDup++;
+          continue;
+        }
+        const rowTags = resolveTagsForRow(d);
+        const currentTags = d.existing.categoryIds && d.existing.categoryIds.length
+          ? d.existing.categoryIds
+          : d.existing.categoryId
+            ? [d.existing.categoryId]
+            : [];
+        if (action === "merge") {
+          const union = Array.from(new Set([...currentTags, ...rowTags]));
+          // Só atualiza se mudou algo
+          if (union.length !== currentTags.length) {
+            await contactsDb.update(d.existing.id, { categoryIds: union });
+          }
+          merged++;
+        } else if (action === "replace") {
+          const nextTags = rowTags.length ? rowTags : currentTags;
+          await contactsDb.update(d.existing.id, {
+            name: d.name,
+            email: d.email ?? d.existing.email ?? null,
+            notes: d.notes ?? d.existing.notes ?? null,
+            categoryIds: nextTags,
+          });
+          replaced++;
+        }
+      }
+
+      const parts: string[] = [];
+      if (importedNew) parts.push(`✅ ${importedNew} novos`);
+      if (merged) parts.push(`🔀 ${merged} mesclados`);
+      if (replaced) parts.push(`♻️ ${replaced} substituídos`);
+      const totalSkipped = skippedNew + skippedDup;
+      if (totalSkipped) parts.push(`⚠️ ${totalSkipped} ignorados`);
+      toast.success(parts.join(" · ") || "Nada a fazer");
+
       await onImported();
       reset();
       onOpenChange(false);
@@ -1174,7 +1273,7 @@ function ImportDialog({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Importar contatos via CSV</DialogTitle>
         </DialogHeader>
@@ -1186,7 +1285,7 @@ function ImportDialog({
               <code>Categoria</code>, <code>Notas</code>
             </p>
             <p className="mt-1">
-              Telefones duplicados (já existentes) serão ignorados automaticamente.
+              Se a coluna <code>Categoria</code> estiver vazia, a tag escolhida abaixo será aplicada.
             </p>
           </div>
 
@@ -1203,37 +1302,127 @@ function ImportDialog({
             />
             {fileName && (
               <p className="text-xs text-muted-foreground mt-2">
-                {fileName} · {rows.length} linhas válidas
+                {fileName} · {rows.length} linhas válidas · {newRows.length} novos · {dupRows.length} duplicados
               </p>
             )}
           </div>
 
           {rows.length > 0 && (
-            <div className="border rounded-lg overflow-hidden">
-              <p className="text-xs font-semibold p-2 bg-muted">
-                Pré-visualização (primeiras 5 linhas)
-              </p>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Categoria</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.slice(0, 5).map((r, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{r.name}</TableCell>
-                      <TableCell className="font-mono text-xs">{r.phone}</TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {r.categoryName ?? "—"}
-                      </TableCell>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs mb-1 block">Aplicar tag a todos os importados</Label>
+                  <Select value={defaultTagId} onValueChange={setDefaultTagId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Nenhuma" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Nenhuma</SelectItem>
+                      {categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs mb-1 block">
+                    Ao encontrar duplicados ({dupRows.length})
+                  </Label>
+                  <Select value={strategy} onValueChange={(v) => setStrategy(v as DupStrategy)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="skip">Ignorar duplicados</SelectItem>
+                      <SelectItem value="merge">Mesclar (adicionar tag aos existentes)</SelectItem>
+                      <SelectItem value="replace">Substituir (atualizar dados e tags)</SelectItem>
+                      <SelectItem value="per_row">Decidir um por um</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {strategy === "per_row" && dupRows.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <p className="text-xs font-semibold p-2 bg-muted">
+                    Duplicados encontrados — escolha o que fazer com cada um
+                  </p>
+                  <div className="max-h-72 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>CSV</TableHead>
+                          <TableHead>Já existe como</TableHead>
+                          <TableHead className="w-40">Ação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dupRows.map((d) => (
+                          <TableRow key={d.norm}>
+                            <TableCell className="text-xs">
+                              <div className="font-medium">{d.name}</div>
+                              <div className="font-mono text-muted-foreground">{d.phone}</div>
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              <div className="font-medium">{d.existing.name}</div>
+                              <div className="font-mono text-muted-foreground">{d.existing.phone}</div>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={perRow[d.norm] ?? "skip"}
+                                onValueChange={(v) =>
+                                  setPerRow((prev) => ({ ...prev, [d.norm]: v as DupAction }))
+                                }
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="skip">Ignorar</SelectItem>
+                                  <SelectItem value="merge">Mesclar tag</SelectItem>
+                                  <SelectItem value="replace">Substituir</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              <div className="border rounded-lg overflow-hidden">
+                <p className="text-xs font-semibold p-2 bg-muted">
+                  Pré-visualização (primeiras 5 linhas)
+                </p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Categoria</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.slice(0, 5).map((r, i) => (
+                      <TableRow key={i}>
+                        <TableCell>{r.name}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.phone}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {r.categoryName ??
+                            (defaultTagId !== "__none__"
+                              ? categories.find((c) => c.id === defaultTagId)?.name ?? "—"
+                              : "—")}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </div>
         <DialogFooter>
@@ -1242,13 +1431,14 @@ function ImportDialog({
           </Button>
           <Button onClick={confirm} disabled={rows.length === 0 || importing}>
             {importing ? <Loader2 className="size-4 animate-spin" /> : null}
-            Importar {rows.length > 0 ? `(${rows.length})` : ""}
+            Importar {rows.length > 0 ? `(${newRows.length} novos + ${dupRows.length} dup.)` : ""}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 function UrgencyBadgeContacts({ level }: { level: "Baixa" | "Média" | "Alta" }) {
   const cls =
