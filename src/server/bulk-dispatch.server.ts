@@ -267,6 +267,10 @@ export async function runBulkDispatch(opts: {
     .eq("id", bulkId)
     .eq("user_id", userId);
 
+  console.log(
+    `[bulk] end bulkId=${bulkId} finalStatus=${finalStatus} cursor=${cursor} processedTotal=${processedTotal} sentThisTick=${sentThisTick} failedThisTick=${failedThisTick} processedThisTick=${processedThisTick}`,
+  );
+
   return {
     sent: sentThisTick,
     failed: failedThisTick,
