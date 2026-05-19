@@ -46,17 +46,38 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
 
         // 2) Em andamento mas órfãos (Worker morreu / batch-per-tick precisa
         //    continuar). claimed_at null OU < now()-90s => repesca.
-        const { data: dueOrphans, error: errOrph } = await sb
-          .from("crm_bulk_sends")
-          .select(
-            "id, user_id, message, interval_seconds, contact_ids, control, media_type, media_base64, media_mime, media_filename, media_caption, status, claimed_at",
-          )
-          .eq("status", "in_progress")
-          .or(`claimed_at.is.null,claimed_at.lt.${orphanCutoffIso}`)
-          .limit(20);
-        if (errOrph) return jsonResponse({ ok: false, error: errOrph.message }, 500);
+        // Usa duas queries separadas para evitar problemas de parsing do
+        // .or() com timestamps ISO (que contêm ":") no PostgREST self-hosted.
+        const ORPHAN_COLS =
+          "id, user_id, message, interval_seconds, contact_ids, control, media_type, media_base64, media_mime, media_filename, media_caption, status, claimed_at";
 
-        const due = [...(dueScheduled ?? []), ...(dueOrphans ?? [])];
+        const { data: orphansNull, error: errOrphNull } = await sb
+          .from("crm_bulk_sends")
+          .select(ORPHAN_COLS)
+          .eq("status", "in_progress")
+          .is("claimed_at", null)
+          .limit(20);
+        if (errOrphNull) return jsonResponse({ ok: false, error: errOrphNull.message }, 500);
+
+        const { data: orphansStale, error: errOrphStale } = await sb
+          .from("crm_bulk_sends")
+          .select(ORPHAN_COLS)
+          .eq("status", "in_progress")
+          .lt("claimed_at", orphanCutoffIso)
+          .limit(20);
+        if (errOrphStale) return jsonResponse({ ok: false, error: errOrphStale.message }, 500);
+
+        // Dedupe (uma linha pode aparecer só em uma das listas, mas garante).
+        const orphanMap = new Map<string, any>();
+        for (const r of orphansNull ?? []) orphanMap.set(r.id, r);
+        for (const r of orphansStale ?? []) orphanMap.set(r.id, r);
+        const dueOrphans = Array.from(orphanMap.values());
+
+        const due = [...(dueScheduled ?? []), ...dueOrphans];
+
+        console.log(
+          `[bulk-tick] scheduled=${dueScheduled?.length ?? 0} orphans_null=${orphansNull?.length ?? 0} orphans_stale=${orphansStale?.length ?? 0} cutoff=${orphanCutoffIso}`,
+        );
 
         const picked: any[] = [];
         const skipped: any[] = [];
