@@ -46,13 +46,22 @@ function compactKeyword(s: string): string {
 async function sendWhatsAppText(number: string, text: string): Promise<void> {
   const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
   const apiKey = process.env.EVOLUTION_API_KEY?.trim();
-  if (!apiUrl || !apiKey || !number) return;
+  if (!apiUrl || !apiKey || !number) {
+    console.error("[opt-out] sendWhatsAppText: missing config", { hasUrl: !!apiUrl, hasKey: !!apiKey, number });
+    return;
+  }
   try {
-    await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
+    const r = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
       method: "POST",
       headers: { apikey: apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({ number, text, delay: 800 }),
     });
+    if (!r.ok) {
+      const t = await r.text().catch(() => "");
+      console.error("[opt-out] sendWhatsAppText failed", r.status, t.slice(0, 300));
+    } else {
+      console.log("[opt-out] confirmation sent to", number);
+    }
   } catch (e) {
     console.error("[opt-out] sendWhatsAppText error", e);
   }
@@ -420,7 +429,12 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                   const phone = normalizePhone(remoteJid);
                   const norm = normalizeKeyword(parsed.body || "");
                   const compact = compactKeyword(parsed.body || "");
-                  if (phone && OPT_OUT_STEM_RE.test(compact)) {
+                  const isOptOut = OPT_OUT_STEM_RE.test(compact);
+                  const isOptIn = OPT_IN_RE.test(norm);
+                  if (isOptOut || isOptIn) {
+                    console.log("[opt-out] keyword match", { phone, body: parsed.body, isOptOut, isOptIn });
+                  }
+                  if (phone && isOptOut) {
                     const { error: insErr } = await sb
                       .from("crm_ignored_phones")
                       .upsert(
@@ -439,7 +453,7 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                     } else {
                       console.error("[opt-out] insert blacklist error", insErr);
                     }
-                  } else if (phone && OPT_IN_RE.test(norm)) {
+                  } else if (phone && isOptIn) {
                     const { data: removed, error: delErr } = await sb
                       .from("crm_ignored_phones")
                       .delete()
