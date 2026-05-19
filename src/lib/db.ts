@@ -919,15 +919,6 @@ function rowToBulk(r: any): BulkSend {
 export const bulkSendsDb = {
   async list(): Promise<BulkSend[]> {
     const c = await client();
-    // Sweeper: marca como "error" qualquer disparo travado em in_progress há
-    // mais de 15 min, exceto se estiver pausado pelo usuário (control=paused).
-    const staleCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-    await c
-      .from("crm_bulk_sends")
-      .update({ status: "error" })
-      .eq("status", "in_progress")
-      .neq("control", "paused")
-      .lt("created_at", staleCutoff);
     const { data, error } = await c
       .from("crm_bulk_sends")
       .select(BULK_SELECT)
