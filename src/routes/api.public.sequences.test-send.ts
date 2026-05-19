@@ -63,7 +63,7 @@ export const Route = createFileRoute("/api/public/sequences/test-send")({
           if (!parsed.success) {
             return jsonResponse({ error: "Invalid body" }, 400);
           }
-          const { message, contact_name, typing_seconds } = parsed.data;
+          const { message, contact_name, typing_seconds, media } = parsed.data;
           const admin = getSupabaseAdmin();
           const { data: settings } = await admin
             .from("crm_user_settings")
@@ -92,15 +92,49 @@ export const Route = createFileRoute("/api/public/sequences/test-send")({
           if (!apiUrl || !apiKey) {
             return jsonResponse({ error: "Evolution não configurada" }, 500);
           }
-          const res = await fetch(`${apiUrl}/message/sendText/zapcrm`, {
-            method: "POST",
-            headers: { apikey: apiKey, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              number: phone,
-              text: `🧪 [TESTE] ${rendered}`,
-              delay: Math.max(0, Math.min(60, typing_seconds ?? 0)) * 1000,
-            }),
-          });
+
+          const testText = `🧪 [TESTE] ${rendered}`;
+          const delayMs = Math.max(0, Math.min(60, typing_seconds ?? 0)) * 1000;
+
+          let res: Response;
+          if (media) {
+            const caption = media.caption
+              ? applyVars(media.caption, {
+                  nome: name,
+                  primeiro_nome: name.split(/\s+/)[0] ?? "",
+                  saudacao: saudacao(),
+                  empresa: "",
+                  link_descadastro: optoutUrl,
+                })
+              : testText;
+            if (media.type === "audio") {
+              res = await fetch(`${apiUrl}/message/sendWhatsAppAudio/zapcrm`, {
+                method: "POST",
+                headers: { apikey: apiKey, "Content-Type": "application/json" },
+                body: JSON.stringify({ number: phone, audio: media.base64, delay: delayMs }),
+              });
+            } else {
+              res = await fetch(`${apiUrl}/message/sendMedia/zapcrm`, {
+                method: "POST",
+                headers: { apikey: apiKey, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  number: phone,
+                  mediatype: media.type,
+                  media: media.base64,
+                  mimetype: media.mime ?? undefined,
+                  fileName: media.filename ?? undefined,
+                  caption,
+                  delay: delayMs,
+                }),
+              });
+            }
+          } else {
+            res = await fetch(`${apiUrl}/message/sendText/zapcrm`, {
+              method: "POST",
+              headers: { apikey: apiKey, "Content-Type": "application/json" },
+              body: JSON.stringify({ number: phone, text: testText, delay: delayMs }),
+            });
+          }
           const data = await res.json().catch(() => ({}));
           if (!res.ok) {
             return jsonResponse({ error: "Falha no envio", detail: data }, 502);
