@@ -1518,14 +1518,38 @@ export const widgetsDb = {
 
 // ===================== Templates de mensagem =====================
 
+const TEMPLATE_COLS =
+  "id,name,content,category,media_base64,media_type,media_mime,media_filename,media_caption,created_at,updated_at";
+
 function rowToTemplate(r: any): MessageTemplate {
   return {
     id: r.id,
     name: r.name,
     content: r.content,
     category: r.category ?? null,
+    media: rowToMedia(r),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+  };
+}
+
+function mediaToRow(media: TemplateMedia | null | undefined): Record<string, unknown> {
+  if (media === undefined) return {};
+  if (media === null) {
+    return {
+      media_base64: null,
+      media_type: null,
+      media_mime: null,
+      media_filename: null,
+      media_caption: null,
+    };
+  }
+  return {
+    media_base64: media.base64,
+    media_type: media.type,
+    media_mime: media.mime ?? null,
+    media_filename: media.filename ?? null,
+    media_caption: media.caption ?? null,
   };
 }
 
@@ -1534,7 +1558,7 @@ export const templatesDb = {
     const c = await client();
     const { data, error } = await c
       .from("crm_message_templates")
-      .select("id,name,content,category,created_at,updated_at")
+      .select(TEMPLATE_COLS)
       .order("name", { ascending: true });
     if (error) throw error;
     return (data ?? []).map(rowToTemplate);
@@ -1544,6 +1568,7 @@ export const templatesDb = {
     name: string;
     content: string;
     category?: string | null;
+    media?: TemplateMedia | null;
   }): Promise<MessageTemplate> {
     const c = await client();
     const user_id = await uid();
@@ -1554,8 +1579,9 @@ export const templatesDb = {
         name: input.name,
         content: input.content,
         category: input.category ?? null,
+        ...mediaToRow(input.media),
       })
-      .select("id,name,content,category,created_at,updated_at")
+      .select(TEMPLATE_COLS)
       .single();
     if (error) throw error;
     return rowToTemplate(data);
@@ -1563,12 +1589,24 @@ export const templatesDb = {
 
   async update(
     id: string,
-    patch: Partial<{ name: string; content: string; category: string | null }>,
+    patch: Partial<{
+      name: string;
+      content: string;
+      category: string | null;
+      media: TemplateMedia | null;
+    }>,
   ) {
     const c = await client();
-    const { error } = await c.from("crm_message_templates").update(patch).eq("id", id);
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.content !== undefined) dbPatch.content = patch.content;
+    if (patch.category !== undefined) dbPatch.category = patch.category;
+    if (patch.media !== undefined) Object.assign(dbPatch, mediaToRow(patch.media));
+    const { error } = await c.from("crm_message_templates").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
+
+
 
   async remove(id: string) {
     const c = await client();
