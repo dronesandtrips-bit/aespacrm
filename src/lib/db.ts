@@ -109,11 +109,20 @@ export type Sequence = {
   createdAt: string;
 };
 
+export type TemplateMedia = {
+  base64: string;
+  type: "image" | "video" | "audio" | "document";
+  mime: string | null;
+  filename: string | null;
+  caption: string | null;
+};
+
 export type MessageTemplate = {
   id: string;
   name: string;
   content: string;
   category: string | null;
+  media: TemplateMedia | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -126,6 +135,7 @@ export type SequenceStep = {
   delayValue: number;
   delayUnit: "hours" | "days";
   typingSeconds: number;
+  media: TemplateMedia | null;
 };
 
 export type SequenceStepMetric = {
