@@ -37,7 +37,6 @@ import {
   FileText,
   Sparkles,
   Paperclip,
-  Image as ImageIcon,
   X,
 } from "lucide-react";
 import {
