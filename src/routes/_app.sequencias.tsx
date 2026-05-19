@@ -627,7 +627,8 @@ function SequenceEditorDialog({
             <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
               Variáveis: <code>{"{{nome}}"}</code>, <code>{"{{primeiro_nome}}"}</code>,{" "}
               <code>{"{{saudacao}}"}</code>, <code>{"{{empresa}}"}</code>,{" "}
-              <code>{"{{link_descadastro}}"}</code>
+              <code>{"{{link_descadastro}}"}</code>{" "}
+              <span className="text-[10px] opacity-70">(se omitido, é inserido automaticamente ao final)</span>
             </div>
 
             <DndContext
