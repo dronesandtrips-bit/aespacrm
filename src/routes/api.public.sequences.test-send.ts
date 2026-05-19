@@ -26,7 +26,15 @@ function saudacao(now = new Date()): string {
 }
 
 function applyVars(t: string, v: Record<string, string>) {
-  return t.replace(/\{\{(\w+)\}\}/g, (_, k) => v[k] ?? "");
+  const hasOptout =
+    t.includes("{link_descadastro}") || t.includes("{{link_descadastro}}");
+
+  const rendered = t.replace(/\{\{(\w+)\}\}/g, (_, k) => v[k] ?? "");
+
+  if (!hasOptout && v["link_descadastro"]) {
+    return `${rendered}\n\n_Não quer mais receber? Clique aqui:_ ${v["link_descadastro"]}`;
+  }
+  return rendered;
 }
 
 export const Route = createFileRoute("/api/public/sequences/test-send")({

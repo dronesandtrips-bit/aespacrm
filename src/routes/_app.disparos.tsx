@@ -85,7 +85,7 @@ const VARIABLES: Array<{ key: string; desc: string }> = [
   { key: "{primeiro_nome}", desc: "Primeiro nome" },
   { key: "{empresa}", desc: "Notas/empresa do contato" },
   { key: "{categoria}", desc: "Categoria principal" },
-  { key: "{link_descadastro}", desc: "Link clicável p/ descadastrar" },
+  { key: "{link_descadastro}", desc: "Link p/ descadastrar (inserido auto. se omitido)" },
 ];
 
 function fileToBase64(file: File): Promise<string> {
@@ -191,12 +191,17 @@ function DisparosPage() {
     const sample = contacts.find((c) => selected.has(c.id)) || contacts[0];
     if (!sample) return message;
     const cat = categories.find((k) => k.id === sample.categoryId);
-    return message
+    const rendered = message
       .replaceAll("{nome}", sample.name)
       .replaceAll("{primeiro_nome}", sample.name.split(" ")[0])
       .replaceAll("{empresa}", (sample.notes ?? "").trim() || sample.name)
       .replaceAll("{categoria}", cat?.name ?? "")
       .replaceAll("{link_descadastro}", "https://crm.aespa.com.br/u/…");
+    const hasOptout = message.includes("{link_descadastro}") || message.includes("{{link_descadastro}}");
+    if (!hasOptout) {
+      return `${rendered}\n\n_Não quer mais receber? Clique aqui:_ https://crm.aespa.com.br/u/…`;
+    }
+    return rendered;
   }, [message, selected, contacts, categories]);
 
   const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {

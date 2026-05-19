@@ -27,7 +27,10 @@ function applyVars(
     optoutUrl: string;
   },
 ) {
-  return template
+  const hasOptout =
+    template.includes("{link_descadastro}") || template.includes("{{link_descadastro}}");
+
+  const rendered = template
     .replaceAll("{nome}", ctx.name)
     .replaceAll("{primeiro_nome}", ctx.firstName)
     .replaceAll("{empresa}", ctx.company)
@@ -35,6 +38,11 @@ function applyVars(
     .replaceAll("{link_descadastro}", ctx.optoutUrl)
     // Aceita também {{link_descadastro}} (compatível com syntax do sequences).
     .replaceAll("{{link_descadastro}}", ctx.optoutUrl);
+
+  if (!hasOptout && ctx.optoutUrl) {
+    return `${rendered}\n\n_Não quer mais receber? Clique aqui:_ ${ctx.optoutUrl}`;
+  }
+  return rendered;
 }
 
 export async function runBulkDispatch(opts: {

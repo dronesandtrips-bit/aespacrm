@@ -12,7 +12,15 @@ import {
 import { buildOptoutUrlFor } from "@/server/optout.server";
 
 function applyVars(template: string, vars: Record<string, string>) {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
+  const hasOptout =
+    template.includes("{link_descadastro}") || template.includes("{{link_descadastro}}");
+
+  const rendered = template.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
+
+  if (!hasOptout && vars["link_descadastro"]) {
+    return `${rendered}\n\n_Não quer mais receber? Clique aqui:_ ${vars["link_descadastro"]}`;
+  }
+  return rendered;
 }
 
 function saudacao(now = new Date()): string {
