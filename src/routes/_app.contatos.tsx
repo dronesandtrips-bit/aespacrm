@@ -1188,7 +1188,7 @@ function ImportDialog({
       );
       if (found) tags.add(found.id);
     }
-    if (defaultTagId && defaultTagId !== "__none__") tags.add(defaultTagId);
+    for (const id of defaultTagIds) tags.add(id);
     return Array.from(tags);
   };
 
