@@ -1299,6 +1299,37 @@ function SortableStepCard({
             placeholder="Olá {{primeiro_nome}}, {{saudacao}}!"
           />
         </div>
+        {step.media && (
+          <div className="flex items-center gap-2 border rounded p-2 bg-muted/30">
+            {step.media.type === "image" && step.media.base64 ? (
+              <img
+                src={`data:${step.media.mime ?? "image/jpeg"};base64,${step.media.base64}`}
+                alt={step.media.filename ?? "anexo"}
+                className="size-12 object-cover rounded border"
+              />
+            ) : (
+              <div className="size-12 flex items-center justify-center rounded border bg-background text-muted-foreground">
+                <FileText className="size-4" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-medium truncate">
+                📎 {step.media.filename ?? step.media.type}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Mídia herdada do template — será enviada junto.
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onUpdate({ media: null })}
+              title="Remover mídia deste passo"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
+        )}
         {metric && (
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground border-t pt-2">
             <span className="flex items-center gap-1">
