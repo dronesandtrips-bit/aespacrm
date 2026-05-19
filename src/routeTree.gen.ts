@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UTokenRouteImport } from './routes/u.$token'
 import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
 import { Route as AppTemplatesRouteImport } from './routes/_app.templates'
 import { Route as AppSequenciasDashboardRouteImport } from './routes/_app.sequencias-dashboard'
@@ -89,6 +90,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UTokenRoute = UTokenRouteImport.update({
+  id: '/u/$token',
+  path: '/u/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppWhatsappRoute = AppWhatsappRouteImport.update({
@@ -394,6 +400,7 @@ export interface FileRoutesByFullPath {
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
+  '/u/$token': typeof UTokenRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/contact-enrich-failure': typeof ApiPublicAiContactEnrichFailureRoute
@@ -452,6 +459,7 @@ export interface FileRoutesByTo {
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
+  '/u/$token': typeof UTokenRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/contact-enrich-failure': typeof ApiPublicAiContactEnrichFailureRoute
@@ -512,6 +520,7 @@ export interface FileRoutesById {
   '/_app/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/_app/templates': typeof AppTemplatesRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
+  '/u/$token': typeof UTokenRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/contact-enrich-failure': typeof ApiPublicAiContactEnrichFailureRoute
@@ -572,6 +581,7 @@ export interface FileRouteTypes {
     | '/sequencias-dashboard'
     | '/templates'
     | '/whatsapp'
+    | '/u/$token'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/contact-enrich-failure'
@@ -630,6 +640,7 @@ export interface FileRouteTypes {
     | '/sequencias-dashboard'
     | '/templates'
     | '/whatsapp'
+    | '/u/$token'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/contact-enrich-failure'
@@ -689,6 +700,7 @@ export interface FileRouteTypes {
     | '/_app/sequencias-dashboard'
     | '/_app/templates'
     | '/_app/whatsapp'
+    | '/u/$token'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/contact-enrich-failure'
@@ -736,6 +748,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  UTokenRoute: typeof UTokenRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
   ApiPublicAiContactEnrichRoute: typeof ApiPublicAiContactEnrichRoute
   ApiPublicAiContactEnrichFailureRoute: typeof ApiPublicAiContactEnrichFailureRoute
@@ -812,6 +825,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/u/$token': {
+      id: '/u/$token'
+      path: '/u/$token'
+      fullPath: '/u/$token'
+      preLoaderRoute: typeof UTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/whatsapp': {
@@ -1221,6 +1241,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  UTokenRoute: UTokenRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
   ApiPublicAiContactEnrichRoute: ApiPublicAiContactEnrichRoute,
   ApiPublicAiContactEnrichFailureRoute: ApiPublicAiContactEnrichFailureRoute,
