@@ -422,6 +422,7 @@ function SequenceEditorDialog({
         body: JSON.stringify({
           message: step.message,
           typing_seconds: step.typingSeconds,
+          media: step.media,
         }),
       });
       const data = await res.json().catch(() => ({}));
