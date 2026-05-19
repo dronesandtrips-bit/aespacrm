@@ -1146,6 +1146,7 @@ export const sequencesDb = {
       delayValue: number;
       delayUnit: "hours" | "days";
       typingSeconds?: number;
+      media?: TemplateMedia | null;
     }>,
   ) {
     const c = await client();
@@ -1165,6 +1166,7 @@ export const sequencesDb = {
       delay_value: s.delayValue,
       delay_unit: s.delayUnit,
       typing_seconds: Math.max(0, Math.min(60, s.typingSeconds ?? 0)),
+      ...mediaToRow(s.media ?? null),
     }));
     const { error } = await c.from("crm_sequence_steps").insert(rows);
     if (error) throw error;
