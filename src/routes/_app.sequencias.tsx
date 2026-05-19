@@ -1162,7 +1162,7 @@ function SortableStepCard({
   onRemove: () => void;
   onClone: () => void;
   onUpdate: (patch: Partial<DraftStep>) => void;
-  onLoadTemplate: (content: string) => void;
+  onLoadTemplate: (tpl: MessageTemplate) => void;
   onSendTest: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
