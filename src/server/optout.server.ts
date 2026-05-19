@@ -15,7 +15,7 @@
 // um token, só vale para AQUELE par (user_id, phone) — não dá pra forjar
 // outros porque a chave HMAC é por usuário e nunca sai do servidor.
 
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHmac, timingSafeEqual, randomBytes } from "crypto";
 import { getSupabaseAdmin } from "@/integrations/supabase/server";
 
 const INSTANCE = "zapcrm";
@@ -76,8 +76,63 @@ export async function verifyOptoutToken(
   }
 }
 
-// Monta a URL pública clicável para o cliente. Usa ZAPCRM_PUBLIC_URL
-// se definido, caso contrário cai para o domínio customizado.
+// Resolve um short code (ex: "Ab3xK9pQ") para { userId, phone }.
+// Retorna null se não existir ou estiver expirado.
+export async function resolveShortCode(
+  code: string,
+): Promise<{ userId: string; phone: string } | null> {
+  if (!code || typeof code !== "string" || code.length < 4) return null;
+  const sb = getSupabaseAdmin();
+  const { data } = await sb
+    .from("crm_optout_shortlinks")
+    .select("user_id, phone_norm")
+    .eq("code", code)
+    .maybeSingle();
+  if (!data) return null;
+  // Se houver expiração, respeita.
+  // (A migration não impõe expiração por padrão.)
+  return { userId: String(data.user_id), phone: String(data.phone_norm) };
+}
+
+function makeShortCode(): string {
+  // 6 bytes = 48 bits → ~8 chars base64url (sem padding).
+  return randomBytes(6).toString("base64url").slice(0, 8);
+}
+
+// Gera um shortlink único para o par (userId, phone).
+// Retorna o code ou null se falhar.
+export async function generateShortLink(
+  userId: string,
+  phone: string,
+): Promise<string | null> {
+  if (!userId || !phone) return null;
+  const sb = getSupabaseAdmin();
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = makeShortCode();
+    const { error } = await sb.from("crm_optout_shortlinks").insert({
+      user_id: userId,
+      phone_norm: phone,
+      code,
+    });
+    if (!error) return code;
+    // Conflito de código (duplicado) → tenta de novo.
+    if (!error.message?.toLowerCase().includes("duplicate") && !error.code?.includes("23505")) {
+      console.error("[optout] generateShortLink insert error", error);
+      break;
+    }
+  }
+  return null;
+}
+
+// Monta a URL curta pública para o cliente.
+export function buildShortOptoutUrl(code: string): string {
+  const base =
+    process.env.ZAPCRM_PUBLIC_URL?.trim().replace(/\/+$/, "") ??
+    "https://crm.aespa.com.br";
+  return `${base}/d/${code}`;
+}
+
+// Monta a URL pública clicável para o cliente (legacy — token longo).
 export function buildOptoutUrl(token: string): string {
   const base =
     process.env.ZAPCRM_PUBLIC_URL?.trim().replace(/\/+$/, "") ??
@@ -85,9 +140,11 @@ export function buildOptoutUrl(token: string): string {
   return `${base}/u/${token}`;
 }
 
-// Helper conveniente para usar nos disparos: gera direto a URL.
-// Retorna string vazia se algo falhar (template renderiza vazio em vez de quebrar).
+// Helper conveniente para usar nos disparos: gera direto a URL CURTA.
+// Se o shortlink falhar, cai para o token HMAC longo como fallback.
 export async function buildOptoutUrlFor(userId: string, phone: string): Promise<string> {
+  const code = await generateShortLink(userId, phone);
+  if (code) return buildShortOptoutUrl(code);
   const token = await generateOptoutToken(userId, phone);
   if (!token) return "";
   return buildOptoutUrl(token);
