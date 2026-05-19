@@ -374,9 +374,15 @@ function SequenceEditorDialog({
     });
   };
 
-  const loadTemplate = (i: number, content: string) => {
-    setSteps((p) => p.map((s, idx) => (idx === i ? { ...s, message: content } : s)));
-    toast.success("Template carregado");
+  const loadTemplate = (i: number, tpl: MessageTemplate) => {
+    setSteps((p) =>
+      p.map((s, idx) =>
+        idx === i ? { ...s, message: tpl.content, media: tpl.media ?? null } : s,
+      ),
+    );
+    toast.success(
+      tpl.media ? "Template carregado (com mídia)" : "Template carregado",
+    );
   };
 
   const updateStep = (i: number, patch: Partial<DraftStep>) => {
