@@ -105,7 +105,7 @@ export const Route = createFileRoute("/api/public/evolution/bulk-dispatch")({
             console.error("[bulk] dispatch failed", err);
             await sb
               .from("crm_bulk_sends")
-              .update({ status: "error" })
+              .update({ status: "error", claimed_at: null })
               .eq("id", parsed.bulkId);
           });
 
