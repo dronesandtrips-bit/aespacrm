@@ -100,7 +100,10 @@ export async function runBulkDispatch(opts: {
     const firstName = fullName.split(" ")[0] ?? fullName;
     const company = String(c.notes ?? "").trim() || fullName;
     const category = (c.category?.name as string) ?? "";
-    const text = applyVars(message, { name: fullName, firstName, company, category });
+    const optoutUrl = c.phone_norm
+      ? await buildOptoutUrlFor(userId, c.phone_norm)
+      : "";
+    const text = applyVars(message, { name: fullName, firstName, company, category, optoutUrl });
 
     try {
       let res: Response;
