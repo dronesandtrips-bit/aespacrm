@@ -15,6 +15,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UTokenRouteImport } from './routes/u.$token'
+import { Route as DCodeRouteImport } from './routes/d.$code'
 import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
 import { Route as AppTemplatesRouteImport } from './routes/_app.templates'
 import { Route as AppSequenciasDashboardRouteImport } from './routes/_app.sequencias-dashboard'
@@ -34,6 +35,9 @@ import { Route as ApiPublicSequencesTestSendRouteImport } from './routes/api.pub
 import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.sequences.sent'
 import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.public.sequences.inbound'
 import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.sequences.due'
+import { Route as ApiPublicOptoutShortReverseRouteImport } from './routes/api.public.optout.short-reverse'
+import { Route as ApiPublicOptoutShortInfoRouteImport } from './routes/api.public.optout.short-info'
+import { Route as ApiPublicOptoutShortConfirmRouteImport } from './routes/api.public.optout.short-confirm'
 import { Route as ApiPublicOptoutReverseRouteImport } from './routes/api.public.optout.reverse'
 import { Route as ApiPublicOptoutInfoRouteImport } from './routes/api.public.optout.info'
 import { Route as ApiPublicOptoutConfirmRouteImport } from './routes/api.public.optout.confirm'
@@ -96,6 +100,11 @@ const IndexRoute = IndexRouteImport.update({
 const UTokenRoute = UTokenRouteImport.update({
   id: '/u/$token',
   path: '/u/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DCodeRoute = DCodeRouteImport.update({
+  id: '/d/$code',
+  path: '/d/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppWhatsappRoute = AppWhatsappRouteImport.update({
@@ -195,6 +204,24 @@ const ApiPublicSequencesDueRoute = ApiPublicSequencesDueRouteImport.update({
   path: '/api/public/sequences/due',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicOptoutShortReverseRoute =
+  ApiPublicOptoutShortReverseRouteImport.update({
+    id: '/api/public/optout/short-reverse',
+    path: '/api/public/optout/short-reverse',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicOptoutShortInfoRoute =
+  ApiPublicOptoutShortInfoRouteImport.update({
+    id: '/api/public/optout/short-info',
+    path: '/api/public/optout/short-info',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicOptoutShortConfirmRoute =
+  ApiPublicOptoutShortConfirmRouteImport.update({
+    id: '/api/public/optout/short-confirm',
+    path: '/api/public/optout/short-confirm',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicOptoutReverseRoute = ApiPublicOptoutReverseRouteImport.update({
   id: '/api/public/optout/reverse',
   path: '/api/public/optout/reverse',
@@ -407,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
+  '/d/$code': typeof DCodeRoute
   '/u/$token': typeof UTokenRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
@@ -441,6 +469,9 @@ export interface FileRoutesByFullPath {
   '/api/public/optout/confirm': typeof ApiPublicOptoutConfirmRoute
   '/api/public/optout/info': typeof ApiPublicOptoutInfoRoute
   '/api/public/optout/reverse': typeof ApiPublicOptoutReverseRoute
+  '/api/public/optout/short-confirm': typeof ApiPublicOptoutShortConfirmRoute
+  '/api/public/optout/short-info': typeof ApiPublicOptoutShortInfoRoute
+  '/api/public/optout/short-reverse': typeof ApiPublicOptoutShortReverseRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
@@ -467,6 +498,7 @@ export interface FileRoutesByTo {
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
+  '/d/$code': typeof DCodeRoute
   '/u/$token': typeof UTokenRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
@@ -501,6 +533,9 @@ export interface FileRoutesByTo {
   '/api/public/optout/confirm': typeof ApiPublicOptoutConfirmRoute
   '/api/public/optout/info': typeof ApiPublicOptoutInfoRoute
   '/api/public/optout/reverse': typeof ApiPublicOptoutReverseRoute
+  '/api/public/optout/short-confirm': typeof ApiPublicOptoutShortConfirmRoute
+  '/api/public/optout/short-info': typeof ApiPublicOptoutShortInfoRoute
+  '/api/public/optout/short-reverse': typeof ApiPublicOptoutShortReverseRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
@@ -529,6 +564,7 @@ export interface FileRoutesById {
   '/_app/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/_app/templates': typeof AppTemplatesRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
+  '/d/$code': typeof DCodeRoute
   '/u/$token': typeof UTokenRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
@@ -563,6 +599,9 @@ export interface FileRoutesById {
   '/api/public/optout/confirm': typeof ApiPublicOptoutConfirmRoute
   '/api/public/optout/info': typeof ApiPublicOptoutInfoRoute
   '/api/public/optout/reverse': typeof ApiPublicOptoutReverseRoute
+  '/api/public/optout/short-confirm': typeof ApiPublicOptoutShortConfirmRoute
+  '/api/public/optout/short-info': typeof ApiPublicOptoutShortInfoRoute
+  '/api/public/optout/short-reverse': typeof ApiPublicOptoutShortReverseRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
@@ -591,6 +630,7 @@ export interface FileRouteTypes {
     | '/sequencias-dashboard'
     | '/templates'
     | '/whatsapp'
+    | '/d/$code'
     | '/u/$token'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
@@ -625,6 +665,9 @@ export interface FileRouteTypes {
     | '/api/public/optout/confirm'
     | '/api/public/optout/info'
     | '/api/public/optout/reverse'
+    | '/api/public/optout/short-confirm'
+    | '/api/public/optout/short-info'
+    | '/api/public/optout/short-reverse'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
@@ -651,6 +694,7 @@ export interface FileRouteTypes {
     | '/sequencias-dashboard'
     | '/templates'
     | '/whatsapp'
+    | '/d/$code'
     | '/u/$token'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
@@ -685,6 +729,9 @@ export interface FileRouteTypes {
     | '/api/public/optout/confirm'
     | '/api/public/optout/info'
     | '/api/public/optout/reverse'
+    | '/api/public/optout/short-confirm'
+    | '/api/public/optout/short-info'
+    | '/api/public/optout/short-reverse'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
@@ -712,6 +759,7 @@ export interface FileRouteTypes {
     | '/_app/sequencias-dashboard'
     | '/_app/templates'
     | '/_app/whatsapp'
+    | '/d/$code'
     | '/u/$token'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
@@ -746,6 +794,9 @@ export interface FileRouteTypes {
     | '/api/public/optout/confirm'
     | '/api/public/optout/info'
     | '/api/public/optout/reverse'
+    | '/api/public/optout/short-confirm'
+    | '/api/public/optout/short-info'
+    | '/api/public/optout/short-reverse'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/sent'
@@ -761,6 +812,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  DCodeRoute: typeof DCodeRoute
   UTokenRoute: typeof UTokenRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
   ApiPublicAiContactEnrichRoute: typeof ApiPublicAiContactEnrichRoute
@@ -795,6 +847,9 @@ export interface RootRouteChildren {
   ApiPublicOptoutConfirmRoute: typeof ApiPublicOptoutConfirmRoute
   ApiPublicOptoutInfoRoute: typeof ApiPublicOptoutInfoRoute
   ApiPublicOptoutReverseRoute: typeof ApiPublicOptoutReverseRoute
+  ApiPublicOptoutShortConfirmRoute: typeof ApiPublicOptoutShortConfirmRoute
+  ApiPublicOptoutShortInfoRoute: typeof ApiPublicOptoutShortInfoRoute
+  ApiPublicOptoutShortReverseRoute: typeof ApiPublicOptoutShortReverseRoute
   ApiPublicSequencesDueRoute: typeof ApiPublicSequencesDueRoute
   ApiPublicSequencesInboundRoute: typeof ApiPublicSequencesInboundRoute
   ApiPublicSequencesSentRoute: typeof ApiPublicSequencesSentRoute
@@ -846,6 +901,13 @@ declare module '@tanstack/react-router' {
       path: '/u/$token'
       fullPath: '/u/$token'
       preLoaderRoute: typeof UTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/d/$code': {
+      id: '/d/$code'
+      path: '/d/$code'
+      fullPath: '/d/$code'
+      preLoaderRoute: typeof DCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/whatsapp': {
@@ -979,6 +1041,27 @@ declare module '@tanstack/react-router' {
       path: '/api/public/sequences/due'
       fullPath: '/api/public/sequences/due'
       preLoaderRoute: typeof ApiPublicSequencesDueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/short-reverse': {
+      id: '/api/public/optout/short-reverse'
+      path: '/api/public/optout/short-reverse'
+      fullPath: '/api/public/optout/short-reverse'
+      preLoaderRoute: typeof ApiPublicOptoutShortReverseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/short-info': {
+      id: '/api/public/optout/short-info'
+      path: '/api/public/optout/short-info'
+      fullPath: '/api/public/optout/short-info'
+      preLoaderRoute: typeof ApiPublicOptoutShortInfoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/short-confirm': {
+      id: '/api/public/optout/short-confirm'
+      path: '/api/public/optout/short-confirm'
+      fullPath: '/api/public/optout/short-confirm'
+      preLoaderRoute: typeof ApiPublicOptoutShortConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/optout/reverse': {
@@ -1262,6 +1345,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  DCodeRoute: DCodeRoute,
   UTokenRoute: UTokenRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
   ApiPublicAiContactEnrichRoute: ApiPublicAiContactEnrichRoute,
@@ -1298,6 +1382,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicOptoutConfirmRoute: ApiPublicOptoutConfirmRoute,
   ApiPublicOptoutInfoRoute: ApiPublicOptoutInfoRoute,
   ApiPublicOptoutReverseRoute: ApiPublicOptoutReverseRoute,
+  ApiPublicOptoutShortConfirmRoute: ApiPublicOptoutShortConfirmRoute,
+  ApiPublicOptoutShortInfoRoute: ApiPublicOptoutShortInfoRoute,
+  ApiPublicOptoutShortReverseRoute: ApiPublicOptoutShortReverseRoute,
   ApiPublicSequencesDueRoute: ApiPublicSequencesDueRoute,
   ApiPublicSequencesInboundRoute: ApiPublicSequencesInboundRoute,
   ApiPublicSequencesSentRoute: ApiPublicSequencesSentRoute,
@@ -1309,3 +1396,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
