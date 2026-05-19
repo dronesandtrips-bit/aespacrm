@@ -9,6 +9,7 @@ import {
   PUBLIC_CORS,
   jsonResponse,
 } from "@/integrations/supabase/server";
+import { buildOptoutUrlFor } from "@/server/optout.server";
 
 function applyVars(template: string, vars: Record<string, string>) {
   return template.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
