@@ -1108,7 +1108,7 @@ function ImportDialog({
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState<string>("");
   const [importing, setImporting] = useState(false);
-  const [defaultTagId, setDefaultTagId] = useState<string>("__none__");
+  const [defaultTagIds, setDefaultTagIds] = useState<string[]>([]);
   const [strategy, setStrategy] = useState<DupStrategy>("skip");
   const [perRow, setPerRow] = useState<Record<string, DupAction>>({});
   const inputRef = useRef<HTMLInputElement>(null);
