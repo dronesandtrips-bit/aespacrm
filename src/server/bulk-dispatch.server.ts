@@ -86,6 +86,9 @@ export async function runBulkDispatch(opts: {
 
   let cursor = Math.max(0, Number(head?.next_index ?? 0));
   let processedTotal = Math.max(0, Number(head?.sent_count ?? 0));
+  console.log(
+    `[bulk] start bulkId=${bulkId} cursor=${cursor} processedTotal=${processedTotal} total=${contactIds.length}`,
+  );
 
   if (head?.control === "cancelled") {
     await sb
