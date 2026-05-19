@@ -114,7 +114,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               .in("id", seqIds),
           admin
               .from("crm_sequence_steps")
-              .select('id,sequence_id,"order",message,delay_value,delay_unit,typing_seconds')
+              .select('id,sequence_id,"order",message,delay_value,delay_unit,typing_seconds,media_base64,media_type,media_mime,media_filename,media_caption')
               .in("sequence_id", seqIds),
             admin
               .from("crm_contacts")
