@@ -191,12 +191,17 @@ function DisparosPage() {
     const sample = contacts.find((c) => selected.has(c.id)) || contacts[0];
     if (!sample) return message;
     const cat = categories.find((k) => k.id === sample.categoryId);
-    return message
+    const rendered = message
       .replaceAll("{nome}", sample.name)
       .replaceAll("{primeiro_nome}", sample.name.split(" ")[0])
       .replaceAll("{empresa}", (sample.notes ?? "").trim() || sample.name)
       .replaceAll("{categoria}", cat?.name ?? "")
       .replaceAll("{link_descadastro}", "https://crm.aespa.com.br/u/…");
+    const hasOptout = message.includes("{link_descadastro}") || message.includes("{{link_descadastro}}");
+    if (!hasOptout) {
+      return `${rendered}\n\n_Não quer mais receber? Clique aqui:_ https://crm.aespa.com.br/u/…`;
+    }
+    return rendered;
   }, [message, selected, contacts, categories]);
 
   const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
