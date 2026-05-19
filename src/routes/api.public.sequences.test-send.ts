@@ -61,11 +61,13 @@ export const Route = createFileRoute("/api/public/sequences/test-send")({
             );
           }
           const name = contact_name ?? "Você";
+          const optoutUrl = await buildOptoutUrlFor(user_id, phone);
           const rendered = applyVars(message, {
             nome: name,
             primeiro_nome: name.split(/\s+/)[0] ?? "",
             saudacao: saudacao(),
             empresa: "",
+            link_descadastro: optoutUrl,
           });
 
           const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
