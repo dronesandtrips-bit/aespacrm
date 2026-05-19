@@ -356,7 +356,7 @@ function SequenceEditorDialog({
 
   const addStep = () => {
     if (steps.length >= MAX_STEPS) return;
-    setSteps((p) => [...p, { uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0 }]);
+    setSteps((p) => [...p, { uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0, media: null }]);
   };
 
   const removeStep = (i: number) => {
