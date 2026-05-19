@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,8 @@ import {
   Send,
   FileText,
   Sparkles,
+  Paperclip,
+  X,
 } from "lucide-react";
 import {
   sequencesDb,
@@ -83,8 +85,31 @@ export const Route = createFileRoute("/_app/sequencias")({
 });
 
 const MAX_STEPS = 10;
+const MAX_MEDIA_BYTES = 5 * 1024 * 1024; // 5MB
 const DAY_LABELS = ["D", "S", "T", "Q", "Q", "S", "S"];
 const DAY_FULL = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const idx = result.indexOf(",");
+      resolve(idx >= 0 ? result.slice(idx + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function detectMediaType(
+  mime: string,
+): import("@/lib/db").TemplateMedia["type"] {
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  return "document";
+}
 
 function formatDays(days: number[]): string {
   if (!days || days.length === 0) return "Nenhum dia";
@@ -1174,6 +1199,31 @@ function SortableStepCard({
     opacity: isDragging ? 0.6 : 1,
   };
   const [tplOpen, setTplOpen] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (f.size > MAX_MEDIA_BYTES) {
+      toast.error("Arquivo muito grande (máx. 5MB)");
+      return;
+    }
+    try {
+      const base64 = await fileToBase64(f);
+      onUpdate({
+        media: {
+          base64,
+          type: detectMediaType(f.type || ""),
+          mime: f.type || null,
+          filename: f.name,
+          caption: step.media?.caption ?? null,
+        },
+      });
+    } catch (err: any) {
+      toast.error(`Erro ao ler arquivo: ${err?.message ?? err}`);
+    }
+  };
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -1300,37 +1350,80 @@ function SortableStepCard({
             placeholder="Olá {{primeiro_nome}}, {{saudacao}}!"
           />
         </div>
-        {step.media && (
-          <div className="flex items-center gap-2 border rounded p-2 bg-muted/30">
-            {step.media.type === "image" && step.media.base64 ? (
-              <img
-                src={`data:${step.media.mime ?? "image/jpeg"};base64,${step.media.base64}`}
-                alt={step.media.filename ?? "anexo"}
-                className="size-12 object-cover rounded border"
-              />
-            ) : (
-              <div className="size-12 flex items-center justify-center rounded border bg-background text-muted-foreground">
-                <FileText className="size-4" />
+        <div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
+            className="hidden"
+            onChange={onPickFile}
+          />
+          {step.media ? (
+            <div className="flex items-start gap-2 border rounded p-2 bg-muted/30">
+              {step.media.type === "image" && step.media.base64 ? (
+                <img
+                  src={`data:${step.media.mime ?? "image/jpeg"};base64,${step.media.base64}`}
+                  alt={step.media.filename ?? "anexo"}
+                  className="size-16 object-cover rounded border"
+                />
+              ) : (
+                <div className="size-16 flex items-center justify-center rounded border bg-background text-muted-foreground">
+                  <Paperclip className="size-5" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0 space-y-1">
+                <p className="text-[11px] font-medium truncate">
+                  📎 {step.media.filename ?? step.media.type}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {step.media.type} · {step.media.mime ?? "—"}
+                </p>
+                <Input
+                  value={step.media.caption ?? ""}
+                  onChange={(e) =>
+                    onUpdate({
+                      media: step.media
+                        ? { ...step.media, caption: e.target.value || null }
+                        : null,
+                    })
+                  }
+                  placeholder="Legenda (opcional)"
+                  maxLength={1024}
+                  className="h-7 text-xs"
+                />
+                <div className="flex gap-1 pt-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[10px] px-2"
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <Paperclip className="size-3 mr-1" /> Trocar
+                  </Button>
+                </div>
               </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-medium truncate">
-                📎 {step.media.filename ?? step.media.type}
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                Mídia herdada do template — será enviada junto.
-              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onUpdate({ media: null })}
+                title="Remover mídia deste passo"
+              >
+                <X className="size-3.5" />
+              </Button>
             </div>
+          ) : (
             <Button
-              variant="ghost"
+              type="button"
+              variant="outline"
               size="sm"
-              onClick={() => onUpdate({ media: null })}
-              title="Remover mídia deste passo"
+              onClick={() => fileRef.current?.click()}
+              className="h-7 text-xs"
             >
-              <Trash2 className="size-3.5" />
+              <Paperclip className="size-3.5 mr-1" /> Anexar mídia
             </Button>
-          </div>
-        )}
+          )}
+        </div>
         {metric && (
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground border-t pt-2">
             <span className="flex items-center gap-1">
