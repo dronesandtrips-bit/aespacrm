@@ -85,6 +85,7 @@ const VARIABLES: Array<{ key: string; desc: string }> = [
   { key: "{primeiro_nome}", desc: "Primeiro nome" },
   { key: "{empresa}", desc: "Notas/empresa do contato" },
   { key: "{categoria}", desc: "Categoria principal" },
+  { key: "{link_descadastro}", desc: "Link clicável p/ descadastrar" },
 ];
 
 function fileToBase64(file: File): Promise<string> {
