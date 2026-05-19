@@ -4,6 +4,7 @@
 // /api/public/evolution/bulk-tick (cron de agendados).
 
 import { getSupabaseAdmin } from "@/integrations/supabase/server";
+import { buildOptoutUrlFor } from "@/server/optout.server";
 
 const INSTANCE = "zapcrm";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -18,13 +19,22 @@ export type BulkMedia = {
 
 function applyVars(
   template: string,
-  ctx: { name: string; firstName: string; company: string; category: string },
+  ctx: {
+    name: string;
+    firstName: string;
+    company: string;
+    category: string;
+    optoutUrl: string;
+  },
 ) {
   return template
     .replaceAll("{nome}", ctx.name)
     .replaceAll("{primeiro_nome}", ctx.firstName)
     .replaceAll("{empresa}", ctx.company)
-    .replaceAll("{categoria}", ctx.category);
+    .replaceAll("{categoria}", ctx.category)
+    .replaceAll("{link_descadastro}", ctx.optoutUrl)
+    // Aceita também {{link_descadastro}} (compatível com syntax do sequences).
+    .replaceAll("{{link_descadastro}}", ctx.optoutUrl);
 }
 
 export async function runBulkDispatch(opts: {
@@ -90,13 +100,16 @@ export async function runBulkDispatch(opts: {
     const firstName = fullName.split(" ")[0] ?? fullName;
     const company = String(c.notes ?? "").trim() || fullName;
     const category = (c.category?.name as string) ?? "";
-    const text = applyVars(message, { name: fullName, firstName, company, category });
+    const optoutUrl = c.phone_norm
+      ? await buildOptoutUrlFor(userId, c.phone_norm)
+      : "";
+    const text = applyVars(message, { name: fullName, firstName, company, category, optoutUrl });
 
     try {
       let res: Response;
       if (media) {
         const caption = media.caption
-          ? applyVars(media.caption, { name: fullName, firstName, company, category })
+          ? applyVars(media.caption, { name: fullName, firstName, company, category, optoutUrl })
           : (text || undefined);
         res = await fetch(`${apiUrl}/message/sendMedia/${INSTANCE}`, {
           method: "POST",

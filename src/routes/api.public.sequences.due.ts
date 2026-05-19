@@ -9,6 +9,7 @@ import {
   PUBLIC_CORS,
   jsonResponse,
 } from "@/integrations/supabase/server";
+import { buildOptoutUrlFor } from "@/server/optout.server";
 
 function applyVars(template: string, vars: Record<string, string>) {
   return template.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
@@ -127,8 +128,8 @@ export const Route = createFileRoute("/api/public/sequences/due")({
             stepsBySeq.set(s.sequence_id, arr);
           });
 
-          const items = due
-            .map((d: any) => {
+          const itemsRaw = await Promise.all(
+            due.map(async (d: any) => {
               const seq = seqMap.get(d.sequence_id) as any;
               const contact = contactMap.get(d.contact_id) as any;
               if (!seq || !contact || !seq.is_active) return null;
@@ -140,11 +141,16 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               );
               const step = steps.find((s: any) => s.order === d.current_step);
               if (!step) return null;
+              const phoneNorm = String(contact.phone ?? "").replace(/\D/g, "");
+              const optoutUrl = phoneNorm
+                ? await buildOptoutUrlFor(d.user_id, phoneNorm)
+                : "";
               const message = applyVars(step.message, {
                 nome: contact.name ?? "",
                 primeiro_nome: primeiroNome(contact.name ?? ""),
                 saudacao: saudacao(),
                 empresa: contact.email ?? "", // placeholder, mapear depois
+                link_descadastro: optoutUrl,
               });
               const typingMs = Math.max(
                 0,
@@ -166,8 +172,9 @@ export const Route = createFileRoute("/api/public/sequences/due")({
                 typing_seconds: Number(step.typing_seconds ?? 0),
                 delay_ms: typingMs,
               };
-            })
-            .filter(Boolean);
+            }),
+          );
+          const items = itemsRaw.filter(Boolean);
 
           return jsonResponse({ items });
         } catch (err: any) {

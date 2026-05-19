@@ -18,54 +18,10 @@ import { isStrictValidPhone } from "@/server/phone-validation";
 
 const INSTANCE = "zapcrm";
 
-// Opt-out / opt-in por palavra-chave em mensagens inbound (1:1).
-// Detecção robusta: case/acento-insensitive, tolerante a separadores
-// (hífen, ponto, espaço, underline) e a variantes morfológicas do verbo
-// (descadastrar, descadastra, descadastre, descadastro, descadastramento).
-//
-// Estratégia:
-//   - normalizeKeyword: NFD + remove diacríticos + UPPERCASE → usado para
-//     OPT-IN ("VOLTAR") com \b para evitar falsos positivos ("REVOLTAR").
-//   - compactKeyword:   normalizeKeyword + remove tudo que não é A-Z →
-//     usado para OPT-OUT (stem "DESCADASTR"), pegando "des-cadastrar",
-//     "des cadastrar", "des.cadastrar", "DESCADASTRO", etc.
-const OPT_OUT_STEM_RE = /DESCADASTR/;
-const OPT_IN_RE = /\bVOLTAR\b/;
-
-function normalizeKeyword(s: string): string {
-  return String(s ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase();
-}
-
-function compactKeyword(s: string): string {
-  return normalizeKeyword(s).replace(/[^A-Z]/g, "");
-}
-
-async function sendWhatsAppText(number: string, text: string): Promise<void> {
-  const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
-  const apiKey = process.env.EVOLUTION_API_KEY?.trim();
-  if (!apiUrl || !apiKey || !number) {
-    console.error("[opt-out] sendWhatsAppText: missing config", { hasUrl: !!apiUrl, hasKey: !!apiKey, number });
-    return;
-  }
-  try {
-    const r = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
-      method: "POST",
-      headers: { apikey: apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ number, text, delay: 800 }),
-    });
-    if (!r.ok) {
-      const t = await r.text().catch(() => "");
-      console.error("[opt-out] sendWhatsAppText failed", r.status, t.slice(0, 300));
-    } else {
-      console.log("[opt-out] confirmation sent to", number);
-    }
-  } catch (e) {
-    console.error("[opt-out] sendWhatsAppText error", e);
-  }
-}
+// Opt-out por palavra-chave foi REMOVIDO. O descadastro agora é feito
+// exclusivamente via link clicável {{link_descadastro}} inserido nos
+// templates de disparo/sequência, que aponta para /u/$token. Veja
+// src/server/optout.server.ts e src/routes/u.$token.tsx.
 
 // Aceita JIDs de contatos individuais do WhatsApp.
 function isIndividualJid(jid: string | undefined | null): boolean {
@@ -423,51 +379,9 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                   .eq("contact_id", contactId)
                   .eq("status", "active");
 
-                // Opt-out / opt-in por palavra-chave (DESCADASTRAR / VOLTAR).
-                // Só processa em mensagens de texto, ignora outros tipos.
-                if (parsed.type === "text") {
-                  const phone = normalizePhone(remoteJid);
-                  const norm = normalizeKeyword(parsed.body || "");
-                  const compact = compactKeyword(parsed.body || "");
-                  const isOptOut = OPT_OUT_STEM_RE.test(compact);
-                  const isOptIn = OPT_IN_RE.test(norm);
-                  if (isOptOut || isOptIn) {
-                    console.log("[opt-out] keyword match", { phone, body: parsed.body, isOptOut, isOptIn });
-                  }
-                  if (phone && isOptOut) {
-                    const { error: insErr } = await sb
-                      .from("crm_ignored_phones")
-                      .upsert(
-                        {
-                          user_id: ownerUserId,
-                          phone_norm: phone,
-                          reason: "whatsapp:descadastrar",
-                        },
-                        { onConflict: "user_id,phone_norm", ignoreDuplicates: true },
-                      );
-                    if (!insErr) {
-                      await sendWhatsAppText(
-                        phone,
-                        "✅ Pronto! Você foi descadastrado e não receberá mais mensagens automáticas.\n\nSe quiser voltar a receber, é só responder *VOLTAR*.",
-                      );
-                    } else {
-                      console.error("[opt-out] insert blacklist error", insErr);
-                    }
-                  } else if (phone && isOptIn) {
-                    const { data: removed, error: delErr } = await sb
-                      .from("crm_ignored_phones")
-                      .delete()
-                      .eq("user_id", ownerUserId)
-                      .eq("phone_norm", phone)
-                      .select("id");
-                    if (!delErr && removed && removed.length > 0) {
-                      await sendWhatsAppText(
-                        phone,
-                        "✅ Você voltou a receber nossas mensagens. Obrigado!",
-                      );
-                    }
-                  }
-                }
+                // Opt-out por palavra-chave removido. Descadastro agora é
+                // exclusivamente via link clicável (/u/$token).
+
               }
             }
           } else if (event === "messages.update") {

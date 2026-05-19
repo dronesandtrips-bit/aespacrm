@@ -85,6 +85,7 @@ const VARIABLES: Array<{ key: string; desc: string }> = [
   { key: "{primeiro_nome}", desc: "Primeiro nome" },
   { key: "{empresa}", desc: "Notas/empresa do contato" },
   { key: "{categoria}", desc: "Categoria principal" },
+  { key: "{link_descadastro}", desc: "Link clicável p/ descadastrar" },
 ];
 
 function fileToBase64(file: File): Promise<string> {
@@ -194,7 +195,8 @@ function DisparosPage() {
       .replaceAll("{nome}", sample.name)
       .replaceAll("{primeiro_nome}", sample.name.split(" ")[0])
       .replaceAll("{empresa}", (sample.notes ?? "").trim() || sample.name)
-      .replaceAll("{categoria}", cat?.name ?? "");
+      .replaceAll("{categoria}", cat?.name ?? "")
+      .replaceAll("{link_descadastro}", "https://crm.aespa.com.br/u/…");
   }, [message, selected, contacts, categories]);
 
   const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
