@@ -109,7 +109,7 @@ export async function runBulkDispatch(opts: {
       let res: Response;
       if (media) {
         const caption = media.caption
-          ? applyVars(media.caption, { name: fullName, firstName, company, category })
+          ? applyVars(media.caption, { name: fullName, firstName, company, category, optoutUrl })
           : (text || undefined);
         res = await fetch(`${apiUrl}/message/sendMedia/${INSTANCE}`, {
           method: "POST",
