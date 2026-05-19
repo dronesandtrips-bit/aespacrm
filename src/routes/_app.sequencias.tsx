@@ -102,6 +102,7 @@ type DraftStep = {
   delayValue: number;
   delayUnit: "hours" | "days";
   typingSeconds: number;
+  media: import("@/lib/db").TemplateMedia | null;
 };
 
 let _uidCounter = 0;
