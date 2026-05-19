@@ -11,10 +11,19 @@ import {
 } from "@/integrations/supabase/server";
 import { buildOptoutUrlFor } from "@/server/optout.server";
 
+const MediaSchema = z.object({
+  type: z.enum(["image", "video", "audio", "document"]),
+  base64: z.string().min(1).max(20_000_000),
+  mime: z.string().trim().min(3).max(100).optional().nullable(),
+  filename: z.string().trim().min(1).max(255).optional().nullable(),
+  caption: z.string().trim().max(1024).optional().nullable(),
+});
+
 const Schema = z.object({
   message: z.string().min(1).max(4096),
   contact_name: z.string().max(120).optional(),
   typing_seconds: z.number().int().min(0).max(60).optional(),
+  media: MediaSchema.optional().nullable(),
 });
 
 function saudacao(now = new Date()): string {
