@@ -1138,7 +1138,7 @@ function ImportDialog({
   const reset = () => {
     setRows([]);
     setFileName("");
-    setDefaultTagId("__none__");
+    setDefaultTagIds([]);
     setStrategy("skip");
     setPerRow({});
     if (inputRef.current) inputRef.current.value = "";
