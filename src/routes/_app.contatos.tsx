@@ -961,8 +961,10 @@ function ContactsPage() {
         open={importOpen}
         onOpenChange={setImportOpen}
         categories={categories}
+        existingContacts={contacts}
         onImported={refresh}
       />
+
 
       <EnrollDialog
         contact={enrollContact}
