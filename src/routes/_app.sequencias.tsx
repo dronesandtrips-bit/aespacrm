@@ -1200,6 +1200,31 @@ function SortableStepCard({
     opacity: isDragging ? 0.6 : 1,
   };
   const [tplOpen, setTplOpen] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (f.size > MAX_MEDIA_BYTES) {
+      toast.error("Arquivo muito grande (máx. 5MB)");
+      return;
+    }
+    try {
+      const base64 = await fileToBase64(f);
+      onUpdate({
+        media: {
+          base64,
+          type: detectMediaType(f.type || ""),
+          mime: f.type || null,
+          filename: f.name,
+          caption: step.media?.caption ?? null,
+        },
+      });
+    } catch (err: any) {
+      toast.error(`Erro ao ler arquivo: ${err?.message ?? err}`);
+    }
+  };
 
   return (
     <div ref={setNodeRef} style={style}>
