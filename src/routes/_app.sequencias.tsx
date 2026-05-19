@@ -333,8 +333,9 @@ function SequenceEditorDialog({
                 delayValue: x.delayValue,
                 delayUnit: x.delayUnit,
                 typingSeconds: x.typingSeconds ?? 0,
+                media: x.media ?? null,
               }))
-            : [{ uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0 }],
+            : [{ uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0, media: null }],
         );
         setContacts(c);
         setStages(st);
