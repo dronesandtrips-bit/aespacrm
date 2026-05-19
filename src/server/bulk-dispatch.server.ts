@@ -86,6 +86,9 @@ export async function runBulkDispatch(opts: {
 
   let cursor = Math.max(0, Number(head?.next_index ?? 0));
   let processedTotal = Math.max(0, Number(head?.sent_count ?? 0));
+  if (processedTotal > cursor) {
+    cursor = Math.min(processedTotal, contactIds.length);
+  }
   console.log(
     `[bulk] start bulkId=${bulkId} cursor=${cursor} processedTotal=${processedTotal} total=${contactIds.length}`,
   );
@@ -119,7 +122,6 @@ export async function runBulkDispatch(opts: {
   const byId = new Map<string, any>();
   for (const c of contacts ?? []) byId.set(c.id, c);
   const orderedAll = contactIds.map((id) => byId.get(id)).filter(Boolean);
-  cursor = Math.max(cursor, orderedAll.findIndex((c: any) => c?.id === contactIds[cursor]) === -1 ? 0 : cursor);
   // Considera "válido" só quem tem phone_norm.
   const orderedValidIdx: number[] = [];
   for (let k = 0; k < orderedAll.length; k++) {
