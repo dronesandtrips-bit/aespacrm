@@ -215,11 +215,23 @@ function TemplateCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="font-medium truncate">{tpl.name}</p>
-          {tpl.category && (
-            <Badge variant="secondary" className="text-[10px] mt-1">
-              {tpl.category}
-            </Badge>
-          )}
+          <div className="flex items-center gap-1 mt-1 flex-wrap">
+            {tpl.category && (
+              <Badge variant="secondary" className="text-[10px]">
+                {tpl.category}
+              </Badge>
+            )}
+            {tpl.media && (
+              <Badge variant="outline" className="text-[10px] gap-1">
+                {tpl.media.type === "image" ? (
+                  <ImageIcon className="size-2.5" />
+                ) : (
+                  <Paperclip className="size-2.5" />
+                )}
+                {tpl.media.type}
+              </Badge>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <Button variant="ghost" size="sm" onClick={copy} title="Copiar">
@@ -237,6 +249,13 @@ function TemplateCard({
           </Button>
         </div>
       </div>
+      {tpl.media?.type === "image" && tpl.media.base64 && (
+        <img
+          src={`data:${tpl.media.mime ?? "image/jpeg"};base64,${tpl.media.base64}`}
+          alt={tpl.media.filename ?? "anexo"}
+          className="rounded border max-h-32 object-contain bg-muted/30"
+        />
+      )}
       <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4 break-words">
         {tpl.content}
       </p>
@@ -256,7 +275,31 @@ function TemplateDialog({
   const [name, setName] = useState(template?.name ?? "");
   const [content, setContent] = useState(template?.content ?? "");
   const [category, setCategory] = useState(template?.category ?? "");
+  const [media, setMedia] = useState<TemplateMedia | null>(template?.media ?? null);
   const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (f.size > MAX_MEDIA_BYTES) {
+      toast.error("Arquivo muito grande (máx. 5MB)");
+      return;
+    }
+    try {
+      const base64 = await fileToBase64(f);
+      setMedia({
+        base64,
+        type: detectMediaType(f.type || ""),
+        mime: f.type || null,
+        filename: f.name,
+        caption: media?.caption ?? null,
+      });
+    } catch (err: any) {
+      toast.error(`Erro ao ler arquivo: ${err?.message ?? err}`);
+    }
+  };
 
   const submit = async () => {
     if (!name.trim() || !content.trim()) {
@@ -270,6 +313,7 @@ function TemplateDialog({
           name: name.trim(),
           content: content.trim(),
           category: category.trim() || null,
+          media,
         });
         toast.success("Template atualizado");
       } else {
@@ -277,6 +321,7 @@ function TemplateDialog({
           name: name.trim(),
           content: content.trim(),
           category: category.trim() || null,
+          media,
         });
         toast.success("Template criado");
       }
@@ -291,7 +336,7 @@ function TemplateDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {template ? "Editar template" : "Novo template"}
@@ -327,6 +372,74 @@ function TemplateDialog({
             <p className="text-[11px] text-muted-foreground mt-1">
               Variáveis: <code>{"{{nome}}"}</code>, <code>{"{{empresa}}"}</code>
             </p>
+          </div>
+
+          <div className="border-t pt-3 space-y-2">
+            <Label className="flex items-center gap-1">
+              <ImageIcon className="size-3.5" /> Mídia (opcional)
+            </Label>
+            <p className="text-[11px] text-muted-foreground -mt-1">
+              Anexe imagem, vídeo, áudio ou documento (máx. 5MB). Será enviada
+              junto com a mensagem no disparo da sequência.
+            </p>
+            {media ? (
+              <div className="flex items-start gap-3 border rounded p-2 bg-muted/30">
+                {media.type === "image" && media.base64 ? (
+                  <img
+                    src={`data:${media.mime ?? "image/jpeg"};base64,${media.base64}`}
+                    alt={media.filename ?? "anexo"}
+                    className="size-20 object-cover rounded border"
+                  />
+                ) : (
+                  <div className="size-20 flex items-center justify-center rounded border bg-background">
+                    <Paperclip className="size-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="text-xs font-medium truncate">
+                    {media.filename ?? media.type}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {media.type} · {media.mime ?? "—"}
+                  </p>
+                  <Input
+                    value={media.caption ?? ""}
+                    onChange={(e) =>
+                      setMedia({ ...media, caption: e.target.value || null })
+                    }
+                    placeholder="Legenda (opcional)"
+                    maxLength={1024}
+                    className="h-7 text-xs"
+                  />
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMedia(null)}
+                  title="Remover mídia"
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*,video/*,audio/*,application/pdf"
+                  className="hidden"
+                  onChange={onPickFile}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <Paperclip className="size-3.5 mr-1" /> Anexar arquivo
+                </Button>
+              </>
+            )}
           </div>
         </div>
         <DialogFooter>
