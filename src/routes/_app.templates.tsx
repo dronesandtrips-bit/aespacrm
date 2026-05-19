@@ -1,6 +1,6 @@
 // Tela de Templates de mensagem reutilizáveis
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   FileText,
@@ -24,9 +23,34 @@ import {
   Copy,
   Check,
   Search,
+  Image as ImageIcon,
+  Paperclip,
+  X,
 } from "lucide-react";
-import { templatesDb, type MessageTemplate } from "@/lib/db";
+import { templatesDb, type MessageTemplate, type TemplateMedia } from "@/lib/db";
 import { toast } from "sonner";
+
+const MAX_MEDIA_BYTES = 5 * 1024 * 1024; // 5MB
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const idx = result.indexOf(",");
+      resolve(idx >= 0 ? result.slice(idx + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function detectMediaType(mime: string): TemplateMedia["type"] {
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  return "document";
+}
 
 export const Route = createFileRoute("/_app/templates")({
   component: TemplatesPage,
