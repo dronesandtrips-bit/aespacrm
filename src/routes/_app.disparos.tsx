@@ -195,7 +195,8 @@ function DisparosPage() {
       .replaceAll("{nome}", sample.name)
       .replaceAll("{primeiro_nome}", sample.name.split(" ")[0])
       .replaceAll("{empresa}", (sample.notes ?? "").trim() || sample.name)
-      .replaceAll("{categoria}", cat?.name ?? "");
+      .replaceAll("{categoria}", cat?.name ?? "")
+      .replaceAll("{link_descadastro}", "https://crm.aespa.com.br/u/…");
   }, [message, selected, contacts, categories]);
 
   const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
