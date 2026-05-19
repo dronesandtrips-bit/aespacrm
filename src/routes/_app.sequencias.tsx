@@ -102,6 +102,7 @@ type DraftStep = {
   delayValue: number;
   delayUnit: "hours" | "days";
   typingSeconds: number;
+  media: import("@/lib/db").TemplateMedia | null;
 };
 
 let _uidCounter = 0;
@@ -332,8 +333,9 @@ function SequenceEditorDialog({
                 delayValue: x.delayValue,
                 delayUnit: x.delayUnit,
                 typingSeconds: x.typingSeconds ?? 0,
+                media: x.media ?? null,
               }))
-            : [{ uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0 }],
+            : [{ uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0, media: null }],
         );
         setContacts(c);
         setStages(st);
@@ -354,7 +356,7 @@ function SequenceEditorDialog({
 
   const addStep = () => {
     if (steps.length >= MAX_STEPS) return;
-    setSteps((p) => [...p, { uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0 }]);
+    setSteps((p) => [...p, { uid: newUid(), message: "", delayValue: 1, delayUnit: "days", typingSeconds: 0, media: null }]);
   };
 
   const removeStep = (i: number) => {
@@ -372,9 +374,15 @@ function SequenceEditorDialog({
     });
   };
 
-  const loadTemplate = (i: number, content: string) => {
-    setSteps((p) => p.map((s, idx) => (idx === i ? { ...s, message: content } : s)));
-    toast.success("Template carregado");
+  const loadTemplate = (i: number, tpl: MessageTemplate) => {
+    setSteps((p) =>
+      p.map((s, idx) =>
+        idx === i ? { ...s, message: tpl.content, media: tpl.media ?? null } : s,
+      ),
+    );
+    toast.success(
+      tpl.media ? "Template carregado (com mídia)" : "Template carregado",
+    );
   };
 
   const updateStep = (i: number, patch: Partial<DraftStep>) => {
@@ -414,6 +422,7 @@ function SequenceEditorDialog({
         body: JSON.stringify({
           message: step.message,
           typing_seconds: step.typingSeconds,
+          media: step.media,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -652,7 +661,7 @@ function SequenceEditorDialog({
                     onRemove={() => removeStep(i)}
                     onClone={() => cloneStep(i)}
                     onUpdate={(patch) => updateStep(i, patch)}
-                    onLoadTemplate={(c) => loadTemplate(i, c)}
+                    onLoadTemplate={(t) => loadTemplate(i, t)}
                     onSendTest={() => sendTest(i)}
                   />
                 ))}
@@ -1154,7 +1163,7 @@ function SortableStepCard({
   onRemove: () => void;
   onClone: () => void;
   onUpdate: (patch: Partial<DraftStep>) => void;
-  onLoadTemplate: (content: string) => void;
+  onLoadTemplate: (tpl: MessageTemplate) => void;
   onSendTest: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -1202,7 +1211,7 @@ function SortableStepCard({
                         key={t.id}
                         type="button"
                         onClick={() => {
-                          onLoadTemplate(t.content);
+                          onLoadTemplate(t);
                           setTplOpen(false);
                         }}
                         className="w-full text-left px-3 py-2 text-xs hover:bg-muted border-b last:border-b-0"
@@ -1291,6 +1300,37 @@ function SortableStepCard({
             placeholder="Olá {{primeiro_nome}}, {{saudacao}}!"
           />
         </div>
+        {step.media && (
+          <div className="flex items-center gap-2 border rounded p-2 bg-muted/30">
+            {step.media.type === "image" && step.media.base64 ? (
+              <img
+                src={`data:${step.media.mime ?? "image/jpeg"};base64,${step.media.base64}`}
+                alt={step.media.filename ?? "anexo"}
+                className="size-12 object-cover rounded border"
+              />
+            ) : (
+              <div className="size-12 flex items-center justify-center rounded border bg-background text-muted-foreground">
+                <FileText className="size-4" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-medium truncate">
+                📎 {step.media.filename ?? step.media.type}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Mídia herdada do template — será enviada junto.
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onUpdate({ media: null })}
+              title="Remover mídia deste passo"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </div>
+        )}
         {metric && (
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground border-t pt-2">
             <span className="flex items-center gap-1">

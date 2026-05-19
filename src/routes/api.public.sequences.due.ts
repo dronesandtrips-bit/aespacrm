@@ -114,7 +114,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               .in("id", seqIds),
           admin
               .from("crm_sequence_steps")
-              .select('id,sequence_id,"order",message,delay_value,delay_unit,typing_seconds')
+              .select('id,sequence_id,"order",message,delay_value,delay_unit,typing_seconds,media_base64,media_type,media_mime,media_filename,media_caption')
               .in("sequence_id", seqIds),
             admin
               .from("crm_contacts")
@@ -164,6 +164,23 @@ export const Route = createFileRoute("/api/public/sequences/due")({
                 0,
                 Math.min(60, Number(step.typing_seconds ?? 0)),
               ) * 1000;
+              const media = step.media_base64 && step.media_type
+                ? {
+                    type: step.media_type as "image" | "video" | "audio" | "document",
+                    base64: step.media_base64 as string,
+                    mime: (step.media_mime as string | null) ?? null,
+                    filename: (step.media_filename as string | null) ?? null,
+                    caption: step.media_caption
+                      ? applyVars(step.media_caption as string, {
+                          nome: contact.name ?? "",
+                          primeiro_nome: primeiroNome(contact.name ?? ""),
+                          saudacao: saudacao(),
+                          empresa: contact.email ?? "",
+                          link_descadastro: optoutUrl,
+                        })
+                      : null,
+                  }
+                : null;
               return {
                 contact_sequence_id: d.id,
                 user_id: d.user_id,
@@ -177,6 +194,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
                   email: contact.email,
                 },
                 message,
+                media,
                 typing_seconds: Number(step.typing_seconds ?? 0),
                 delay_ms: typingMs,
               };

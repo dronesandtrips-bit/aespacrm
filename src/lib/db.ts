@@ -109,11 +109,20 @@ export type Sequence = {
   createdAt: string;
 };
 
+export type TemplateMedia = {
+  base64: string;
+  type: "image" | "video" | "audio" | "document";
+  mime: string | null;
+  filename: string | null;
+  caption: string | null;
+};
+
 export type MessageTemplate = {
   id: string;
   name: string;
   content: string;
   category: string | null;
+  media: TemplateMedia | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -126,6 +135,7 @@ export type SequenceStep = {
   delayValue: number;
   delayUnit: "hours" | "days";
   typingSeconds: number;
+  media: TemplateMedia | null;
 };
 
 export type SequenceStepMetric = {
@@ -1004,6 +1014,17 @@ function rowToSeq(r: any): Sequence {
 const SEQ_COLS =
   "id,name,description,is_active,trigger_type,trigger_value,window_start_hour,window_end_hour,window_days,stop_on_stage_ids,auto_resume_after_days,created_at";
 
+function rowToMedia(r: any): TemplateMedia | null {
+  if (!r?.media_base64 || !r?.media_type) return null;
+  return {
+    base64: r.media_base64,
+    type: r.media_type,
+    mime: r.media_mime ?? null,
+    filename: r.media_filename ?? null,
+    caption: r.media_caption ?? null,
+  };
+}
+
 function rowToStep(r: any): SequenceStep {
   return {
     id: r.id,
@@ -1013,11 +1034,12 @@ function rowToStep(r: any): SequenceStep {
     delayValue: r.delay_value,
     delayUnit: r.delay_unit,
     typingSeconds: r.typing_seconds ?? 0,
+    media: rowToMedia(r),
   };
 }
 
 const STEP_COLS =
-  'id,sequence_id,"order",message,delay_value,delay_unit,typing_seconds';
+  'id,sequence_id,"order",message,delay_value,delay_unit,typing_seconds,media_base64,media_type,media_mime,media_filename,media_caption';
 
 function rowToContactSeq(r: any): ContactSequence {
   return {
@@ -1124,6 +1146,7 @@ export const sequencesDb = {
       delayValue: number;
       delayUnit: "hours" | "days";
       typingSeconds?: number;
+      media?: TemplateMedia | null;
     }>,
   ) {
     const c = await client();
@@ -1143,6 +1166,7 @@ export const sequencesDb = {
       delay_value: s.delayValue,
       delay_unit: s.delayUnit,
       typing_seconds: Math.max(0, Math.min(60, s.typingSeconds ?? 0)),
+      ...mediaToRow(s.media ?? null),
     }));
     const { error } = await c.from("crm_sequence_steps").insert(rows);
     if (error) throw error;
@@ -1496,14 +1520,38 @@ export const widgetsDb = {
 
 // ===================== Templates de mensagem =====================
 
+const TEMPLATE_COLS =
+  "id,name,content,category,media_base64,media_type,media_mime,media_filename,media_caption,created_at,updated_at";
+
 function rowToTemplate(r: any): MessageTemplate {
   return {
     id: r.id,
     name: r.name,
     content: r.content,
     category: r.category ?? null,
+    media: rowToMedia(r),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+  };
+}
+
+function mediaToRow(media: TemplateMedia | null | undefined): Record<string, unknown> {
+  if (media === undefined) return {};
+  if (media === null) {
+    return {
+      media_base64: null,
+      media_type: null,
+      media_mime: null,
+      media_filename: null,
+      media_caption: null,
+    };
+  }
+  return {
+    media_base64: media.base64,
+    media_type: media.type,
+    media_mime: media.mime ?? null,
+    media_filename: media.filename ?? null,
+    media_caption: media.caption ?? null,
   };
 }
 
@@ -1512,7 +1560,7 @@ export const templatesDb = {
     const c = await client();
     const { data, error } = await c
       .from("crm_message_templates")
-      .select("id,name,content,category,created_at,updated_at")
+      .select(TEMPLATE_COLS)
       .order("name", { ascending: true });
     if (error) throw error;
     return (data ?? []).map(rowToTemplate);
@@ -1522,6 +1570,7 @@ export const templatesDb = {
     name: string;
     content: string;
     category?: string | null;
+    media?: TemplateMedia | null;
   }): Promise<MessageTemplate> {
     const c = await client();
     const user_id = await uid();
@@ -1532,8 +1581,9 @@ export const templatesDb = {
         name: input.name,
         content: input.content,
         category: input.category ?? null,
+        ...mediaToRow(input.media),
       })
-      .select("id,name,content,category,created_at,updated_at")
+      .select(TEMPLATE_COLS)
       .single();
     if (error) throw error;
     return rowToTemplate(data);
@@ -1541,12 +1591,24 @@ export const templatesDb = {
 
   async update(
     id: string,
-    patch: Partial<{ name: string; content: string; category: string | null }>,
+    patch: Partial<{
+      name: string;
+      content: string;
+      category: string | null;
+      media: TemplateMedia | null;
+    }>,
   ) {
     const c = await client();
-    const { error } = await c.from("crm_message_templates").update(patch).eq("id", id);
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.content !== undefined) dbPatch.content = patch.content;
+    if (patch.category !== undefined) dbPatch.category = patch.category;
+    if (patch.media !== undefined) Object.assign(dbPatch, mediaToRow(patch.media));
+    const { error } = await c.from("crm_message_templates").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
+
+
 
   async remove(id: string) {
     const c = await client();
