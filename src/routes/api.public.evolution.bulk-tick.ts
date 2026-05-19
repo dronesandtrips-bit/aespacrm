@@ -31,40 +31,76 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
 
         const sb = getSupabaseAdmin();
         const nowIso = new Date().toISOString();
+        const orphanCutoffIso = new Date(Date.now() - 90_000).toISOString();
 
-        const { data: due, error } = await sb
+        // 1) Agendados que chegaram a hora.
+        const { data: dueScheduled, error: errSched } = await sb
           .from("crm_bulk_sends")
           .select(
-            "id, user_id, message, interval_seconds, contact_ids, control, media_type, media_base64, media_mime, media_filename, media_caption",
+            "id, user_id, message, interval_seconds, contact_ids, control, media_type, media_base64, media_mime, media_filename, media_caption, status, claimed_at",
           )
           .eq("status", "scheduled")
           .lte("scheduled_at", nowIso)
           .limit(20);
-        if (error) return jsonResponse({ ok: false, error: error.message }, 500);
+        if (errSched) return jsonResponse({ ok: false, error: errSched.message }, 500);
+
+        // 2) Em andamento mas órfãos (Worker morreu / batch-per-tick precisa
+        //    continuar). claimed_at null OU < now()-90s => repesca.
+        const { data: dueOrphans, error: errOrph } = await sb
+          .from("crm_bulk_sends")
+          .select(
+            "id, user_id, message, interval_seconds, contact_ids, control, media_type, media_base64, media_mime, media_filename, media_caption, status, claimed_at",
+          )
+          .eq("status", "in_progress")
+          .or(`claimed_at.is.null,claimed_at.lt.${orphanCutoffIso}`)
+          .limit(20);
+        if (errOrph) return jsonResponse({ ok: false, error: errOrph.message }, 500);
+
+        const due = [...(dueScheduled ?? []), ...(dueOrphans ?? [])];
 
         const picked: any[] = [];
         const skipped: any[] = [];
         const picked_promises: Promise<any>[] = [];
 
-        for (const row of due ?? []) {
+        for (const row of due) {
           if (row.control === "cancelled") {
-            await sb.from("crm_bulk_sends").update({ status: "cancelled" }).eq("id", row.id);
+            await sb
+              .from("crm_bulk_sends")
+              .update({ status: "cancelled", claimed_at: null })
+              .eq("id", row.id);
             skipped.push({ bulkId: row.id, reason: "cancelled" });
             continue;
           }
           const contactIds = (row.contact_ids ?? []) as string[];
           if (!Array.isArray(contactIds) || contactIds.length === 0) {
-            await sb.from("crm_bulk_sends").update({ status: "error" }).eq("id", row.id);
+            await sb
+              .from("crm_bulk_sends")
+              .update({ status: "error", claimed_at: null })
+              .eq("id", row.id);
             skipped.push({ bulkId: row.id, reason: "no contact_ids" });
             continue;
           }
 
-          // Reserva de forma atômica: só pega se ainda estiver 'scheduled'.
-          const { data: claimed, error: claimErr } = await sb
+          // Reserva atômica: só pega se status ainda for o esperado E
+          // (para órfãos) o claimed_at não tiver mudado nesse meio tempo.
+          const claimUpdate: Record<string, any> = {
+            status: "in_progress",
+            claimed_at: new Date().toISOString(),
+          };
+          let claimQuery = sb
             .from("crm_bulk_sends")
-            .update({ status: "in_progress" })
+            .update(claimUpdate)
             .eq("id", row.id)
-            .eq("status", "scheduled")
+            .eq("status", row.status);
+          if (row.status === "in_progress") {
+            // só repesca se ainda for órfão (evita roubar de outro tick ativo)
+            if (row.claimed_at) {
+              claimQuery = claimQuery.lt("claimed_at", orphanCutoffIso);
+            } else {
+              claimQuery = claimQuery.is("claimed_at", null);
+            }
+          }
+          const { data: claimed, error: claimErr } = await claimQuery
             .select("id")
             .maybeSingle();
           if (claimErr || !claimed) {
