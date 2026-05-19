@@ -1108,7 +1108,7 @@ function ImportDialog({
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState<string>("");
   const [importing, setImporting] = useState(false);
-  const [defaultTagId, setDefaultTagId] = useState<string>("__none__");
+  const [defaultTagIds, setDefaultTagIds] = useState<string[]>([]);
   const [strategy, setStrategy] = useState<DupStrategy>("skip");
   const [perRow, setPerRow] = useState<Record<string, DupAction>>({});
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1138,7 +1138,7 @@ function ImportDialog({
   const reset = () => {
     setRows([]);
     setFileName("");
-    setDefaultTagId("__none__");
+    setDefaultTagIds([]);
     setStrategy("skip");
     setPerRow({});
     if (inputRef.current) inputRef.current.value = "";
@@ -1188,7 +1188,7 @@ function ImportDialog({
       );
       if (found) tags.add(found.id);
     }
-    if (defaultTagId && defaultTagId !== "__none__") tags.add(defaultTagId);
+    for (const id of defaultTagIds) tags.add(id);
     return Array.from(tags);
   };
 
@@ -1311,21 +1311,38 @@ function ImportDialog({
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs mb-1 block">Aplicar tag a todos os importados</Label>
-                  <Select value={defaultTagId} onValueChange={setDefaultTagId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Nenhuma" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Nenhuma</SelectItem>
-                      {categories.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
+                  <Label className="text-xs mb-1 block">
+                    Aplicar tag(s) a todos os importados
+                    {defaultTagIds.length > 0 ? ` · ${defaultTagIds.length} selecionada(s)` : ""}
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5 border rounded-md p-2 min-h-[42px] max-h-32 overflow-y-auto bg-background">
+                    {categories.length === 0 && (
+                      <span className="text-xs text-muted-foreground">Nenhuma categoria cadastrada</span>
+                    )}
+                    {categories.map((c) => {
+                      const active = defaultTagIds.includes(c.id);
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() =>
+                            setDefaultTagIds((prev) =>
+                              prev.includes(c.id) ? prev.filter((x) => x !== c.id) : [...prev, c.id],
+                            )
+                          }
+                          className={`text-xs px-2 py-1 rounded-md border transition ${
+                            active
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-muted/40 hover:bg-muted border-border"
+                          }`}
+                        >
                           {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
                 <div>
                   <Label className="text-xs mb-1 block">
                     Ao encontrar duplicados ({dupRows.length})
@@ -1413,10 +1430,14 @@ function ImportDialog({
                         <TableCell className="font-mono text-xs">{r.phone}</TableCell>
                         <TableCell className="text-muted-foreground text-xs">
                           {r.categoryName ??
-                            (defaultTagId !== "__none__"
-                              ? categories.find((c) => c.id === defaultTagId)?.name ?? "—"
+                            (defaultTagIds.length
+                              ? defaultTagIds
+                                  .map((id) => categories.find((c) => c.id === id)?.name)
+                                  .filter(Boolean)
+                                  .join(", ") || "—"
                               : "—")}
                         </TableCell>
+
                       </TableRow>
                     ))}
                   </TableBody>
