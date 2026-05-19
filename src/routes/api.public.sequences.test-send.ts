@@ -9,6 +9,7 @@ import {
   jsonResponse,
   requireUserJwt,
 } from "@/integrations/supabase/server";
+import { buildOptoutUrlFor } from "@/server/optout.server";
 
 const Schema = z.object({
   message: z.string().min(1).max(4096),
