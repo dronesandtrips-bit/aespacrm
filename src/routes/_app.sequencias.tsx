@@ -1210,7 +1210,7 @@ function SortableStepCard({
                         key={t.id}
                         type="button"
                         onClick={() => {
-                          onLoadTemplate(t.content);
+                          onLoadTemplate(t);
                           setTplOpen(false);
                         }}
                         className="w-full text-left px-3 py-2 text-xs hover:bg-muted border-b last:border-b-0"
