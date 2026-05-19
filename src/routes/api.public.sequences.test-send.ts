@@ -136,10 +136,20 @@ export const Route = createFileRoute("/api/public/sequences/test-send")({
             });
           }
           const data = await res.json().catch(() => ({}));
+          console.log("[sequences/test-send] evolution response", {
+            status: res.status,
+            ok: res.ok,
+            hasMedia: !!media,
+            mediaType: media?.type ?? null,
+            mediaMime: media?.mime ?? null,
+            base64Len: media?.base64?.length ?? 0,
+            phone,
+            data,
+          });
           if (!res.ok) {
-            return jsonResponse({ error: "Falha no envio", detail: data }, 502);
+            return jsonResponse({ error: "Falha no envio", detail: data, status: res.status }, 502);
           }
-          return jsonResponse({ ok: true, sent_to: phone });
+          return jsonResponse({ ok: true, sent_to: phone, evolution: data });
         } catch (err: any) {
           console.error("[sequences/test-send]", err);
           return jsonResponse({ error: err?.message ?? "Internal error" }, 500);
