@@ -119,6 +119,7 @@ export async function runBulkDispatch(opts: {
   const byId = new Map<string, any>();
   for (const c of contacts ?? []) byId.set(c.id, c);
   const orderedAll = contactIds.map((id) => byId.get(id)).filter(Boolean);
+  cursor = Math.max(cursor, orderedAll.findIndex((c: any) => c?.id === contactIds[cursor]) === -1 ? 0 : cursor);
   // Considera "válido" só quem tem phone_norm.
   const orderedValidIdx: number[] = [];
   for (let k = 0; k < orderedAll.length; k++) {
