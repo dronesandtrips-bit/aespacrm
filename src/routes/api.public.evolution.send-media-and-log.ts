@@ -125,10 +125,32 @@ export const Route = createFileRoute("/api/public/evolution/send-media-and-log")
             return jsonResponse({ ok: false, status: evRes.status, error: evData }, 502);
           }
 
-          const messageId: string | null = evData?.key?.id ?? null;
+          // Evolution às vezes devolve o id em paths diferentes.
+          const messageId: string | null =
+            evData?.key?.id ??
+            evData?.messageId ??
+            evData?.id ??
+            evData?.message?.key?.id ??
+            evData?.data?.key?.id ??
+            null;
           const remoteJid: string | null =
             evData?.key?.remoteJid ??
+            evData?.message?.key?.remoteJid ??
+            evData?.data?.key?.remoteJid ??
             (contact.is_group ? contact.wa_jid : `${contact.phone_norm}@s.whatsapp.net`);
+
+          // Sem messageId não conseguimos baixar o PDF/imagem depois (vira
+          // "Documento indisponível" na inbox). Nesse caso, NÃO inserimos
+          // placeholder — o webhook messages.upsert criará o registro
+          // correto em segundos (com message_id e media_url).
+          if (!messageId && parsed.mediatype === "document") {
+            return jsonResponse({
+              ok: true,
+              pending: true,
+              note: "documento enviado; aguardando confirmação do WhatsApp",
+              evolution: { messageId: null, status: evData?.status ?? null },
+            });
+          }
 
           const bodyText = parsed.mediatype === "document"
             ? (parsed.fileName ?? "[documento]")
