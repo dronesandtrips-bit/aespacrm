@@ -583,6 +583,14 @@ function InboxPage() {
               messageId: row.message_id ?? null,
             };
             setLastByContact((prev) => ({ ...prev, [msg.contactId]: msg }));
+            // Atualiza contagem de não lidas: só conta mensagens recebidas
+            // que não pertencem à conversa atualmente aberta.
+            if (!msg.fromMe && msg.contactId !== activeId) {
+              setUnreadByContact((prev) => ({
+                ...prev,
+                [msg.contactId]: (prev[msg.contactId] ?? 0) + 1,
+              }));
+            }
             if (msg.contactId === activeId) {
               setMessages((prev) =>
                 prev.find((m) => m.id === msg.id) ? prev : [...prev, msg],
