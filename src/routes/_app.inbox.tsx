@@ -83,11 +83,17 @@ function InboxPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [lastByContact, setLastByContact] = useState<LastMap>({});
   const [replyPauseByContact, setReplyPauseByContact] = useState<PauseMap>({});
+  // Estado de "não lidas" por conversa — calculado contra crm_contacts.last_read_at
+  const [unreadByContact, setUnreadByContact] = useState<Record<string, number>>({});
+  const [lastReadByContact, setLastReadByContact] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [soundOn, setSoundOn] = useState<boolean>(true);
   useEffect(() => { setSoundOn(isSoundEnabled()); }, []);
 
   const [search, setSearch] = useState("");
+  // Chips de filtro estilo WhatsApp Web
+  const [chipFilter, setChipFilter] = useState<"all" | "unread" | "groups">("all");
+  const [chipCategoryId, setChipCategoryId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
