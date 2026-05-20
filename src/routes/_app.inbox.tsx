@@ -534,6 +534,24 @@ function InboxPage() {
     };
   }, [activeId]);
 
+  // Marca conversa como lida ao abrir: zera badge local e atualiza last_read_at.
+  // Tolerante a erro (se a coluna ainda não existir, segue silencioso).
+  useEffect(() => {
+    if (!activeId) return;
+    const now = new Date().toISOString();
+    setUnreadByContact((prev) => (prev[activeId] ? { ...prev, [activeId]: 0 } : prev));
+    setLastReadByContact((prev) => ({ ...prev, [activeId]: now }));
+    (async () => {
+      try {
+        const c = await getSupabaseClient();
+        if (!c) return;
+        await c.from("crm_contacts").update({ last_read_at: now }).eq("id", activeId);
+      } catch (e) {
+        console.warn("Falha ao marcar conversa como lida", e);
+      }
+    })();
+  }, [activeId]);
+
   // Realtime: escuta novas mensagens (e dispara refresh de contatos quando o
   // contact_id ainda não está na lista — caso de conversa nova).
   useEffect(() => {
