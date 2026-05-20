@@ -1979,26 +1979,15 @@ function MessageContent({
     if (m.messageId) {
       return <SecureDocument messageId={m.messageId} fileName={fileName} mime={m.mediaMime ?? null} />;
     }
+    const extFb = getFileExt(fileName, m.mediaMime ?? null);
     if (m.mediaUrl) {
       return (
-        <a
-          href={m.mediaUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition"
-        >
-          <FileText className="size-5 shrink-0" />
-          <span className="flex-1 text-xs truncate">{fileName}</span>
-          <Download className="size-4 opacity-60" />
+        <a href={m.mediaUrl} target="_blank" rel="noreferrer" className="block">
+          <DocCard fileName={fileName} ext={extFb} trailing={<Download className="size-4 opacity-60" />} />
         </a>
       );
     }
-    return (
-      <p className="italic opacity-70 flex items-center gap-1.5">
-        <FileText className="size-3.5" />
-        Documento indisponível
-      </p>
-    );
+    return <DocCard fileName="Documento indisponível" ext={extFb} />;
   }
 
   if (type === "sticker" && m.messageId) {
