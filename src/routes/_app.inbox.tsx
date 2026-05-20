@@ -83,11 +83,17 @@ function InboxPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [lastByContact, setLastByContact] = useState<LastMap>({});
   const [replyPauseByContact, setReplyPauseByContact] = useState<PauseMap>({});
+  // Estado de "não lidas" por conversa — calculado contra crm_contacts.last_read_at
+  const [unreadByContact, setUnreadByContact] = useState<Record<string, number>>({});
+  const [lastReadByContact, setLastReadByContact] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [soundOn, setSoundOn] = useState<boolean>(true);
   useEffect(() => { setSoundOn(isSoundEnabled()); }, []);
 
   const [search, setSearch] = useState("");
+  // Chips de filtro estilo WhatsApp Web
+  const [chipFilter, setChipFilter] = useState<"all" | "unread" | "groups">("all");
+  const [chipCategoryId, setChipCategoryId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -190,16 +196,45 @@ function InboxPage() {
     return map;
   }, []);
 
+  // Carrega contagem de não lidas + last_read_at. Tolerante a falhas:
+  // se a coluna ainda não existir (schema cache), devolve maps vazios.
+  const loadUnreadState = useCallback(async () => {
+    const c = await getSupabaseClient();
+    if (!c) return { unread: {} as Record<string, number>, lastRead: {} as Record<string, string | null> };
+    const [{ data: cts, error: ctsErr }, { data: msgs }] = await Promise.all([
+      c.from("crm_contacts").select("id,last_read_at"),
+      c
+        .from("crm_messages")
+        .select("contact_id,at,from_me")
+        .eq("from_me", false)
+        .order("at", { ascending: false })
+        .limit(2000),
+    ]);
+    const lastRead: Record<string, string | null> = {};
+    if (!ctsErr) (cts ?? []).forEach((r: any) => { lastRead[r.id] = r.last_read_at ?? null; });
+    const unread: Record<string, number> = {};
+    (msgs ?? []).forEach((m: any) => {
+      const lr = lastRead[m.contact_id];
+      if (!lr || m.at > lr) unread[m.contact_id] = (unread[m.contact_id] ?? 0) + 1;
+    });
+    return { unread, lastRead };
+  }, []);
+
   const refreshInbox = useCallback(async (options?: { initial?: boolean }) => {
     const [cs, cats] = await Promise.all([
       contactsDb.listAll(),
       categoriesDb.list().catch(() => [] as Category[]),
     ]);
-    const lastMap = await loadLastMessages();
+    const [lastMap, unreadState] = await Promise.all([
+      loadLastMessages(),
+      loadUnreadState().catch(() => ({ unread: {}, lastRead: {} })),
+    ]);
 
     setContacts(cs);
     setCategories(cats);
     setLastByContact(lastMap);
+    setUnreadByContact(unreadState.unread);
+    setLastReadByContact(unreadState.lastRead);
 
     if (options?.initial || !activeIdRef.current) {
       const sorted = cs
@@ -207,7 +242,7 @@ function InboxPage() {
         .sort((a, b) => lastMap[b.id]!.at.localeCompare(lastMap[a.id]!.at));
       setActiveId(sorted[0]?.id ?? cs[0]?.id ?? "");
     }
-  }, [loadLastMessages]);
+  }, [loadLastMessages, loadUnreadState]);
 
   const refreshContacts = async () => {
     try {
@@ -499,6 +534,24 @@ function InboxPage() {
     };
   }, [activeId]);
 
+  // Marca conversa como lida ao abrir: zera badge local e atualiza last_read_at.
+  // Tolerante a erro (se a coluna ainda não existir, segue silencioso).
+  useEffect(() => {
+    if (!activeId) return;
+    const now = new Date().toISOString();
+    setUnreadByContact((prev) => (prev[activeId] ? { ...prev, [activeId]: 0 } : prev));
+    setLastReadByContact((prev) => ({ ...prev, [activeId]: now }));
+    (async () => {
+      try {
+        const c = await getSupabaseClient();
+        if (!c) return;
+        await c.from("crm_contacts").update({ last_read_at: now }).eq("id", activeId);
+      } catch (e) {
+        console.warn("Falha ao marcar conversa como lida", e);
+      }
+    })();
+  }, [activeId]);
+
   // Realtime: escuta novas mensagens (e dispara refresh de contatos quando o
   // contact_id ainda não está na lista — caso de conversa nova).
   useEffect(() => {
@@ -530,6 +583,14 @@ function InboxPage() {
               messageId: row.message_id ?? null,
             };
             setLastByContact((prev) => ({ ...prev, [msg.contactId]: msg }));
+            // Atualiza contagem de não lidas: só conta mensagens recebidas
+            // que não pertencem à conversa atualmente aberta.
+            if (!msg.fromMe && msg.contactId !== activeId) {
+              setUnreadByContact((prev) => ({
+                ...prev,
+                [msg.contactId]: (prev[msg.contactId] ?? 0) + 1,
+              }));
+            }
             if (msg.contactId === activeId) {
               setMessages((prev) =>
                 prev.find((m) => m.id === msg.id) ? prev : [...prev, msg],
@@ -675,9 +736,19 @@ function InboxPage() {
     [contacts, lastByContact],
   );
 
-  const filtered = conversations.filter((x) =>
-    x.contact.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = conversations.filter((x) => {
+    if (!x.contact.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (chipFilter === "unread" && !((unreadByContact[x.contact.id] ?? 0) > 0)) return false;
+    if (chipFilter === "groups" && !x.contact.isGroup) return false;
+    if (chipCategoryId) {
+      const ids = x.contact.categoryIds && x.contact.categoryIds.length
+        ? x.contact.categoryIds
+        : x.contact.categoryId ? [x.contact.categoryId] : [];
+      if (!ids.includes(chipCategoryId)) return false;
+    }
+    return true;
+  });
+  const unreadTotal = Object.values(unreadByContact).reduce((a, b) => a + (b > 0 ? 1 : 0), 0);
 
   const active = contacts.find((c) => c.id === activeId);
 
@@ -956,6 +1027,92 @@ function InboxPage() {
                 }}
               />
             </div>
+
+            {/* Chips de filtro estilo WhatsApp Web */}
+            <div
+              className="px-3 py-2 flex items-center gap-2 overflow-x-auto"
+              style={{ borderBottom: "1px solid var(--ww-border)" }}
+            >
+              {([
+                { key: "all", label: "Tudo" },
+                { key: "unread", label: "Não lidas", count: unreadTotal },
+                { key: "groups", label: "Grupos" },
+              ] as const).map((chip) => {
+                const active = chipFilter === chip.key;
+                return (
+                  <button
+                    key={chip.key}
+                    onClick={() => setChipFilter(chip.key)}
+                    className={cn(
+                      "shrink-0 h-7 px-3 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5",
+                      active
+                        ? "text-[color:var(--ww-accent)]"
+                        : "text-[color:var(--ww-text-muted)] hover:bg-white/5",
+                    )}
+                    style={
+                      active
+                        ? { backgroundColor: "rgba(37,211,102,0.15)" }
+                        : { backgroundColor: "var(--ww-surface)" }
+                    }
+                  >
+                    {chip.label}
+                    {"count" in chip && (chip as any).count > 0 && (
+                      <span
+                        className="min-w-[16px] h-4 px-1 rounded-full text-[10px] grid place-items-center text-white"
+                        style={{ backgroundColor: "var(--ww-accent)" }}
+                      >
+                        {(chip as any).count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+
+              {/* Chip Etiquetas (dropdown de categorias) */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      "shrink-0 h-7 px-3 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5",
+                      chipCategoryId
+                        ? "text-[color:var(--ww-accent)]"
+                        : "text-[color:var(--ww-text-muted)] hover:bg-white/5",
+                    )}
+                    style={
+                      chipCategoryId
+                        ? { backgroundColor: "rgba(37,211,102,0.15)" }
+                        : { backgroundColor: "var(--ww-surface)" }
+                    }
+                  >
+                    {chipCategoryId
+                      ? (categories.find((c) => c.id === chipCategoryId)?.name ?? "Etiqueta")
+                      : "Etiquetas"}
+                    <ChevronDown className="size-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="max-h-72 overflow-auto">
+                  <DropdownMenuItem onClick={() => setChipCategoryId(null)}>
+                    Todas
+                  </DropdownMenuItem>
+                  {categories.length > 0 && <DropdownMenuSeparator />}
+                  {categories.map((cat) => (
+                    <DropdownMenuItem
+                      key={cat.id}
+                      onClick={() => setChipCategoryId(cat.id)}
+                      className="flex items-center gap-2"
+                    >
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: cat.color }}
+                      />
+                      <span className="truncate">{cat.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+
             <div className="overflow-auto flex-1">
               {loading ? (
                 <div className="p-8 text-center text-[color:var(--ww-text-muted)]">
@@ -969,7 +1126,8 @@ function InboxPage() {
                 filtered.map(({ contact, last }) => {
                   const isActive = contact.id === activeId;
                   const pause = replyPauseByContact[contact.id];
-                  const unread = !!last && !last.fromMe; /* heurística visual: última recebida = badge */
+                  const unreadCount = unreadByContact[contact.id] ?? 0;
+                  const unread = unreadCount > 0;
                   return (
                     <button
                       key={contact.id}
@@ -1059,10 +1217,12 @@ function InboxPage() {
                           </p>
                           {unread && !isActive && (
                             <span
-                              className="shrink-0 size-2.5 rounded-full"
-                              style={{ backgroundColor: "var(--ww-accent)", boxShadow: "0 0 0 2px rgba(16,185,129,0.25)" }}
-                              aria-label="Nova mensagem"
-                            />
+                              className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold grid place-items-center text-white"
+                              style={{ backgroundColor: "var(--ww-accent)" }}
+                              aria-label={`${unreadCount} mensagens não lidas`}
+                            >
+                              {unreadCount > 99 ? "99+" : unreadCount}
+                            </span>
                           )}
                         </div>
                         {pause && (
