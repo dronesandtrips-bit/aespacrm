@@ -1027,6 +1027,92 @@ function InboxPage() {
                 }}
               />
             </div>
+
+            {/* Chips de filtro estilo WhatsApp Web */}
+            <div
+              className="px-3 py-2 flex items-center gap-2 overflow-x-auto"
+              style={{ borderBottom: "1px solid var(--ww-border)" }}
+            >
+              {([
+                { key: "all", label: "Tudo" },
+                { key: "unread", label: "Não lidas", count: unreadTotal },
+                { key: "groups", label: "Grupos" },
+              ] as const).map((chip) => {
+                const active = chipFilter === chip.key;
+                return (
+                  <button
+                    key={chip.key}
+                    onClick={() => setChipFilter(chip.key)}
+                    className={cn(
+                      "shrink-0 h-7 px-3 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5",
+                      active
+                        ? "text-[color:var(--ww-accent)]"
+                        : "text-[color:var(--ww-text-muted)] hover:bg-white/5",
+                    )}
+                    style={
+                      active
+                        ? { backgroundColor: "rgba(37,211,102,0.15)" }
+                        : { backgroundColor: "var(--ww-surface)" }
+                    }
+                  >
+                    {chip.label}
+                    {"count" in chip && (chip as any).count > 0 && (
+                      <span
+                        className="min-w-[16px] h-4 px-1 rounded-full text-[10px] grid place-items-center text-white"
+                        style={{ backgroundColor: "var(--ww-accent)" }}
+                      >
+                        {(chip as any).count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+
+              {/* Chip Etiquetas (dropdown de categorias) */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      "shrink-0 h-7 px-3 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5",
+                      chipCategoryId
+                        ? "text-[color:var(--ww-accent)]"
+                        : "text-[color:var(--ww-text-muted)] hover:bg-white/5",
+                    )}
+                    style={
+                      chipCategoryId
+                        ? { backgroundColor: "rgba(37,211,102,0.15)" }
+                        : { backgroundColor: "var(--ww-surface)" }
+                    }
+                  >
+                    {chipCategoryId
+                      ? (categories.find((c) => c.id === chipCategoryId)?.name ?? "Etiqueta")
+                      : "Etiquetas"}
+                    <ChevronDown className="size-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="max-h-72 overflow-auto">
+                  <DropdownMenuItem onClick={() => setChipCategoryId(null)}>
+                    Todas
+                  </DropdownMenuItem>
+                  {categories.length > 0 && <DropdownMenuSeparator />}
+                  {categories.map((cat) => (
+                    <DropdownMenuItem
+                      key={cat.id}
+                      onClick={() => setChipCategoryId(cat.id)}
+                      className="flex items-center gap-2"
+                    >
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: cat.color }}
+                      />
+                      <span className="truncate">{cat.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+
             <div className="overflow-auto flex-1">
               {loading ? (
                 <div className="p-8 text-center text-[color:var(--ww-text-muted)]">
