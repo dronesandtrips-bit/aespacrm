@@ -196,16 +196,45 @@ function InboxPage() {
     return map;
   }, []);
 
+  // Carrega contagem de não lidas + last_read_at. Tolerante a falhas:
+  // se a coluna ainda não existir (schema cache), devolve maps vazios.
+  const loadUnreadState = useCallback(async () => {
+    const c = await getSupabaseClient();
+    if (!c) return { unread: {} as Record<string, number>, lastRead: {} as Record<string, string | null> };
+    const [{ data: cts, error: ctsErr }, { data: msgs }] = await Promise.all([
+      c.from("crm_contacts").select("id,last_read_at"),
+      c
+        .from("crm_messages")
+        .select("contact_id,at,from_me")
+        .eq("from_me", false)
+        .order("at", { ascending: false })
+        .limit(2000),
+    ]);
+    const lastRead: Record<string, string | null> = {};
+    if (!ctsErr) (cts ?? []).forEach((r: any) => { lastRead[r.id] = r.last_read_at ?? null; });
+    const unread: Record<string, number> = {};
+    (msgs ?? []).forEach((m: any) => {
+      const lr = lastRead[m.contact_id];
+      if (!lr || m.at > lr) unread[m.contact_id] = (unread[m.contact_id] ?? 0) + 1;
+    });
+    return { unread, lastRead };
+  }, []);
+
   const refreshInbox = useCallback(async (options?: { initial?: boolean }) => {
     const [cs, cats] = await Promise.all([
       contactsDb.listAll(),
       categoriesDb.list().catch(() => [] as Category[]),
     ]);
-    const lastMap = await loadLastMessages();
+    const [lastMap, unreadState] = await Promise.all([
+      loadLastMessages(),
+      loadUnreadState().catch(() => ({ unread: {}, lastRead: {} })),
+    ]);
 
     setContacts(cs);
     setCategories(cats);
     setLastByContact(lastMap);
+    setUnreadByContact(unreadState.unread);
+    setLastReadByContact(unreadState.lastRead);
 
     if (options?.initial || !activeIdRef.current) {
       const sorted = cs
@@ -213,7 +242,7 @@ function InboxPage() {
         .sort((a, b) => lastMap[b.id]!.at.localeCompare(lastMap[a.id]!.at));
       setActiveId(sorted[0]?.id ?? cs[0]?.id ?? "");
     }
-  }, [loadLastMessages]);
+  }, [loadLastMessages, loadUnreadState]);
 
   const refreshContacts = async () => {
     try {
