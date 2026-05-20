@@ -167,40 +167,56 @@
    Não afeta o resto do app.
    ========================================================================== */
 .whatsweb-theme {
-  --ww-bg: #0f172a;              /* slate-900 — fundo principal */
-  --ww-sidebar: #1e293b;         /* slate-800 — sidebar conversas */
-  --ww-surface: #111c30;         /* superfícies intermediárias */
-  --ww-surface-2: #182338;       /* hover / cards */
-  --ww-border: #1f2a40;          /* divisores sutis */
-  --ww-border-strong: #273349;
-  --ww-text: #e2e8f0;            /* slate-200 */
-  --ww-text-muted: #94a3b8;      /* slate-400 */
-  --ww-text-dim: #64748b;        /* slate-500 */
-  --ww-accent: #10b981;          /* emerald-500 — badge não lido */
-  --ww-bubble-in: #1e293b;       /* recebida */
-  --ww-bubble-out: #065f46;      /* enviada — emerald-800 */
-  --ww-bubble-out-text: #ecfdf5; /* texto enviadas */
-  --ww-bubble-in-text: #e2e8f0;
-  --ww-shadow-sm: 0 1px 2px rgba(0,0,0,0.25);
-  --ww-shadow-md: 0 4px 14px rgba(0,0,0,0.35);
+  /* Paleta CLARA — espelha o WhatsApp Web oficial */
+  --ww-bg: #efeae2;              /* fundo do chat (bege levíssimo) */
+  --ww-sidebar: #ffffff;         /* sidebar branca */
+  --ww-surface: #f0f2f5;         /* busca / superfícies */
+  --ww-surface-2: #f5f6f6;       /* hover / cards */
+  --ww-border: #e9edef;          /* divisores sutis */
+  --ww-border-strong: #d1d7db;
+  --ww-text: #111b21;            /* texto principal */
+  --ww-text-muted: #667781;      /* secundário */
+  --ww-text-dim: #8696a0;        /* terciário / horários */
+  --ww-accent: #25d366;          /* badge "não lidas" verde WhatsApp */
+  --ww-bubble-in: #ffffff;       /* recebida — branca */
+  --ww-bubble-out: #d9fdd3;      /* enviada — verde-clarinho */
+  --ww-bubble-out-text: #111b21;
+  --ww-bubble-in-text: #111b21;
+  --ww-shadow-sm: 0 1px 0.5px rgba(11,20,26,0.13);
+  --ww-shadow-md: 0 4px 14px rgba(11,20,26,0.10);
 
   background-color: var(--ww-bg);
   color: var(--ww-text);
 }
 
-/* Doodle pattern do WhatsApp — SVG inline com opacity baixa */
+/* Doodle pattern do WhatsApp — versão clara (stroke escuro com opacity baixa) */
 .whatsweb-doodle {
   background-color: var(--ww-bg);
   background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'><g fill='none' stroke='%23ffffff' stroke-width='1.2' opacity='0.06'><circle cx='30' cy='30' r='10'/><circle cx='150' cy='40' r='6'/><circle cx='90' cy='90' r='14'/><circle cx='40' cy='140' r='8'/><circle cx='140' cy='150' r='12'/><path d='M10 80 q20 -20 40 0 t40 0 t40 0 t40 0'/><path d='M0 120 q20 20 40 0 t40 0 t40 0 t40 0'/><rect x='110' y='100' width='18' height='18' rx='3'/><path d='M60 50 l10 10 l-10 10 l-10 -10 z'/></g></svg>");
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'><g fill='none' stroke='%23000000' stroke-width='1.2' opacity='0.05'><circle cx='30' cy='30' r='10'/><circle cx='150' cy='40' r='6'/><circle cx='90' cy='90' r='14'/><circle cx='40' cy='140' r='8'/><circle cx='140' cy='150' r='12'/><path d='M10 80 q20 -20 40 0 t40 0 t40 0 t40 0'/><path d='M0 120 q20 20 40 0 t40 0 t40 0 t40 0'/><rect x='110' y='100' width='18' height='18' rx='3'/><path d='M60 50 l10 10 l-10 10 l-10 -10 z'/></g></svg>");
   background-repeat: repeat;
 }
 
-/* Scrollbar fina para o tema WhatsWeb */
+/* Scrollbar fina para o tema WhatsWeb (light) */
 .whatsweb-theme ::-webkit-scrollbar { width: 6px; height: 6px; }
 .whatsweb-theme ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.12);
   border-radius: 999px;
 }
-.whatsweb-theme ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+.whatsweb-theme ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.22); }
+
+/* Hover/active genéricos usados nos botões/conversas precisam funcionar
+   sobre fundo claro — os utilitários `bg-white/5` e `bg-white/10` ficam
+   invisíveis no tema light. Reaproveitamos os mesmos seletores para
+   trocar por um cinza sutil, sem alterar markup. */
+.whatsweb-theme :where(.hover\:bg-white\/5):hover,
+.whatsweb-theme :where(.hover\:bg-white\/10):hover {
+  background-color: rgba(11,20,26,0.05) !important;
+}
+.whatsweb-theme :where(.bg-white\/\[0\.07\]) {
+  background-color: rgba(11,20,26,0.06) !important;
+}
+.whatsweb-theme :where(.bg-white\/10) {
+  background-color: rgba(11,20,26,0.06) !important;
+}
 
