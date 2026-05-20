@@ -1217,10 +1217,12 @@ function InboxPage() {
                           </p>
                           {unread && !isActive && (
                             <span
-                              className="shrink-0 size-2.5 rounded-full"
-                              style={{ backgroundColor: "var(--ww-accent)", boxShadow: "0 0 0 2px rgba(16,185,129,0.25)" }}
-                              aria-label="Nova mensagem"
-                            />
+                              className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold grid place-items-center text-white"
+                              style={{ backgroundColor: "var(--ww-accent)" }}
+                              aria-label={`${unreadCount} mensagens não lidas`}
+                            >
+                              {unreadCount > 99 ? "99+" : unreadCount}
+                            </span>
                           )}
                         </div>
                         {pause && (
