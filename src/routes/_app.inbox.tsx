@@ -736,9 +736,19 @@ function InboxPage() {
     [contacts, lastByContact],
   );
 
-  const filtered = conversations.filter((x) =>
-    x.contact.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = conversations.filter((x) => {
+    if (!x.contact.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (chipFilter === "unread" && !((unreadByContact[x.contact.id] ?? 0) > 0)) return false;
+    if (chipFilter === "groups" && !x.contact.isGroup) return false;
+    if (chipCategoryId) {
+      const ids = x.contact.categoryIds && x.contact.categoryIds.length
+        ? x.contact.categoryIds
+        : x.contact.categoryId ? [x.contact.categoryId] : [];
+      if (!ids.includes(chipCategoryId)) return false;
+    }
+    return true;
+  });
+  const unreadTotal = Object.values(unreadByContact).reduce((a, b) => a + (b > 0 ? 1 : 0), 0);
 
   const active = contacts.find((c) => c.id === activeId);
 
