@@ -1885,43 +1885,29 @@ function SecureDocument({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
+  const ext = getFileExt(fileName, mime);
+
   if (src) {
     return (
-      <a
-        href={src}
-        target="_blank"
-        rel="noreferrer"
-        download={fileName}
-        className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition"
-      >
-        <FileText className="size-5 shrink-0" />
-        <span className="flex-1 text-xs truncate">{fileName}</span>
-        <Download className="size-4 opacity-60" />
+      <a href={src} target="_blank" rel="noreferrer" download={fileName} className="block">
+        <DocCard fileName={fileName} ext={ext} trailing={<Download className="size-4 opacity-60" />} />
       </a>
     );
   }
   if (error) {
     return (
-      <button
-        type="button"
-        onClick={() => { setSrc(null); load(); }}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 hover:bg-black/20 text-xs"
-      >
-        <FileText className="size-4" />
-        Falha ao carregar documento — tentar novamente
+      <button type="button" onClick={() => { setSrc(null); load(); }} className="block w-full text-left">
+        <DocCard fileName="Falha ao carregar — tentar novamente" ext={ext} />
       </button>
     );
   }
   return (
-    <button
-      type="button"
-      onClick={load}
-      disabled={loading}
-      className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition text-left w-full"
-    >
-      {loading ? <Loader2 className="size-4 animate-spin shrink-0" /> : <FileText className="size-5 shrink-0" />}
-      <span className="flex-1 text-xs truncate">{fileName}</span>
-      <Download className="size-4 opacity-60" />
+    <button type="button" onClick={load} disabled={loading} className="block w-full text-left">
+      <DocCard
+        fileName={fileName}
+        ext={ext}
+        trailing={loading ? <Loader2 className="size-4 animate-spin opacity-60" /> : <Download className="size-4 opacity-60" />}
+      />
     </button>
   );
 }
