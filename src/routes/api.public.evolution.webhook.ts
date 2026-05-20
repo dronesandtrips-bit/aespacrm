@@ -70,7 +70,22 @@ function detectMessageType(msg: any): {
   media_mime: string | null;
   media_caption: string | null;
 } {
-  const m = msg?.message ?? {};
+  // Baileys envelopes: alguns tipos vêm wrappeados (ex.: documentWithCaptionMessage,
+  // ephemeralMessage, viewOnceMessage, viewOnceMessageV2). Desempacotamos antes.
+  let m = msg?.message ?? {};
+  for (let i = 0; i < 4; i++) {
+    const inner =
+      m?.documentWithCaptionMessage?.message ??
+      m?.ephemeralMessage?.message ??
+      m?.viewOnceMessage?.message ??
+      m?.viewOnceMessageV2?.message ??
+      m?.viewOnceMessageV2Extension?.message ??
+      m?.editedMessage?.message ??
+      null;
+    if (!inner) break;
+    m = inner;
+  }
+
   if (m.conversation) {
     return { type: "text", body: m.conversation, media_url: null, media_mime: null, media_caption: null };
   }
