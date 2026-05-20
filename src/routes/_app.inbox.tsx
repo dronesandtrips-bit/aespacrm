@@ -1778,6 +1778,67 @@ function SecureAudio({ messageId }: { messageId: string }) {
   );
 }
 
+function getFileExt(fileName: string, mime: string | null): string {
+  const fromName = fileName.includes(".") ? fileName.split(".").pop()!.toLowerCase() : "";
+  if (fromName && fromName.length <= 5) return fromName.toUpperCase();
+  if (mime) {
+    const m = mime.toLowerCase();
+    if (m.includes("pdf")) return "PDF";
+    if (m.includes("word") || m.includes("msword")) return "DOC";
+    if (m.includes("sheet") || m.includes("excel")) return "XLS";
+    if (m.includes("presentation") || m.includes("powerpoint")) return "PPT";
+    if (m.includes("zip")) return "ZIP";
+    if (m.includes("text/")) return "TXT";
+  }
+  return "FILE";
+}
+
+function FileBadge({ ext }: { ext: string }) {
+  const colorMap: Record<string, string> = {
+    PDF: "bg-[#ED4136]",
+    DOC: "bg-[#2A5699]",
+    DOCX: "bg-[#2A5699]",
+    XLS: "bg-[#1F7244]",
+    XLSX: "bg-[#1F7244]",
+    PPT: "bg-[#D24726]",
+    PPTX: "bg-[#D24726]",
+    ZIP: "bg-[#6B7280]",
+    TXT: "bg-[#6B7280]",
+    FILE: "bg-[#6B7280]",
+  };
+  const bg = colorMap[ext] ?? "bg-[#6B7280]";
+  return (
+    <div
+      className={`relative shrink-0 w-10 h-12 rounded-md ${bg} flex items-end justify-center pb-1 shadow-sm`}
+      aria-hidden
+    >
+      <div className="absolute top-0 right-0 w-3 h-3 bg-white/30 rounded-bl-md" />
+      <span className="text-[10px] font-bold text-white tracking-tight leading-none">{ext}</span>
+    </div>
+  );
+}
+
+function DocCard({
+  fileName,
+  ext,
+  trailing,
+}: {
+  fileName: string;
+  ext: string;
+  trailing?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 p-2 pr-3 rounded-lg bg-black/5 hover:bg-black/10 transition min-w-[240px]">
+      <FileBadge ext={ext} />
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-medium truncate leading-tight">{fileName}</div>
+        <div className="text-[11px] opacity-60 mt-0.5">{ext}</div>
+      </div>
+      {trailing}
+    </div>
+  );
+}
+
 function SecureDocument({
   messageId,
   fileName,
@@ -1824,43 +1885,29 @@ function SecureDocument({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
+  const ext = getFileExt(fileName, mime);
+
   if (src) {
     return (
-      <a
-        href={src}
-        target="_blank"
-        rel="noreferrer"
-        download={fileName}
-        className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition"
-      >
-        <FileText className="size-5 shrink-0" />
-        <span className="flex-1 text-xs truncate">{fileName}</span>
-        <Download className="size-4 opacity-60" />
+      <a href={src} target="_blank" rel="noreferrer" download={fileName} className="block">
+        <DocCard fileName={fileName} ext={ext} trailing={<Download className="size-4 opacity-60" />} />
       </a>
     );
   }
   if (error) {
     return (
-      <button
-        type="button"
-        onClick={() => { setSrc(null); load(); }}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 hover:bg-black/20 text-xs"
-      >
-        <FileText className="size-4" />
-        Falha ao carregar documento — tentar novamente
+      <button type="button" onClick={() => { setSrc(null); load(); }} className="block w-full text-left">
+        <DocCard fileName="Falha ao carregar — tentar novamente" ext={ext} />
       </button>
     );
   }
   return (
-    <button
-      type="button"
-      onClick={load}
-      disabled={loading}
-      className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition text-left w-full"
-    >
-      {loading ? <Loader2 className="size-4 animate-spin shrink-0" /> : <FileText className="size-5 shrink-0" />}
-      <span className="flex-1 text-xs truncate">{fileName}</span>
-      <Download className="size-4 opacity-60" />
+    <button type="button" onClick={load} disabled={loading} className="block w-full text-left">
+      <DocCard
+        fileName={fileName}
+        ext={ext}
+        trailing={loading ? <Loader2 className="size-4 animate-spin opacity-60" /> : <Download className="size-4 opacity-60" />}
+      />
     </button>
   );
 }
@@ -1932,26 +1979,15 @@ function MessageContent({
     if (m.messageId) {
       return <SecureDocument messageId={m.messageId} fileName={fileName} mime={m.mediaMime ?? null} />;
     }
+    const extFb = getFileExt(fileName, m.mediaMime ?? null);
     if (m.mediaUrl) {
       return (
-        <a
-          href={m.mediaUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition"
-        >
-          <FileText className="size-5 shrink-0" />
-          <span className="flex-1 text-xs truncate">{fileName}</span>
-          <Download className="size-4 opacity-60" />
+        <a href={m.mediaUrl} target="_blank" rel="noreferrer" className="block">
+          <DocCard fileName={fileName} ext={extFb} trailing={<Download className="size-4 opacity-60" />} />
         </a>
       );
     }
-    return (
-      <p className="italic opacity-70 flex items-center gap-1.5">
-        <FileText className="size-3.5" />
-        Documento indisponível
-      </p>
-    );
+    return <DocCard fileName="Documento indisponível" ext={extFb} />;
   }
 
   if (type === "sticker" && m.messageId) {
