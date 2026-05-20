@@ -1778,6 +1778,67 @@ function SecureAudio({ messageId }: { messageId: string }) {
   );
 }
 
+function getFileExt(fileName: string, mime: string | null): string {
+  const fromName = fileName.includes(".") ? fileName.split(".").pop()!.toLowerCase() : "";
+  if (fromName && fromName.length <= 5) return fromName.toUpperCase();
+  if (mime) {
+    const m = mime.toLowerCase();
+    if (m.includes("pdf")) return "PDF";
+    if (m.includes("word") || m.includes("msword")) return "DOC";
+    if (m.includes("sheet") || m.includes("excel")) return "XLS";
+    if (m.includes("presentation") || m.includes("powerpoint")) return "PPT";
+    if (m.includes("zip")) return "ZIP";
+    if (m.includes("text/")) return "TXT";
+  }
+  return "FILE";
+}
+
+function FileBadge({ ext }: { ext: string }) {
+  const colorMap: Record<string, string> = {
+    PDF: "bg-[#ED4136]",
+    DOC: "bg-[#2A5699]",
+    DOCX: "bg-[#2A5699]",
+    XLS: "bg-[#1F7244]",
+    XLSX: "bg-[#1F7244]",
+    PPT: "bg-[#D24726]",
+    PPTX: "bg-[#D24726]",
+    ZIP: "bg-[#6B7280]",
+    TXT: "bg-[#6B7280]",
+    FILE: "bg-[#6B7280]",
+  };
+  const bg = colorMap[ext] ?? "bg-[#6B7280]";
+  return (
+    <div
+      className={`relative shrink-0 w-10 h-12 rounded-md ${bg} flex items-end justify-center pb-1 shadow-sm`}
+      aria-hidden
+    >
+      <div className="absolute top-0 right-0 w-3 h-3 bg-white/30 rounded-bl-md" />
+      <span className="text-[10px] font-bold text-white tracking-tight leading-none">{ext}</span>
+    </div>
+  );
+}
+
+function DocCard({
+  fileName,
+  ext,
+  trailing,
+}: {
+  fileName: string;
+  ext: string;
+  trailing?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 p-2 pr-3 rounded-lg bg-black/5 hover:bg-black/10 transition min-w-[240px]">
+      <FileBadge ext={ext} />
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] font-medium truncate leading-tight">{fileName}</div>
+        <div className="text-[11px] opacity-60 mt-0.5">{ext}</div>
+      </div>
+      {trailing}
+    </div>
+  );
+}
+
 function SecureDocument({
   messageId,
   fileName,
