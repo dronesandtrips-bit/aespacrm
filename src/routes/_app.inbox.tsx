@@ -1126,7 +1126,8 @@ function InboxPage() {
                 filtered.map(({ contact, last }) => {
                   const isActive = contact.id === activeId;
                   const pause = replyPauseByContact[contact.id];
-                  const unread = !!last && !last.fromMe; /* heurística visual: última recebida = badge */
+                  const unreadCount = unreadByContact[contact.id] ?? 0;
+                  const unread = unreadCount > 0;
                   return (
                     <button
                       key={contact.id}
