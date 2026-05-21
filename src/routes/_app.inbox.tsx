@@ -2147,7 +2147,7 @@ function MessageContent({
         </a>
       );
     }
-    return <DocCard fileName="Documento indisponível" ext={extFb} />;
+    return <DocCard fileName={fileName} ext={extFb} trailing={<Loader2 className="size-4 animate-spin opacity-60" />} />;
   }
 
   if (type === "sticker" && m.messageId) {
