@@ -127,6 +127,7 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
           };
           const rows: Row[] = [];
           const seenPhones = new Set<string>();
+          const seenJids = new Set<string>();
           let skipped = 0;
 
           for (const c of evList) {
