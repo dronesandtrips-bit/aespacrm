@@ -127,6 +127,7 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
           };
           const rows: Row[] = [];
           const seenPhones = new Set<string>();
+          const seenJids = new Set<string>();
           let skipped = 0;
 
           for (const c of evList) {
@@ -156,11 +157,12 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
               skipped++;
               continue;
             }
-            if (seenPhones.has(phone)) {
+            if (seenPhones.has(phone) || seenJids.has(jid)) {
               skipped++;
               continue;
             }
             seenPhones.add(phone);
+            seenJids.add(jid);
             const name =
               (c.pushName && c.pushName.trim()) ||
               (c.name && c.name.trim()) ||
@@ -225,7 +227,30 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
             }
           }
 
-          const rowsToInsert = rows.filter((r) => !existingPhones.has(r.phone));
+          // 3.0) Pré-filtra também por wa_jid já existente (índice único
+          // uq_crm_contacts_user_wajid). Sem isso, contatos cujo número mudou
+          // de formato mas mantém o mesmo JID quebram com 23505.
+          const existingJids = new Set<string>();
+          const jidList = rows.map((r) => r.wa_jid);
+          for (let i = 0; i < jidList.length; i += BATCH_SIZE) {
+            const slice = jidList.slice(i, i + BATCH_SIZE);
+            const { data: exJ, error: exJErr } = await sbAdmin
+              .from("crm_contacts")
+              .select("wa_jid")
+              .eq("user_id", userId)
+              .in("wa_jid", slice);
+            if (exJErr) {
+              if (errorSamples.length < 3) errorSamples.push(exJErr.message);
+              continue;
+            }
+            for (const it of exJ ?? []) {
+              if (it.wa_jid) existingJids.add(it.wa_jid);
+            }
+          }
+
+          const rowsToInsert = rows.filter(
+            (r) => !existingPhones.has(r.phone) && !existingJids.has(r.wa_jid),
+          );
           conflicts = rows.length - rowsToInsert.length;
 
           // 3.1) Backfill em contatos JÁ existentes:
