@@ -240,7 +240,11 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
             if (!existing) continue;
 
             const patch: Record<string, string> = {};
-            if (!existing.avatar_url && r.avatar_url) {
+            // Sempre refresca avatar_url quando a Evolution devolveu uma URL
+            // nova. As URLs de foto do WhatsApp (pps.whatsapp.net) são
+            // assinadas e expiram em poucos dias — se a gente só preencher
+            // quando está null, as fotos antigas viram 403/404 e somem.
+            if (r.avatar_url && r.avatar_url !== existing.avatar_url) {
               patch.avatar_url = r.avatar_url;
             }
             const currentName = (existing.name ?? "").trim();
