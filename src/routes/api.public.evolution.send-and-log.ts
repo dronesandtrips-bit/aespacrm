@@ -115,11 +115,37 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
         const quoted = parsed.quotedMessageId
           ? await buildQuoted(sbAdmin, userId, parsed.quotedMessageId, fallbackRemoteJid)
           : null;
-        const evRes = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
-          method: "POST",
-          headers: { apikey: apiKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ number: sendNumber, text: parsed.text, ...(quoted ? { quoted } : {}) }),
-        });
+        // Timeout explícito — sem isso, se o VPS travar, o Worker é abortado
+        // pelo CF (~30s) e o browser mostra "Failed to fetch" sem corpo de erro.
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20_000);
+        let evRes: Response;
+        try {
+          evRes = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
+            method: "POST",
+            headers: { apikey: apiKey, "Content-Type": "application/json" },
+            body: JSON.stringify({ number: sendNumber, text: parsed.text, ...(quoted ? { quoted } : {}) }),
+            signal: controller.signal,
+          });
+        } catch (fetchErr: any) {
+          clearTimeout(timeoutId);
+          const isAbort = fetchErr?.name === "AbortError";
+          console.error("[send-and-log] evolution fetch failed", {
+            name: fetchErr?.name ?? null,
+            message: fetchErr?.message ?? String(fetchErr),
+            isAbort,
+          });
+          return jsonResponse(
+            {
+              ok: false,
+              error: isAbort
+                ? "Evolution API não respondeu a tempo (timeout 20s). Verifique se o serviço está no ar no VPS."
+                : `Falha de rede ao contatar Evolution: ${fetchErr?.message ?? String(fetchErr)}`,
+            },
+            504,
+          );
+        }
+        clearTimeout(timeoutId);
         const evText = await evRes.text();
         let evData: any = evText;
         try { evData = JSON.parse(evText); } catch {}
