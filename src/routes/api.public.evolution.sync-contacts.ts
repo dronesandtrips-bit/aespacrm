@@ -157,11 +157,12 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
               skipped++;
               continue;
             }
-            if (seenPhones.has(phone)) {
+            if (seenPhones.has(phone) || seenJids.has(jid)) {
               skipped++;
               continue;
             }
             seenPhones.add(phone);
+            seenJids.add(jid);
             const name =
               (c.pushName && c.pushName.trim()) ||
               (c.name && c.name.trim()) ||
