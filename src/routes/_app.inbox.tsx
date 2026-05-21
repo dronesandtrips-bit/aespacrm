@@ -819,9 +819,22 @@ function InboxPage() {
           raw || `HTTP ${res.status}`;
         throw new Error(errMsg);
       }
-      const msg: ChatMessage = data.message;
-      setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
-      setLastByContact((prev) => ({ ...prev, [activeId]: msg }));
+      const msg: ChatMessage | undefined = data.message ?? (data.pending ? {
+        id: `pending-${Date.now()}`,
+        contactId: activeId,
+        body: mediatype === "document" ? file.name : (caption ?? (isImage ? "[imagem]" : "[documento]")),
+        fromMe: true,
+        at: new Date().toISOString(),
+        type: mediatype,
+        mediaUrl: null,
+        mediaMime: mime,
+        mediaCaption: caption ?? null,
+        status: "pending",
+      } as ChatMessage : undefined);
+      if (msg) {
+        setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
+        setLastByContact((prev) => ({ ...prev, [activeId]: msg }));
+      }
       if (caption) setDraft("");
       setReplyTo(null);
       toast.success(isImage ? "Imagem enviada" : "Documento enviado");
@@ -2147,7 +2160,7 @@ function MessageContent({
         </a>
       );
     }
-    return <DocCard fileName="Documento indisponível" ext={extFb} />;
+    return <DocCard fileName={fileName} ext={extFb} trailing={<Loader2 className="size-4 animate-spin opacity-60" />} />;
   }
 
   if (type === "sticker" && m.messageId) {
