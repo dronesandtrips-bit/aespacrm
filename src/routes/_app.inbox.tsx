@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, BellOff, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Reply, Copy, MapPin } from "lucide-react";
+import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, BellOff, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Reply, Copy, MapPin, User } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
 import { activateNotifications, isSoundEnabled, notifyIncomingMessage, setBrowserNotificationsEnabled, setSoundEnabled } from "@/lib/notification-sound";
@@ -2212,6 +2212,26 @@ function MessageContent({
     );
   }
 
+  if (type === "contact") {
+    return (
+      <div className="flex items-start gap-2 p-2 rounded-lg bg-black/10 min-w-[220px]">
+        <User className="size-5 shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium break-words">{m.body || "Contato compartilhado"}</p>
+          <p className="text-[10px] opacity-70">Contato (vCard)</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "unknown") {
+    return (
+      <p className="italic opacity-70 text-xs">
+        {m.body || "[mensagem não suportada]"}
+      </p>
+    );
+  }
+
   return <p className="whitespace-pre-wrap break-words">{m.body}</p>;
 }
 
@@ -2483,6 +2503,8 @@ function replyPreviewText(m: ChatMessage): string {
   if (t === "video") return m.mediaCaption ? `🎬 ${m.mediaCaption}` : "🎬 Vídeo";
   if (t === "document") return `📄 ${m.mediaCaption ?? m.body ?? "Documento"}`;
   if (t === "location") return `📍 ${m.mediaCaption ?? "Localização"}`;
+  if (t === "contact") return `👤 ${m.body ?? "Contato"}`;
+  if (t === "unknown") return m.body ?? "[mensagem não suportada]";
   return m.body ?? "";
 }
 

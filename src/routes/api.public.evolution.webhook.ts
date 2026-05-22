@@ -131,22 +131,50 @@ function detectMessageType(msg: any): {
   if (m.stickerMessage) {
     return { type: "sticker", body: "[sticker]", media_url: m.stickerMessage.url ?? null, media_mime: m.stickerMessage.mimetype ?? null, media_caption: null };
   }
-  if (m.locationMessage) {
-    const lat = m.locationMessage.degreesLatitude ?? m.locationMessage.latitude ?? null;
-    const lng = m.locationMessage.degreesLongitude ?? m.locationMessage.longitude ?? null;
-    const name = (m.locationMessage.name ?? "").toString().trim();
-    const address = (m.locationMessage.address ?? "").toString().trim();
+  if (m.locationMessage || m.liveLocationMessage) {
+    const loc = m.locationMessage ?? m.liveLocationMessage;
+    const lat = loc.degreesLatitude ?? loc.latitude ?? null;
+    const lng = loc.degreesLongitude ?? loc.longitude ?? null;
+    const name = (loc.name ?? "").toString().trim();
+    const address = (loc.address ?? "").toString().trim();
+    const isLive = !!m.liveLocationMessage;
     const mapsUrl =
       lat != null && lng != null
         ? `https://www.google.com/maps?q=${lat},${lng}`
         : null;
-    const label = [name, address].filter(Boolean).join(" — ");
+    const label = [isLive ? "Localização em tempo real" : "", name, address].filter(Boolean).join(" — ");
     return {
       type: "location",
-      body: label || "[localização]",
+      body: label || (isLive ? "[localização ao vivo]" : "[localização]"),
       media_url: mapsUrl,
       media_mime: lat != null && lng != null ? `geo:${lat},${lng}` : null,
       media_caption: label || null,
+    };
+  }
+  if (m.contactMessage) {
+    const displayName = (m.contactMessage.displayName ?? "").toString().trim();
+    const vcard = (m.contactMessage.vcard ?? "").toString();
+    const telMatch = vcard.match(/TEL[^:]*:([+\d\s()-]+)/i);
+    const phone = telMatch ? telMatch[1].trim() : "";
+    const label = [displayName, phone].filter(Boolean).join(" — ") || "Contato compartilhado";
+    return {
+      type: "contact",
+      body: label,
+      media_url: null,
+      media_mime: "text/vcard",
+      media_caption: vcard || label,
+    };
+  }
+  if (m.contactsArrayMessage) {
+    const arr = Array.isArray(m.contactsArrayMessage.contacts) ? m.contactsArrayMessage.contacts : [];
+    const names = arr.map((c: any) => (c?.displayName ?? "").toString().trim()).filter(Boolean);
+    const label = names.length ? `Contatos: ${names.join(", ")}` : "Contatos compartilhados";
+    return {
+      type: "contact",
+      body: label,
+      media_url: null,
+      media_mime: "text/vcard",
+      media_caption: JSON.stringify(arr).slice(0, 4000),
     };
   }
   if (m.reactionMessage) {
