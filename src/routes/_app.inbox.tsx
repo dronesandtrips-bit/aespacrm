@@ -99,6 +99,7 @@ function InboxPage() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [attaching, setAttaching] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<{ file: File; previewUrl: string | null } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef("");
@@ -852,6 +853,25 @@ function InboxPage() {
     await uploadFile(file);
   };
 
+  const stageAttachment = (file: File) => {
+    if (pendingAttachment?.previewUrl) URL.revokeObjectURL(pendingAttachment.previewUrl);
+    const isImage = (file.type || "").startsWith("image/");
+    const previewUrl = isImage ? URL.createObjectURL(file) : null;
+    setPendingAttachment({ file, previewUrl });
+  };
+
+  const clearPendingAttachment = () => {
+    if (pendingAttachment?.previewUrl) URL.revokeObjectURL(pendingAttachment.previewUrl);
+    setPendingAttachment(null);
+  };
+
+  const sendPendingAttachment = async () => {
+    if (!pendingAttachment) return;
+    const file = pendingAttachment.file;
+    clearPendingAttachment();
+    await uploadFile(file);
+  };
+
   const handlePasteIntoComposer = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     if (!activeId || attaching || sending) return;
     const items = e.clipboardData?.items;
@@ -862,7 +882,7 @@ function InboxPage() {
         const file = it.getAsFile();
         if (file) {
           e.preventDefault();
-          void uploadFile(file);
+          stageAttachment(file);
           return;
         }
       }
@@ -1568,6 +1588,40 @@ function InboxPage() {
                     </button>
                   </div>
                 )}
+                {pendingAttachment && (
+                  <div
+                    className="flex items-center gap-3 mb-2 rounded-md p-2"
+                    style={{ backgroundColor: "var(--ww-surface)" }}
+                  >
+                    {pendingAttachment.previewUrl ? (
+                      <img
+                        src={pendingAttachment.previewUrl}
+                        alt="prévia"
+                        className="size-16 rounded object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="size-16 rounded bg-black/20 grid place-items-center shrink-0">
+                        <FileText className="size-6 text-[color:var(--ww-text-muted)]" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[color:var(--ww-text)] truncate">
+                        {pendingAttachment.file.name || "imagem-colada.png"}
+                      </p>
+                      <p className="text-[11px] text-[color:var(--ww-text-muted)]">
+                        {(pendingAttachment.file.size / 1024).toFixed(0)} KB — pressione Enter para enviar
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearPendingAttachment}
+                      className="px-2 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)]"
+                      aria-label="Cancelar anexo"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                )}
                 <div
                   className="flex items-center gap-2 rounded-full px-2 py-1"
                   style={{ backgroundColor: "var(--ww-surface)" }}
@@ -1605,7 +1659,9 @@ function InboxPage() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        if (!sending) handleSend();
+                        if (sending || attaching) return;
+                        if (pendingAttachment) void sendPendingAttachment();
+                        else handleSend();
                       }
                     }}
                     onPaste={handlePasteIntoComposer}
@@ -1614,10 +1670,14 @@ function InboxPage() {
                     rows={1}
                     className="flex-1 border-0 bg-transparent shadow-none min-h-10 max-h-40 px-1 py-2 text-sm placeholder:text-[color:var(--ww-text-dim)] focus-visible:ring-0 text-[color:var(--ww-text)] resize-none"
                   />
-                  {draft.trim() ? (
+                  {(draft.trim() || pendingAttachment) ? (
                     <Button
-                      onClick={handleSend}
-                      disabled={sending}
+                      onClick={() => {
+                        if (sending || attaching) return;
+                        if (pendingAttachment) void sendPendingAttachment();
+                        else handleSend();
+                      }}
+                      disabled={sending || attaching}
                       className="size-10 rounded-full p-0 shrink-0 text-white border-0"
                       style={{
                         background: "linear-gradient(135deg,#10b981,#059669)",
@@ -1625,7 +1685,7 @@ function InboxPage() {
                       }}
                       aria-label="Enviar"
                     >
-                      {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                      {(sending || attaching) ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                     </Button>
                   ) : (
                     <Button
