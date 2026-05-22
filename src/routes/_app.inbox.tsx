@@ -1659,7 +1659,9 @@ function InboxPage() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        if (!sending) handleSend();
+                        if (sending || attaching) return;
+                        if (pendingAttachment) void sendPendingAttachment();
+                        else handleSend();
                       }
                     }}
                     onPaste={handlePasteIntoComposer}
@@ -1668,10 +1670,14 @@ function InboxPage() {
                     rows={1}
                     className="flex-1 border-0 bg-transparent shadow-none min-h-10 max-h-40 px-1 py-2 text-sm placeholder:text-[color:var(--ww-text-dim)] focus-visible:ring-0 text-[color:var(--ww-text)] resize-none"
                   />
-                  {draft.trim() ? (
+                  {(draft.trim() || pendingAttachment) ? (
                     <Button
-                      onClick={handleSend}
-                      disabled={sending}
+                      onClick={() => {
+                        if (sending || attaching) return;
+                        if (pendingAttachment) void sendPendingAttachment();
+                        else handleSend();
+                      }}
+                      disabled={sending || attaching}
                       className="size-10 rounded-full p-0 shrink-0 text-white border-0"
                       style={{
                         background: "linear-gradient(135deg,#10b981,#059669)",
@@ -1679,7 +1685,7 @@ function InboxPage() {
                       }}
                       aria-label="Enviar"
                     >
-                      {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                      {(sending || attaching) ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                     </Button>
                   ) : (
                     <Button
