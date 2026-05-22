@@ -1588,7 +1588,41 @@ function InboxPage() {
                     </button>
                   </div>
                 )}
-                <div
+                {pendingAttachment && (
+                  <div
+                    className="flex items-center gap-3 mb-2 rounded-md p-2"
+                    style={{ backgroundColor: "var(--ww-surface)" }}
+                  >
+                    {pendingAttachment.previewUrl ? (
+                      <img
+                        src={pendingAttachment.previewUrl}
+                        alt="prévia"
+                        className="size-16 rounded object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="size-16 rounded bg-black/20 grid place-items-center shrink-0">
+                        <FileText className="size-6 text-[color:var(--ww-text-muted)]" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[color:var(--ww-text)] truncate">
+                        {pendingAttachment.file.name || "imagem-colada.png"}
+                      </p>
+                      <p className="text-[11px] text-[color:var(--ww-text-muted)]">
+                        {(pendingAttachment.file.size / 1024).toFixed(0)} KB — pressione Enter para enviar
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearPendingAttachment}
+                      className="px-2 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)]"
+                      aria-label="Cancelar anexo"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                )}
+
                   className="flex items-center gap-2 rounded-full px-2 py-1"
                   style={{ backgroundColor: "var(--ww-surface)" }}
                 >
