@@ -2213,13 +2213,38 @@ function MessageContent({
   }
 
   if (type === "contact") {
-    return (
-      <div className="flex items-start gap-2 p-2 rounded-lg bg-black/10 min-w-[220px]">
+    const label = m.body || "Contato compartilhado";
+    const vcard = m.mediaCaption ?? "";
+    const telFromVcard = vcard.match(/TEL[^:]*:([+\d\s()-]+)/i)?.[1];
+    const telFromBody = label.match(/([+\d][\d\s()-]{7,})/)?.[1];
+    const rawPhone = (telFromVcard ?? telFromBody ?? "").replace(/\D/g, "");
+    const waUrl = rawPhone ? `https://wa.me/${rawPhone}` : null;
+    const inner = (
+      <>
         <User className="size-5 shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium break-words">{m.body || "Contato compartilhado"}</p>
-          <p className="text-[10px] opacity-70">Contato (vCard)</p>
+          <p className="text-xs font-medium break-words">{label}</p>
+          <p className="text-[10px] opacity-70">
+            {waUrl ? "Abrir no WhatsApp" : "Contato (vCard)"}
+          </p>
         </div>
+      </>
+    );
+    if (waUrl) {
+      return (
+        <a
+          href={waUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-start gap-2 p-2 rounded-lg bg-black/10 hover:bg-black/20 transition min-w-[220px]"
+        >
+          {inner}
+        </a>
+      );
+    }
+    return (
+      <div className="flex items-start gap-2 p-2 rounded-lg bg-black/10 min-w-[220px]">
+        {inner}
       </div>
     );
   }
