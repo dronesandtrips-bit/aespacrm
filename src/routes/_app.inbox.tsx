@@ -2503,6 +2503,8 @@ function replyPreviewText(m: ChatMessage): string {
   if (t === "video") return m.mediaCaption ? `🎬 ${m.mediaCaption}` : "🎬 Vídeo";
   if (t === "document") return `📄 ${m.mediaCaption ?? m.body ?? "Documento"}`;
   if (t === "location") return `📍 ${m.mediaCaption ?? "Localização"}`;
+  if (t === "contact") return `👤 ${m.body ?? "Contato"}`;
+  if (t === "unknown") return m.body ?? "[mensagem não suportada]";
   return m.body ?? "";
 }
 
