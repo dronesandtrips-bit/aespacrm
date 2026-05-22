@@ -853,6 +853,25 @@ function InboxPage() {
     await uploadFile(file);
   };
 
+  const stageAttachment = (file: File) => {
+    if (pendingAttachment?.previewUrl) URL.revokeObjectURL(pendingAttachment.previewUrl);
+    const isImage = (file.type || "").startsWith("image/");
+    const previewUrl = isImage ? URL.createObjectURL(file) : null;
+    setPendingAttachment({ file, previewUrl });
+  };
+
+  const clearPendingAttachment = () => {
+    if (pendingAttachment?.previewUrl) URL.revokeObjectURL(pendingAttachment.previewUrl);
+    setPendingAttachment(null);
+  };
+
+  const sendPendingAttachment = async () => {
+    if (!pendingAttachment) return;
+    const file = pendingAttachment.file;
+    clearPendingAttachment();
+    await uploadFile(file);
+  };
+
   const handlePasteIntoComposer = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     if (!activeId || attaching || sending) return;
     const items = e.clipboardData?.items;
@@ -863,7 +882,7 @@ function InboxPage() {
         const file = it.getAsFile();
         if (file) {
           e.preventDefault();
-          void uploadFile(file);
+          stageAttachment(file);
           return;
         }
       }
