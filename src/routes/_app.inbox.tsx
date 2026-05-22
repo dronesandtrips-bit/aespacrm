@@ -1622,7 +1622,7 @@ function InboxPage() {
                     </button>
                   </div>
                 )}
-
+                <div
                   className="flex items-center gap-2 rounded-full px-2 py-1"
                   style={{ backgroundColor: "var(--ww-surface)" }}
                 >
