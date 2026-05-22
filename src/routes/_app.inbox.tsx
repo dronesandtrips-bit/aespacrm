@@ -2212,6 +2212,26 @@ function MessageContent({
     );
   }
 
+  if (type === "contact") {
+    return (
+      <div className="flex items-start gap-2 p-2 rounded-lg bg-black/10 min-w-[220px]">
+        <User className="size-5 shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium break-words">{m.body || "Contato compartilhado"}</p>
+          <p className="text-[10px] opacity-70">Contato (vCard)</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "unknown") {
+    return (
+      <p className="italic opacity-70 text-xs">
+        {m.body || "[mensagem não suportada]"}
+      </p>
+    );
+  }
+
   return <p className="whitespace-pre-wrap break-words">{m.body}</p>;
 }
 
