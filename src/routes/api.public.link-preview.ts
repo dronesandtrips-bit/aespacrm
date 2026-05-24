@@ -150,17 +150,24 @@ export const Route = createFileRoute("/api/public/link-preview")({
             }
           }
 
-          return jsonResponse(
-            {
+          return new Response(
+            JSON.stringify({
               url: parsed.toString(),
               title: title ? title.slice(0, 300) : null,
               description: description ? description.slice(0, 500) : null,
               image,
               siteName: siteName ? siteName.slice(0, 120) : null,
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                ...PUBLIC_CORS,
+                "Cache-Control": "public, max-age=86400",
+              },
             },
-            200,
-            { "Cache-Control": "public, max-age=86400" },
           );
+
         } catch (err: any) {
           return jsonResponse(
             { error: err?.message ?? "internal error" },
