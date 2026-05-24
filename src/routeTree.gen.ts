@@ -30,6 +30,7 @@ import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppContatosRouteImport } from './routes/_app.contatos'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
 import { Route as WidgetFormIdRouteImport } from './routes/widget.form.$id'
+import { Route as ApiPublicLinkPreviewRouteImport } from './routes/api.public.link-preview'
 import { Route as ApiPublicWidgetSubmitRouteImport } from './routes/api.public.widget.submit'
 import { Route as ApiPublicSequencesTestSendRouteImport } from './routes/api.public.sequences.test-send'
 import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.sequences.sent'
@@ -175,6 +176,11 @@ const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
 const WidgetFormIdRoute = WidgetFormIdRouteImport.update({
   id: '/widget/form/$id',
   path: '/widget/form/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicLinkPreviewRoute = ApiPublicLinkPreviewRouteImport.update({
+  id: '/api/public/link-preview',
+  path: '/api/public/link-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicWidgetSubmitRoute = ApiPublicWidgetSubmitRouteImport.update({
@@ -436,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AppWhatsappRoute
   '/d/$code': typeof DCodeRoute
   '/u/$token': typeof UTokenRoute
+  '/api/public/link-preview': typeof ApiPublicLinkPreviewRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/contact-enrich-failure': typeof ApiPublicAiContactEnrichFailureRoute
@@ -500,6 +507,7 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AppWhatsappRoute
   '/d/$code': typeof DCodeRoute
   '/u/$token': typeof UTokenRoute
+  '/api/public/link-preview': typeof ApiPublicLinkPreviewRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/contact-enrich-failure': typeof ApiPublicAiContactEnrichFailureRoute
@@ -566,6 +574,7 @@ export interface FileRoutesById {
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/d/$code': typeof DCodeRoute
   '/u/$token': typeof UTokenRoute
+  '/api/public/link-preview': typeof ApiPublicLinkPreviewRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
   '/api/public/ai/contact-enrich': typeof ApiPublicAiContactEnrichRoute
   '/api/public/ai/contact-enrich-failure': typeof ApiPublicAiContactEnrichFailureRoute
@@ -632,6 +641,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/d/$code'
     | '/u/$token'
+    | '/api/public/link-preview'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/contact-enrich-failure'
@@ -696,6 +706,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/d/$code'
     | '/u/$token'
+    | '/api/public/link-preview'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/contact-enrich-failure'
@@ -761,6 +772,7 @@ export interface FileRouteTypes {
     | '/_app/whatsapp'
     | '/d/$code'
     | '/u/$token'
+    | '/api/public/link-preview'
     | '/widget/form/$id'
     | '/api/public/ai/contact-enrich'
     | '/api/public/ai/contact-enrich-failure'
@@ -814,6 +826,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   DCodeRoute: typeof DCodeRoute
   UTokenRoute: typeof UTokenRoute
+  ApiPublicLinkPreviewRoute: typeof ApiPublicLinkPreviewRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
   ApiPublicAiContactEnrichRoute: typeof ApiPublicAiContactEnrichRoute
   ApiPublicAiContactEnrichFailureRoute: typeof ApiPublicAiContactEnrichFailureRoute
@@ -1006,6 +1019,13 @@ declare module '@tanstack/react-router' {
       path: '/widget/form/$id'
       fullPath: '/widget/form/$id'
       preLoaderRoute: typeof WidgetFormIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/link-preview': {
+      id: '/api/public/link-preview'
+      path: '/api/public/link-preview'
+      fullPath: '/api/public/link-preview'
+      preLoaderRoute: typeof ApiPublicLinkPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/widget/submit': {
@@ -1347,6 +1367,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   DCodeRoute: DCodeRoute,
   UTokenRoute: UTokenRoute,
+  ApiPublicLinkPreviewRoute: ApiPublicLinkPreviewRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
   ApiPublicAiContactEnrichRoute: ApiPublicAiContactEnrichRoute,
   ApiPublicAiContactEnrichFailureRoute: ApiPublicAiContactEnrichFailureRoute,

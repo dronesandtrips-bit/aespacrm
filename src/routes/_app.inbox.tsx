@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect, type ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -2058,7 +2058,7 @@ function DocCard({
 }: {
   fileName: string;
   ext: string;
-  trailing?: React.ReactNode;
+  trailing?: ReactNode;
 }) {
   return (
     <div className="flex items-center gap-3 p-2 pr-3 rounded-lg bg-black/5 hover:bg-black/10 transition min-w-[240px]">
@@ -2317,8 +2317,148 @@ function MessageContent({
     );
   }
 
-  return <p className="whitespace-pre-wrap break-words">{m.body}</p>;
+  return <TextWithLinkPreview body={m.body ?? ""} />;
 }
+
+// Cache global de previews para não refazer fetch ao re-render.
+const linkPreviewCache = new Map<
+  string,
+  {
+    url: string;
+    title: string | null;
+    description: string | null;
+    image: string | null;
+    siteName: string | null;
+  } | null
+>();
+const linkPreviewInflight = new Map<string, Promise<void>>();
+
+const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?()\[\]'"])/gi;
+
+function extractFirstUrl(text: string): string | null {
+  const m = text.match(URL_RE);
+  return m?.[0] ?? null;
+}
+
+function linkifyText(text: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  let last = 0;
+  const re = new RegExp(URL_RE.source, "gi");
+  let match: RegExpExecArray | null;
+  let i = 0;
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > last) parts.push(text.slice(last, match.index));
+    parts.push(
+      <a
+        key={`u${i++}`}
+        href={match[0]}
+        target="_blank"
+        rel="noreferrer"
+        className="underline break-all"
+      >
+        {match[0]}
+      </a>,
+    );
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+function TextWithLinkPreview({ body }: { body: string }) {
+  const url = useMemo(() => extractFirstUrl(body), [body]);
+  const [preview, setPreview] = useState(() =>
+    url ? linkPreviewCache.get(url) ?? undefined : null,
+  );
+
+  useEffect(() => {
+    if (!url) return;
+    if (linkPreviewCache.has(url)) {
+      setPreview(linkPreviewCache.get(url) ?? null);
+      return;
+    }
+    let cancelled = false;
+    const existing = linkPreviewInflight.get(url);
+    const run =
+      existing ??
+      (async () => {
+        try {
+          const res = await fetch(
+            `/api/public/link-preview?url=${encodeURIComponent(url)}`,
+          );
+          if (!res.ok) {
+            linkPreviewCache.set(url, null);
+            return;
+          }
+          const data = await res.json();
+          if (data?.error || (!data?.title && !data?.image && !data?.description)) {
+            linkPreviewCache.set(url, null);
+          } else {
+            linkPreviewCache.set(url, {
+              url: data.url ?? url,
+              title: data.title ?? null,
+              description: data.description ?? null,
+              image: data.image ?? null,
+              siteName: data.siteName ?? null,
+            });
+          }
+        } catch {
+          linkPreviewCache.set(url, null);
+        }
+      })();
+    if (!existing) linkPreviewInflight.set(url, run);
+    run.finally(() => {
+      if (!cancelled) setPreview(linkPreviewCache.get(url) ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  return (
+    <div className="space-y-1.5">
+      {preview && (preview.title || preview.image || preview.description) ? (
+        <a
+          href={preview.url}
+          target="_blank"
+          rel="noreferrer"
+          className="block rounded-lg overflow-hidden border border-black/10 bg-black/5 hover:bg-black/10 transition-colors max-w-[320px]"
+        >
+          {preview.image ? (
+            <img
+              src={preview.image}
+              alt=""
+              className="w-full h-40 object-cover bg-black/10"
+              loading="lazy"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : null}
+          <div className="px-2.5 py-1.5">
+            {preview.siteName ? (
+              <div className="text-[10px] uppercase tracking-wide opacity-60 truncate">
+                {preview.siteName}
+              </div>
+            ) : null}
+            {preview.title ? (
+              <div className="text-xs font-semibold line-clamp-2">
+                {preview.title}
+              </div>
+            ) : null}
+            {preview.description ? (
+              <div className="text-xs opacity-75 line-clamp-2 mt-0.5">
+                {preview.description}
+              </div>
+            ) : null}
+          </div>
+        </a>
+      ) : null}
+      <p className="whitespace-pre-wrap break-words">{linkifyText(body)}</p>
+    </div>
+  );
+}
+
 
 function SearchOnWhatsApp({
   search,
