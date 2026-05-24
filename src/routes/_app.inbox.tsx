@@ -2058,7 +2058,7 @@ function DocCard({
 }: {
   fileName: string;
   ext: string;
-  trailing?: React.ReactNode;
+  trailing?: ReactNode;
 }) {
   return (
     <div className="flex items-center gap-3 p-2 pr-3 rounded-lg bg-black/5 hover:bg-black/10 transition min-w-[240px]">
@@ -2340,8 +2340,8 @@ function extractFirstUrl(text: string): string | null {
   return m?.[0] ?? null;
 }
 
-function linkifyText(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
+function linkifyText(text: string): ReactNode[] {
+  const parts: ReactNode[] = [];
   let last = 0;
   const re = new RegExp(URL_RE.source, "gi");
   let match: RegExpExecArray | null;
