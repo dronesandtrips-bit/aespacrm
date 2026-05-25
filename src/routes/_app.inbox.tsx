@@ -102,6 +102,25 @@ function InboxPage() {
   const [sending, setSending] = useState(false);
   const [attaching, setAttaching] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<{ file: File; previewUrl: string | null } | null>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const insertEmoji = useCallback((emoji: string) => {
+    const el = composerRef.current;
+    if (!el) {
+      setDraft((d) => d + emoji);
+      return;
+    }
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    const next = el.value.slice(0, start) + emoji + el.value.slice(end);
+    setDraft(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + emoji.length;
+      try { el.setSelectionRange(pos, pos); } catch {}
+    });
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef("");
