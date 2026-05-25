@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import EmojiPicker, { EmojiStyle, Theme, type EmojiClickData } from "emoji-picker-react";
 import { ContactDialog, EnrollDialog } from "@/components/contact-dialogs";
 
 
@@ -100,6 +102,25 @@ function InboxPage() {
   const [sending, setSending] = useState(false);
   const [attaching, setAttaching] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<{ file: File; previewUrl: string | null } | null>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const insertEmoji = useCallback((emoji: string) => {
+    const el = composerRef.current;
+    if (!el) {
+      setDraft((d) => d + emoji);
+      return;
+    }
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    const next = el.value.slice(0, start) + emoji + el.value.slice(end);
+    setDraft(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + emoji.length;
+      try { el.setSelectionRange(pos, pos); } catch {}
+    });
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef("");
@@ -1626,15 +1647,37 @@ function InboxPage() {
                   className="flex items-center gap-2 rounded-full px-2 py-1"
                   style={{ backgroundColor: "var(--ww-surface)" }}
                 >
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-9 rounded-full text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5 shrink-0"
-                    aria-label="Emoji"
-                  >
-                    <Smile className="size-5" />
-                  </Button>
+                  <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-9 rounded-full text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5 shrink-0"
+                        aria-label="Emoji"
+                      >
+                        <Smile className="size-5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      side="top"
+                      align="start"
+                      sideOffset={8}
+                      className="p-0 border-0 bg-transparent shadow-none w-auto"
+                    >
+                      <EmojiPicker
+                        onEmojiClick={(data: EmojiClickData) => insertEmoji(data.emoji)}
+                        theme={Theme.DARK}
+                        emojiStyle={EmojiStyle.NATIVE}
+                        width={350}
+                        height={400}
+                        lazyLoadEmojis
+                        searchPlaceholder="Buscar emoji"
+                        previewConfig={{ showPreview: false }}
+                        skinTonesDisabled={false}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -1654,6 +1697,7 @@ function InboxPage() {
                     {attaching ? <Loader2 className="size-5 animate-spin" /> : <Paperclip className="size-5" />}
                   </Button>
                   <Textarea
+                    ref={composerRef}
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => {
