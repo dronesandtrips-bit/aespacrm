@@ -1697,6 +1697,7 @@ function InboxPage() {
                     {attaching ? <Loader2 className="size-5 animate-spin" /> : <Paperclip className="size-5" />}
                   </Button>
                   <Textarea
+                    ref={composerRef}
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     onKeyDown={(e) => {
