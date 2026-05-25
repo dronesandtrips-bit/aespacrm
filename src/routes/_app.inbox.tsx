@@ -1647,15 +1647,37 @@ function InboxPage() {
                   className="flex items-center gap-2 rounded-full px-2 py-1"
                   style={{ backgroundColor: "var(--ww-surface)" }}
                 >
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-9 rounded-full text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5 shrink-0"
-                    aria-label="Emoji"
-                  >
-                    <Smile className="size-5" />
-                  </Button>
+                  <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-9 rounded-full text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5 shrink-0"
+                        aria-label="Emoji"
+                      >
+                        <Smile className="size-5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      side="top"
+                      align="start"
+                      sideOffset={8}
+                      className="p-0 border-0 bg-transparent shadow-none w-auto"
+                    >
+                      <EmojiPicker
+                        onEmojiClick={(data: EmojiClickData) => insertEmoji(data.emoji)}
+                        theme={Theme.DARK}
+                        emojiStyle={EmojiStyle.NATIVE}
+                        width={350}
+                        height={400}
+                        lazyLoadEmojis
+                        searchPlaceholder="Buscar emoji"
+                        previewConfig={{ showPreview: false }}
+                        skinTonesDisabled={false}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <input
                     ref={fileInputRef}
                     type="file"
