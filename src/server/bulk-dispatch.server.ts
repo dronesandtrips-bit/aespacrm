@@ -191,22 +191,38 @@ export async function runBulkDispatch(opts: {
 
       if (res.ok) {
         sentThisTick++;
-        await sb.from("crm_messages").upsert(
-          {
-            user_id: userId,
-            contact_id: c.id,
-            body: media ? (media.caption ? text : `[${media.type}]`) : text,
-            from_me: true,
-            type: media ? media.type : "text",
-            message_id: data?.key?.id ?? null,
-            remote_jid: data?.key?.remoteJid ?? `${c.phone_norm}@s.whatsapp.net`,
-            media_mime: media?.mime ?? null,
-            media_caption: media ? text : null,
-            status: "sent",
-            raw: { bulk_id: bulkId, ...data },
-          },
-          { onConflict: "user_id,message_id", ignoreDuplicates: false },
-        );
+        // Evolution às vezes devolve o id em paths diferentes; tentamos vários.
+        const messageId: string | null =
+          data?.key?.id ??
+          data?.messageId ??
+          data?.id ??
+          data?.message?.key?.id ??
+          data?.data?.key?.id ??
+          null;
+        // Sem message_id não conseguimos baixar a mídia depois (imagem viraria
+        // "Imagem indisponível"). Para MÍDIA, pulamos a inserção — o webhook
+        // messages.upsert criará o registro correto em segundos com message_id.
+        // Para TEXTO seguimos gravando (não precisa de message_id pra exibir).
+        if (media && !messageId) {
+          // nada a fazer; webhook cuida.
+        } else {
+          await sb.from("crm_messages").upsert(
+            {
+              user_id: userId,
+              contact_id: c.id,
+              body: media ? (media.caption ? text : `[${media.type}]`) : text,
+              from_me: true,
+              type: media ? media.type : "text",
+              message_id: messageId,
+              remote_jid: data?.key?.remoteJid ?? `${c.phone_norm}@s.whatsapp.net`,
+              media_mime: media?.mime ?? null,
+              media_caption: media ? text : null,
+              status: "sent",
+              raw: { bulk_id: bulkId, ...data },
+            },
+            { onConflict: "user_id,message_id", ignoreDuplicates: false },
+          );
+        }
       } else {
         failedThisTick++;
         await sb.from("crm_messages").insert({
