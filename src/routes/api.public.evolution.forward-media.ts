@@ -140,25 +140,37 @@ export const Route = createFileRoute("/api/public/evolution/forward-media")({
               continue;
             }
 
-            const newMessageId: string | null = evData?.key?.id ?? null;
+            const newMessageId: string | null =
+              evData?.key?.id ??
+              evData?.messageId ??
+              evData?.id ??
+              evData?.message?.key?.id ??
+              evData?.data?.key?.id ??
+              null;
             const remoteJid: string | null =
               evData?.key?.remoteJid ??
               (contact.is_group ? contact.wa_jid : `${contact.phone_norm}@s.whatsapp.net`);
 
-            await sbAdmin.from("crm_messages").insert({
-              user_id: userId,
-              contact_id: contact.id,
-              body: parsed.caption ?? "[imagem]",
-              from_me: true,
-              at: new Date().toISOString(),
-              type: "image",
-              media_mime: mimetype,
-              media_caption: parsed.caption ?? null,
-              message_id: newMessageId,
-              remote_jid: remoteJid,
-              status: evData?.status?.toString().toLowerCase() ?? "sent",
-              raw: evData,
-            });
+            // Sem message_id a inbox não consegue baixar a mídia
+            // (vira "Imagem indisponível"). Nesse caso, NÃO gravamos
+            // placeholder — o webhook messages.upsert criará o registro
+            // correto em segundos, com message_id e media_url.
+            if (newMessageId) {
+              await sbAdmin.from("crm_messages").insert({
+                user_id: userId,
+                contact_id: contact.id,
+                body: parsed.caption ?? "[imagem]",
+                from_me: true,
+                at: new Date().toISOString(),
+                type: "image",
+                media_mime: mimetype,
+                media_caption: parsed.caption ?? null,
+                message_id: newMessageId,
+                remote_jid: remoteJid,
+                status: evData?.status?.toString().toLowerCase() ?? "sent",
+                raw: evData,
+              });
+            }
             results.push({ contactId: contact.id, ok: true });
           } catch (e: any) {
             results.push({ contactId: contact.id, ok: false, error: e?.message ?? String(e) });
