@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import EmojiPicker, { EmojiStyle, Theme, type EmojiClickData } from "emoji-picker-react";
+import { LazyEmojiPicker } from "@/components/LazyEmojiPicker";
 import { ContactDialog, EnrollDialog } from "@/components/contact-dialogs";
 
 
@@ -1697,17 +1697,9 @@ function InboxPage() {
                       sideOffset={8}
                       className="p-0 border-0 bg-transparent shadow-none w-auto"
                     >
-                      <EmojiPicker
-                        onEmojiClick={(data: EmojiClickData) => insertEmoji(data.emoji)}
-                        theme={Theme.DARK}
-                        emojiStyle={EmojiStyle.NATIVE}
-                        width={350}
-                        height={400}
-                        lazyLoadEmojis
-                        searchPlaceholder="Buscar emoji"
-                        previewConfig={{ showPreview: false }}
-                        skinTonesDisabled={false}
-                      />
+                      {emojiOpen && (
+                        <LazyEmojiPicker onSelect={(e) => insertEmoji(e)} />
+                      )}
                     </PopoverContent>
                   </Popover>
                   <input
