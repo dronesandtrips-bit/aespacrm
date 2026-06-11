@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSupabaseAdmin } from "@/integrations/supabase/server";
-import { isStrictValidPhone, looksLikeJidOrIdName } from "./phone-validation";
+import { isStrictValidPhone, looksLikeJidOrIdName } from "@/server/phone-validation";
 
 function classify(rows: Array<{ id: string; name: string | null; phone: string | null; phone_norm: string | null }>) {
   return rows.filter((c) => {
