@@ -329,7 +329,7 @@ function InboxPage() {
     };
     try {
       try {
-        const { logEnrichmentStart } = await import("@/server/ai-enrichment-logs.functions");
+        const { logEnrichmentStart } = await import("@/lib/ai-enrichment-logs.functions");
         const r = await logEnrichmentStart({
           data: {
             contact_id: c.id,
@@ -351,7 +351,7 @@ function InboxPage() {
         toast.error(`Webhook respondeu ${res.status}`);
         if (logId) {
           try {
-            const { logEnrichmentFailure } = await import("@/server/ai-enrichment-logs.functions");
+            const { logEnrichmentFailure } = await import("@/lib/ai-enrichment-logs.functions");
             await logEnrichmentFailure({ data: { log_id: logId, error_message: `Webhook ${res.status}` } });
           } catch {}
         }
@@ -363,7 +363,7 @@ function InboxPage() {
       toast.error(`Falha ao chamar webhook: ${e.message ?? e}`);
       if (logId) {
         try {
-          const { logEnrichmentFailure } = await import("@/server/ai-enrichment-logs.functions");
+          const { logEnrichmentFailure } = await import("@/lib/ai-enrichment-logs.functions");
           await logEnrichmentFailure({ data: { log_id: logId, error_message: String(e?.message ?? e) } });
         } catch {}
       }
