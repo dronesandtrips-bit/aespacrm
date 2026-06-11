@@ -1164,7 +1164,39 @@ function InboxPage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {unreadTotal > 0 && (
+                <button
+                  onClick={async () => {
+                    const ids = Object.keys(unreadByContact).filter((id) => (unreadByContact[id] ?? 0) > 0);
+                    if (ids.length === 0) return;
+                    const now = new Date().toISOString();
+                    setUnreadByContact({});
+                    setLastReadByContact((prev) => {
+                      const next = { ...prev };
+                      ids.forEach((id) => { next[id] = now; });
+                      return next;
+                    });
+                    try {
+                      const c = await getSupabaseClient();
+                      if (!c) return;
+                      const { error } = await c.from("crm_contacts").update({ last_read_at: now }).in("id", ids);
+                      if (error) throw error;
+                      toast.success(`${ids.length} ${ids.length === 1 ? "conversa marcada" : "conversas marcadas"} como lida${ids.length === 1 ? "" : "s"}`);
+                    } catch (e: any) {
+                      toast.error("Falha ao marcar como lidas: " + (e?.message ?? "erro"));
+                    }
+                  }}
+                  title="Marcar todas como lidas"
+                  className="shrink-0 h-7 px-3 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 text-[color:var(--ww-text-muted)] hover:bg-white/5"
+                  style={{ backgroundColor: "var(--ww-surface)" }}
+                >
+                  <CheckCheck className="size-3.5" />
+                  Marcar como lidas
+                </button>
+              )}
             </div>
+
 
 
             <div className="overflow-auto flex-1">
