@@ -271,7 +271,7 @@ function ContactsPage() {
       // 1) registra disparo no histórico
       try {
         const { logEnrichmentStart } = await import(
-          "@/server/ai-enrichment-logs.functions"
+          "@/lib/ai-enrichment-logs.functions"
         );
         const r = await logEnrichmentStart({
           data: {
@@ -297,7 +297,7 @@ function ContactsPage() {
         if (logId) {
           try {
             const { logEnrichmentFailure } = await import(
-              "@/server/ai-enrichment-logs.functions"
+              "@/lib/ai-enrichment-logs.functions"
             );
             await logEnrichmentFailure({
               data: { log_id: logId, error_message: `Webhook ${res.status}` },
@@ -315,7 +315,7 @@ function ContactsPage() {
       if (logId) {
         try {
           const { logEnrichmentFailure } = await import(
-            "@/server/ai-enrichment-logs.functions"
+            "@/lib/ai-enrichment-logs.functions"
           );
           await logEnrichmentFailure({
             data: { log_id: logId, error_message: String(e?.message ?? e) },

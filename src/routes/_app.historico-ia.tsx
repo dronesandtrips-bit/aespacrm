@@ -14,7 +14,7 @@ import {
 import {
   listEnrichmentLogs,
   deleteEnrichmentLogs,
-} from "@/server/ai-enrichment-logs.functions";
+} from "@/lib/ai-enrichment-logs.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/historico-ia")({
