@@ -161,6 +161,7 @@ export function AppSidebar({ inSheet = false, onNavigate, focusMode = false }: P
               <Link
                 key={to}
                 to={to}
+                preload="viewport"
                 onClick={onNavigate}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",

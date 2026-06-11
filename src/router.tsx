@@ -59,6 +59,9 @@ export const getRouter = () => {
     routeTree,
     context: {},
     scrollRestoration: true,
+    // Prefetch on hover/focus/touch — instantâneo ao passar o mouse.
+    defaultPreload: "intent",
+    defaultPreloadDelay: 50,
     defaultPreloadStaleTime: 0,
     defaultErrorComponent: DefaultErrorComponent,
   });
