@@ -61,8 +61,6 @@ import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes
 import { Route as ApiPublicEvolutionCheckNumberRouteImport } from './routes/api.public.evolution.check-number'
 import { Route as ApiPublicEvolutionBulkTickRouteImport } from './routes/api.public.evolution.bulk-tick'
 import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api.public.evolution.bulk-dispatch'
-import { Route as ApiPublicDebugOptoutLinkRouteImport } from './routes/api.public.debug.optout-link'
-import { Route as ApiPublicDebugOptoutRouteImport } from './routes/api.public.debug.optout'
 import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
 import { Route as ApiPublicContactsBlacklistToggleRouteImport } from './routes/api.public.contacts.blacklist-toggle'
 import { Route as ApiPublicCleanupGroupsRouteImport } from './routes/api.public.cleanup.groups'
@@ -353,17 +351,6 @@ const ApiPublicEvolutionBulkDispatchRoute =
     path: '/api/public/evolution/bulk-dispatch',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicDebugOptoutLinkRoute =
-  ApiPublicDebugOptoutLinkRouteImport.update({
-    id: '/api/public/debug/optout-link',
-    path: '/api/public/debug/optout-link',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicDebugOptoutRoute = ApiPublicDebugOptoutRouteImport.update({
-  id: '/api/public/debug/optout',
-  path: '/api/public/debug/optout',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicContactsCleanupRoute =
   ApiPublicContactsCleanupRouteImport.update({
     id: '/api/public/contacts/cleanup',
@@ -452,8 +439,6 @@ export interface FileRoutesByFullPath {
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
-  '/api/public/debug/optout': typeof ApiPublicDebugOptoutRoute
-  '/api/public/debug/optout-link': typeof ApiPublicDebugOptoutLinkRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/bulk-tick': typeof ApiPublicEvolutionBulkTickRoute
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
@@ -517,8 +502,6 @@ export interface FileRoutesByTo {
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
-  '/api/public/debug/optout': typeof ApiPublicDebugOptoutRoute
-  '/api/public/debug/optout-link': typeof ApiPublicDebugOptoutLinkRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/bulk-tick': typeof ApiPublicEvolutionBulkTickRoute
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
@@ -584,8 +567,6 @@ export interface FileRoutesById {
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
-  '/api/public/debug/optout': typeof ApiPublicDebugOptoutRoute
-  '/api/public/debug/optout-link': typeof ApiPublicDebugOptoutLinkRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/bulk-tick': typeof ApiPublicEvolutionBulkTickRoute
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
@@ -651,8 +632,6 @@ export interface FileRouteTypes {
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
-    | '/api/public/debug/optout'
-    | '/api/public/debug/optout-link'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/bulk-tick'
     | '/api/public/evolution/check-number'
@@ -716,8 +695,6 @@ export interface FileRouteTypes {
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
-    | '/api/public/debug/optout'
-    | '/api/public/debug/optout-link'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/bulk-tick'
     | '/api/public/evolution/check-number'
@@ -782,8 +759,6 @@ export interface FileRouteTypes {
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
-    | '/api/public/debug/optout'
-    | '/api/public/debug/optout-link'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/bulk-tick'
     | '/api/public/evolution/check-number'
@@ -836,8 +811,6 @@ export interface RootRouteChildren {
   ApiPublicCleanupGroupsRoute: typeof ApiPublicCleanupGroupsRoute
   ApiPublicContactsBlacklistToggleRoute: typeof ApiPublicContactsBlacklistToggleRoute
   ApiPublicContactsCleanupRoute: typeof ApiPublicContactsCleanupRoute
-  ApiPublicDebugOptoutRoute: typeof ApiPublicDebugOptoutRoute
-  ApiPublicDebugOptoutLinkRoute: typeof ApiPublicDebugOptoutLinkRoute
   ApiPublicEvolutionBulkDispatchRoute: typeof ApiPublicEvolutionBulkDispatchRoute
   ApiPublicEvolutionBulkTickRoute: typeof ApiPublicEvolutionBulkTickRoute
   ApiPublicEvolutionCheckNumberRoute: typeof ApiPublicEvolutionCheckNumberRoute
@@ -1238,20 +1211,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionBulkDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/debug/optout-link': {
-      id: '/api/public/debug/optout-link'
-      path: '/api/public/debug/optout-link'
-      fullPath: '/api/public/debug/optout-link'
-      preLoaderRoute: typeof ApiPublicDebugOptoutLinkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/debug/optout': {
-      id: '/api/public/debug/optout'
-      path: '/api/public/debug/optout'
-      fullPath: '/api/public/debug/optout'
-      preLoaderRoute: typeof ApiPublicDebugOptoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/contacts/cleanup': {
       id: '/api/public/contacts/cleanup'
       path: '/api/public/contacts/cleanup'
@@ -1377,8 +1336,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCleanupGroupsRoute: ApiPublicCleanupGroupsRoute,
   ApiPublicContactsBlacklistToggleRoute: ApiPublicContactsBlacklistToggleRoute,
   ApiPublicContactsCleanupRoute: ApiPublicContactsCleanupRoute,
-  ApiPublicDebugOptoutRoute: ApiPublicDebugOptoutRoute,
-  ApiPublicDebugOptoutLinkRoute: ApiPublicDebugOptoutLinkRoute,
   ApiPublicEvolutionBulkDispatchRoute: ApiPublicEvolutionBulkDispatchRoute,
   ApiPublicEvolutionBulkTickRoute: ApiPublicEvolutionBulkTickRoute,
   ApiPublicEvolutionCheckNumberRoute: ApiPublicEvolutionCheckNumberRoute,
@@ -1417,3 +1374,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
