@@ -45,7 +45,7 @@ import { toast } from "sonner";
 import Papa from "papaparse";
 import { z } from "zod";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
-import { previewInvalidContacts, deleteInvalidContacts } from "@/server/contacts-cleanup.functions";
+import { previewInvalidContacts, deleteInvalidContacts } from "@/lib/contacts-cleanup.functions";
 import { ContactDialog, EnrollDialog } from "@/components/contact-dialogs";
 
 const ALL = "__all__";
