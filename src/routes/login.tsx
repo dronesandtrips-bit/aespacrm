@@ -31,12 +31,22 @@ function LoginPage() {
       toast.success("Login realizado com sucesso");
       navigate({ to: "/dashboard" });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Falha no login";
-      toast.error(
-        /invalid login credentials/i.test(msg)
-          ? "Email ou senha inválidos"
-          : msg,
-      );
+      // eslint-disable-next-line no-console
+      console.error("[login] error:", err);
+      let msg = "Falha no login";
+      if (err instanceof Error && err.message) {
+        msg = err.message;
+      } else if (typeof err === "string") {
+        msg = err;
+      } else if (err && typeof err === "object") {
+        const anyErr = err as { message?: string; error_description?: string; msg?: string };
+        msg = anyErr.message || anyErr.error_description || anyErr.msg || JSON.stringify(err);
+      }
+      if (msg === "{}" || !msg.trim()) {
+        msg = "Não foi possível contatar o servidor de autenticação. Verifique sua conexão e tente novamente.";
+      }
+      if (/invalid login credentials/i.test(msg)) msg = "Email ou senha inválidos";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
