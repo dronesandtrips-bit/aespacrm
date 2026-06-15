@@ -56,13 +56,20 @@ export const Route = createFileRoute("/api/public/evolution/qr")({
           if (!res.ok) {
             return Response.json({ ok: false, status: res.status, body }, { status: 502 });
           }
-          // Evolution costuma retornar { base64, code, pairingCode, count }
-          const base64 = body?.base64 ?? body?.qrcode?.base64 ?? null;
+          // Evolution retorna QR quando desconectado; se já estiver conectado,
+          // costuma retornar apenas { instance: { state: "open" } }.
+          const state = body?.instance?.state ?? body?.state ?? body?.connectionStatus ?? null;
+          const rawBase64 = body?.base64 ?? body?.qrcode?.base64 ?? body?.qrcode ?? null;
+          const base64 = typeof rawBase64 === "string"
+            ? rawBase64.startsWith("data:") ? rawBase64 : `data:image/png;base64,${rawBase64}`
+            : null;
           const code = body?.code ?? body?.qrcode?.code ?? null;
           const pairingCode = body?.pairingCode ?? null;
           return Response.json({
             ok: true,
             instance: INSTANCE,
+            state,
+            connected: state === "open",
             base64, // data:image/png;base64,...
             code,   // string crua, pode renderizar com QR client-side
             pairingCode,
