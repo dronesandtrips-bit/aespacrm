@@ -26,7 +26,22 @@ function ForgotPasswordPage() {
       setSent(true);
       toast.success("Se o email existir, você receberá instruções em instantes");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erro ao enviar email";
+      // eslint-disable-next-line no-console
+      console.error("[forgot-password] error:", err);
+      let msg = "Erro ao enviar email";
+      if (err instanceof Error && err.message) {
+        msg = err.message;
+      } else if (typeof err === "string") {
+        msg = err;
+      } else if (err && typeof err === "object") {
+        const anyErr = err as { message?: string; error_description?: string; msg?: string; status?: number };
+        msg = anyErr.message || anyErr.error_description || anyErr.msg || "";
+        if (!msg && anyErr.status) msg = `Servidor retornou HTTP ${anyErr.status}`;
+        if (!msg) msg = JSON.stringify(err);
+      }
+      if (msg === "{}" || !msg.trim()) {
+        msg = "Servidor de autenticação fora do ar. Verifique o status do Supabase no VPS e tente novamente em alguns minutos.";
+      }
       toast.error(msg);
     } finally {
       setLoading(false);
