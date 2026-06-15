@@ -72,10 +72,15 @@ function WhatsAppPage() {
   const fetchWithAuth = useCallback(async (url: string, init?: RequestInit) => {
     let headers = await authHeaders();
     if (!headers) return null;
-    let response = await fetch(url, { ...init, headers: { ...init?.headers, ...headers } });
+    const makeHeaders = (auth: Record<string, string>) => {
+      const merged = new Headers(init?.headers);
+      Object.entries(auth).forEach(([key, value]) => merged.set(key, value));
+      return merged;
+    };
+    let response = await fetch(url, { ...init, headers: makeHeaders(headers) });
     if (response.status === 401) {
       headers = await authHeaders(true);
-      if (headers) response = await fetch(url, { ...init, headers: { ...init?.headers, ...headers } });
+      if (headers) response = await fetch(url, { ...init, headers: makeHeaders(headers) });
     }
     return response;
   }, [authHeaders]);
