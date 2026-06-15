@@ -39,6 +39,7 @@ type StatusResp = {
   profilePicUrl?: string | null;
   counts?: { messages: number | null; contacts: number | null; chats: number | null };
   reason?: string;
+  error?: string;
 };
 
 type QrResp = {
@@ -46,7 +47,10 @@ type QrResp = {
   base64?: string | null;
   code?: string | null;
   pairingCode?: string | null;
+  state?: string | null;
+  connected?: boolean;
   reason?: string;
+  error?: string;
 };
 
 function WhatsAppPage() {
@@ -56,49 +60,59 @@ function WhatsAppPage() {
   const [loadingQr, setLoadingQr] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const authHeaders = useCallback(async (): Promise<Record<string, string> | null> => {
+  const authHeaders = useCallback(async (refresh = false): Promise<Record<string, string> | null> => {
     const c = await getSupabaseClient();
     if (!c) return null;
-    const { data: sess } = await c.auth.getSession();
+    const { data: sess } = refresh ? await c.auth.refreshSession() : await c.auth.getSession();
     const token = sess?.session?.access_token;
     if (!token) return null;
     return { Authorization: `Bearer ${token}` };
   }, []);
 
+  const fetchWithAuth = useCallback(async (url: string, init?: RequestInit) => {
+    let headers = await authHeaders();
+    if (!headers) return null;
+    let response = await fetch(url, { ...init, headers: { ...init?.headers, ...headers } });
+    if (response.status === 401) {
+      headers = await authHeaders(true);
+      if (headers) response = await fetch(url, { ...init, headers: { ...init?.headers, ...headers } });
+    }
+    return response;
+  }, [authHeaders]);
+
   const fetchStatus = useCallback(async () => {
     try {
-      const headers = await authHeaders();
-      if (!headers) return; // sem sessão, ignora silenciosamente
-      const r = await fetch("/api/public/evolution/status", { headers });
+      const r = await fetchWithAuth("/api/public/evolution/status");
+      if (!r) return; // sem sessão, ignora silenciosamente
       const j: StatusResp = await r.json();
       setStatus(j);
-      if (!j.ok) setError(j.reason ?? "Erro ao consultar status");
+      if (!j.ok) setError(j.reason ?? j.error ?? "Erro ao consultar status");
       else setError(null);
     } catch (e: any) {
       setError(e?.message ?? "Falha de rede");
     } finally {
       setLoadingStatus(false);
     }
-  }, [authHeaders]);
+  }, [fetchWithAuth]);
 
   const fetchQr = useCallback(async () => {
     setLoadingQr(true);
     try {
-      const headers = await authHeaders();
-      if (!headers) {
+      const r = await fetchWithAuth("/api/public/evolution/qr");
+      if (!r) {
         toast.error("Sessão expirada");
         return;
       }
-      const r = await fetch("/api/public/evolution/qr", { headers });
       const j: QrResp = await r.json();
       setQr(j);
-      if (!j.ok) toast.error("Não foi possível gerar o QR");
+      if (j.connected) await fetchStatus();
+      if (!j.ok) toast.error(j.reason ?? j.error ?? "Não foi possível gerar o QR");
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao buscar QR");
     } finally {
       setLoadingQr(false);
     }
-  }, [authHeaders]);
+  }, [fetchStatus, fetchWithAuth]);
 
   // Status polling: 5s
   useEffect(() => {
