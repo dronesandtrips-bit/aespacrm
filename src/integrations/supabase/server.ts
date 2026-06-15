@@ -61,8 +61,22 @@ export async function requireUserJwt(
 
   const client = createClient(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    db: { schema: "aespacrm" },
+    global: { headers: { Authorization: `Bearer ${token}` } },
   });
-  const { data, error } = await client.auth.getUser(token);
+  let { data, error } = await client.auth.getUser(token);
+
+  if (error || !data?.user) {
+    try {
+      const adminClient = getSupabaseAdmin();
+      const adminResult = await adminClient.auth.getUser(token);
+      data = adminResult.data;
+      error = adminResult.error;
+    } catch {
+      // mantém a resposta padrão abaixo
+    }
+  }
+
   if (error || !data?.user) return { error: "invalid token", status: 401 };
   return { userId: data.user.id };
 }
@@ -70,7 +84,7 @@ export async function requireUserJwt(
 export const PUBLIC_CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, x-api-key",
+  "Access-Control-Allow-Headers": "Content-Type, x-api-key, Authorization",
   "Access-Control-Max-Age": "86400",
 };
 
