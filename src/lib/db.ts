@@ -60,6 +60,7 @@ export type BulkSend = {
   mediaFilename?: string | null;
   mediaCaption?: string | null;
   hasMedia?: boolean;
+  contactIds?: string[] | null;
 };
 export type PipelineStage = {
   id: string;
