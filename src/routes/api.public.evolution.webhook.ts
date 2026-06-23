@@ -298,6 +298,66 @@ async function enrichGroupIfNeeded(
   }
 }
 
+// Aplica automaticamente a tag/categoria "Follow-up" a um contato.
+// Cria a categoria se ainda não existir para esse usuário.
+// Usado quando chega a 1ª mensagem de um contato NOVO contendo "orçamento".
+async function applyFollowUpTag(
+  sb: any,
+  userId: string,
+  contactId: string,
+): Promise<void> {
+  try {
+    let { data: cat } = await sb
+      .from("crm_categories")
+      .select("id")
+      .eq("user_id", userId)
+      .ilike("name", "Follow-up")
+      .maybeSingle();
+    if (!cat?.id) {
+      const ins = await sb
+        .from("crm_categories")
+        .insert({
+          user_id: userId,
+          name: "Follow-up",
+          color: "#F59E0B",
+          status: "approved",
+        })
+        .select("id")
+        .single();
+      if (ins.error) {
+        console.error("applyFollowUpTag: create category error", ins.error);
+        return;
+      }
+      cat = ins.data;
+    }
+    if (!cat?.id) return;
+    const base = { user_id: userId, contact_id: contactId, category_id: cat.id };
+    const withSource = await sb
+      .from("crm_contact_categories")
+      .insert({ ...base, source: "auto" });
+    if (withSource.error) {
+      const msg = (withSource.error.message || "").toLowerCase();
+      // Coluna `source` ausente → tenta sem
+      if (msg.includes("source")) {
+        await sb.from("crm_contact_categories").insert(base);
+      }
+      // Conflito de unique (já tem a tag) → ignora silenciosamente
+    }
+  } catch (e) {
+    console.error("applyFollowUpTag error", e);
+  }
+}
+
+// Match acento-insensitive para "orçamento" / "orcamento" / "Orçamento" etc.
+function bodyMencionaOrcamento(body: string): boolean {
+  if (!body) return false;
+  const norm = body
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return norm.includes("orcamento");
+}
+
 export const Route = createFileRoute("/api/public/evolution/webhook")({
   server: {
     handlers: {
@@ -360,6 +420,7 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                 : new Date().toISOString();
 
               let contactId: string | null = null;
+              let isNewContact = false;
               if (isGroup) {
                 contactId = await ensureGroupContact(sb, ownerUserId, remoteJid);
                 if (contactId) {
@@ -379,6 +440,15 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
               } else {
                 const phone = normalizePhone(remoteJid);
                 if (!isValidE164(phone)) continue;
+                // Pré-check: descobre se este contato já existia ANTES de criá-lo.
+                const { data: existed } = await sb
+                  .from("crm_contacts")
+                  .select("id")
+                  .eq("user_id", ownerUserId)
+                  .eq("phone_norm", phone)
+                  .eq("is_group", false)
+                  .maybeSingle();
+                isNewContact = !existed?.id;
                 contactId = await ensureContact(sb, ownerUserId, phone, pushName);
               }
               if (!contactId) continue;
@@ -425,6 +495,10 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                 // Opt-out por palavra-chave removido. Descadastro agora é
                 // exclusivamente via link clicável (/u/$token).
 
+                // Auto-tag "Follow-up": contato NOVO + mensagem menciona "orçamento".
+                if (isNewContact && bodyMencionaOrcamento(parsed.body)) {
+                  await applyFollowUpTag(sb, ownerUserId, contactId);
+                }
               }
             }
           } else if (event === "messages.update") {
