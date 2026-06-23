@@ -582,7 +582,14 @@ function DisparosPage() {
             const canResume = b.status === "paused" || b.control === "paused";
             const canCancel = ["scheduled", "in_progress", "paused"].includes(b.status);
             return (
-              <div key={b.id} className="border rounded-lg p-3 space-y-2">
+              <div
+                key={b.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setDetail(b)}
+                onKeyDown={(e) => { if (e.key === "Enter") setDetail(b); }}
+                className="border rounded-lg p-3 space-y-2 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{b.name}</p>
