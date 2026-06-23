@@ -616,7 +616,7 @@ function DisparosPage() {
                   </div>
                 </div>
                 {(canPause || canResume || canCancel) && (
-                  <div className="flex gap-1 pt-1">
+                  <div className="flex gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
                     {canPause && (
                       <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setControl(b, "paused")}>
                         <Pause className="size-3" /> Pausar
