@@ -495,6 +495,10 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                 // Opt-out por palavra-chave removido. Descadastro agora é
                 // exclusivamente via link clicável (/u/$token).
 
+                // Auto-tag "Follow-up": contato NOVO + mensagem menciona "orçamento".
+                if (isNewContact && bodyMencionaOrcamento(parsed.body)) {
+                  await applyFollowUpTag(sb, ownerUserId, contactId);
+                }
               }
             }
           } else if (event === "messages.update") {
