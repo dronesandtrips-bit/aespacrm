@@ -420,6 +420,7 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                 : new Date().toISOString();
 
               let contactId: string | null = null;
+              let isNewContact = false;
               if (isGroup) {
                 contactId = await ensureGroupContact(sb, ownerUserId, remoteJid);
                 if (contactId) {
@@ -439,6 +440,15 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
               } else {
                 const phone = normalizePhone(remoteJid);
                 if (!isValidE164(phone)) continue;
+                // Pré-check: descobre se este contato já existia ANTES de criá-lo.
+                const { data: existed } = await sb
+                  .from("crm_contacts")
+                  .select("id")
+                  .eq("user_id", ownerUserId)
+                  .eq("phone_norm", phone)
+                  .eq("is_group", false)
+                  .maybeSingle();
+                isNewContact = !existed?.id;
                 contactId = await ensureContact(sb, ownerUserId, phone, pushName);
               }
               if (!contactId) continue;
