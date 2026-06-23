@@ -24,7 +24,15 @@ import {
   Square,
   Ban,
   CalendarDays,
+  RotateCcw,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   contactsDb,
   categoriesDb,
