@@ -24,7 +24,15 @@ import {
   Square,
   Ban,
   CalendarDays,
+  RotateCcw,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   contactsDb,
   categoriesDb,
@@ -133,6 +141,27 @@ function DisparosPage() {
   const [scheduleAt, setScheduleAt] = useState("");
 
   const insertVar = (v: string) => setMessage((m) => `${m}${v}`);
+
+  const [detail, setDetail] = useState<BulkSend | null>(null);
+
+  const reuseDispatch = (b: BulkSend) => {
+    setName(b.name);
+    setMessage(b.message ?? "");
+    setInterval(b.intervalSeconds ?? 3);
+    setScheduleAt("");
+    setMedia(null);
+    const ids = (b.contactIds ?? []).filter((id) => contacts.some((c) => c.id === id));
+    setSelected(new Set(ids));
+    setDetail(null);
+    if (b.hasMedia) {
+      toast.info("Mídia anterior não pode ser reanexada automaticamente — anexe novamente se necessário.");
+    } else if (ids.length === 0) {
+      toast.info("Nenhum contato deste disparo foi encontrado na sua lista atual.");
+    } else {
+      toast.success(`Disparo carregado — ${ids.length} contatos pré-selecionados`);
+    }
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const load = async () => {
     try {
@@ -553,7 +582,14 @@ function DisparosPage() {
             const canResume = b.status === "paused" || b.control === "paused";
             const canCancel = ["scheduled", "in_progress", "paused"].includes(b.status);
             return (
-              <div key={b.id} className="border rounded-lg p-3 space-y-2">
+              <div
+                key={b.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setDetail(b)}
+                onKeyDown={(e) => { if (e.key === "Enter") setDetail(b); }}
+                className="border rounded-lg p-3 space-y-2 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition"
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{b.name}</p>
@@ -580,7 +616,7 @@ function DisparosPage() {
                   </div>
                 </div>
                 {(canPause || canResume || canCancel) && (
-                  <div className="flex gap-1 pt-1">
+                  <div className="flex gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
                     {canPause && (
                       <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setControl(b, "paused")}>
                         <Pause className="size-3" /> Pausar
@@ -603,6 +639,95 @@ function DisparosPage() {
           })}
         </div>
       </Card>
+
+      {/* Dialog de detalhes do disparo */}
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="max-w-2xl">
+          {detail && (() => {
+            const ids = detail.contactIds ?? [];
+            const resolved = ids
+              .map((id) => contacts.find((c) => c.id === id))
+              .filter(Boolean) as Contact[];
+            const missing = ids.length - resolved.length;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 pr-8">
+                    <span className="truncate">{detail.name}</span>
+                    {statusBadge(detail.status)}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 text-sm">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <p className="text-muted-foreground">Criado em</p>
+                      <p className="font-medium">{new Date(detail.createdAt).toLocaleString("pt-BR")}</p>
+                    </div>
+                    {detail.scheduledAt && (
+                      <div>
+                        <p className="text-muted-foreground">Agendado para</p>
+                        <p className="font-medium">{new Date(detail.scheduledAt).toLocaleString("pt-BR")}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-muted-foreground">Intervalo</p>
+                      <p className="font-medium">{detail.intervalSeconds}s</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Enviados</p>
+                      <p className="font-medium">{detail.sentCount} / {detail.totalContacts}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Mensagem</p>
+                    <div className="p-3 rounded-lg border bg-muted/30 whitespace-pre-wrap text-sm max-h-60 overflow-auto">
+                      {detail.message || <span className="italic text-muted-foreground">(sem texto)</span>}
+                    </div>
+                  </div>
+
+                  {detail.hasMedia && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Mídia anexada</p>
+                      <div className="p-2 rounded-lg border bg-muted/30 flex items-center gap-2 text-xs">
+                        <Paperclip className="size-3.5 text-primary" />
+                        <span className="font-medium">{detail.mediaType}</span>
+                        {detail.mediaFilename && <span className="text-muted-foreground truncate">· {detail.mediaFilename}</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Contatos ({ids.length})
+                      {missing > 0 && (
+                        <span className="ml-1 text-amber-600">· {missing} não encontrado(s) na lista atual</span>
+                      )}
+                    </p>
+                    <div className="max-h-48 overflow-auto border rounded-lg divide-y">
+                      {ids.length === 0 && (
+                        <p className="p-3 text-xs text-muted-foreground italic">Lista de contatos não disponível para este disparo.</p>
+                      )}
+                      {resolved.map((c) => (
+                        <div key={c.id} className="px-3 py-1.5 flex items-center justify-between text-xs">
+                          <span className="font-medium truncate">{c.name}</span>
+                          <span className="font-mono text-muted-foreground">{c.phone}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter className="gap-2">
+                  <Button variant="outline" onClick={() => setDetail(null)}>Fechar</Button>
+                  <Button onClick={() => reuseDispatch(detail)} className="gap-2">
+                    <RotateCcw className="size-4" /> Reutilizar disparo
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
