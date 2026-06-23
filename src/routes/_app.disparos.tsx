@@ -639,6 +639,95 @@ function DisparosPage() {
           })}
         </div>
       </Card>
+
+      {/* Dialog de detalhes do disparo */}
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="max-w-2xl">
+          {detail && (() => {
+            const ids = detail.contactIds ?? [];
+            const resolved = ids
+              .map((id) => contacts.find((c) => c.id === id))
+              .filter(Boolean) as Contact[];
+            const missing = ids.length - resolved.length;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 pr-8">
+                    <span className="truncate">{detail.name}</span>
+                    {statusBadge(detail.status)}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 text-sm">
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <p className="text-muted-foreground">Criado em</p>
+                      <p className="font-medium">{new Date(detail.createdAt).toLocaleString("pt-BR")}</p>
+                    </div>
+                    {detail.scheduledAt && (
+                      <div>
+                        <p className="text-muted-foreground">Agendado para</p>
+                        <p className="font-medium">{new Date(detail.scheduledAt).toLocaleString("pt-BR")}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-muted-foreground">Intervalo</p>
+                      <p className="font-medium">{detail.intervalSeconds}s</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Enviados</p>
+                      <p className="font-medium">{detail.sentCount} / {detail.totalContacts}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Mensagem</p>
+                    <div className="p-3 rounded-lg border bg-muted/30 whitespace-pre-wrap text-sm max-h-60 overflow-auto">
+                      {detail.message || <span className="italic text-muted-foreground">(sem texto)</span>}
+                    </div>
+                  </div>
+
+                  {detail.hasMedia && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Mídia anexada</p>
+                      <div className="p-2 rounded-lg border bg-muted/30 flex items-center gap-2 text-xs">
+                        <Paperclip className="size-3.5 text-primary" />
+                        <span className="font-medium">{detail.mediaType}</span>
+                        {detail.mediaFilename && <span className="text-muted-foreground truncate">· {detail.mediaFilename}</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Contatos ({ids.length})
+                      {missing > 0 && (
+                        <span className="ml-1 text-amber-600">· {missing} não encontrado(s) na lista atual</span>
+                      )}
+                    </p>
+                    <div className="max-h-48 overflow-auto border rounded-lg divide-y">
+                      {ids.length === 0 && (
+                        <p className="p-3 text-xs text-muted-foreground italic">Lista de contatos não disponível para este disparo.</p>
+                      )}
+                      {resolved.map((c) => (
+                        <div key={c.id} className="px-3 py-1.5 flex items-center justify-between text-xs">
+                          <span className="font-medium truncate">{c.name}</span>
+                          <span className="font-mono text-muted-foreground">{c.phone}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter className="gap-2">
+                  <Button variant="outline" onClick={() => setDetail(null)}>Fechar</Button>
+                  <Button onClick={() => reuseDispatch(detail)} className="gap-2">
+                    <RotateCcw className="size-4" /> Reutilizar disparo
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
