@@ -142,6 +142,27 @@ function DisparosPage() {
 
   const insertVar = (v: string) => setMessage((m) => `${m}${v}`);
 
+  const [detail, setDetail] = useState<BulkSend | null>(null);
+
+  const reuseDispatch = (b: BulkSend) => {
+    setName(b.name);
+    setMessage(b.message ?? "");
+    setInterval(b.intervalSeconds ?? 3);
+    setScheduleAt("");
+    setMedia(null);
+    const ids = (b.contactIds ?? []).filter((id) => contacts.some((c) => c.id === id));
+    setSelected(new Set(ids));
+    setDetail(null);
+    if (b.hasMedia) {
+      toast.info("Mídia anterior não pode ser reanexada automaticamente — anexe novamente se necessário.");
+    } else if (ids.length === 0) {
+      toast.info("Nenhum contato deste disparo foi encontrado na sua lista atual.");
+    } else {
+      toast.success(`Disparo carregado — ${ids.length} contatos pré-selecionados`);
+    }
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const load = async () => {
     try {
       const [cs, cats, h] = await Promise.all([
