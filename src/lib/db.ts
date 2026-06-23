@@ -895,7 +895,7 @@ export const messagesDb = {
 // ===================== Disparos =====================
 
 const BULK_SELECT =
-  "id,name,message,interval_seconds,total_contacts,sent_count,status,created_at,scheduled_at,control,media_type,media_mime,media_filename,media_caption";
+  "id,name,message,interval_seconds,total_contacts,sent_count,status,created_at,scheduled_at,control,media_type,media_mime,media_filename,media_caption,contact_ids";
 
 function rowToBulk(r: any): BulkSend {
   return {
@@ -914,6 +914,7 @@ function rowToBulk(r: any): BulkSend {
     mediaFilename: r.media_filename ?? null,
     mediaCaption: r.media_caption ?? null,
     hasMedia: !!r.media_type,
+    contactIds: Array.isArray(r.contact_ids) ? r.contact_ids : null,
   };
 }
 
