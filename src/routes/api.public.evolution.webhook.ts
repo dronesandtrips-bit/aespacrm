@@ -195,8 +195,9 @@ async function ensureContact(
     .from("crm_contacts")
     .select("id")
     .eq("user_id", userId)
-    .eq("phone_norm", phone)
+    .in("phone_norm", phoneMatchVariants(phone))
     .eq("is_group", false)
+    .limit(1)
     .maybeSingle();
   if (existing?.id) return existing.id;
 
@@ -211,6 +212,16 @@ async function ensureContact(
     .select("id")
     .single();
   if (error) {
+    // Race / variante 9º-dígito → refetch por variantes
+    const { data: dup } = await sb
+      .from("crm_contacts")
+      .select("id")
+      .eq("user_id", userId)
+      .in("phone_norm", phoneMatchVariants(phone))
+      .eq("is_group", false)
+      .limit(1)
+      .maybeSingle();
+    if (dup?.id) return dup.id;
     console.error("ensureContact insert error", error);
     return null;
   }
