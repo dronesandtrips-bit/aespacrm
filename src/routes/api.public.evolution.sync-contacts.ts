@@ -12,6 +12,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin, jsonResponse, PUBLIC_CORS } from "@/integrations/supabase/server";
+import { phoneMatchVariants } from "@/lib/phone-validation";
 
 const INSTANCE = "zapcrm";
 const BATCH_SIZE = 200;
