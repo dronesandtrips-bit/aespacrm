@@ -203,7 +203,13 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
           const existingPhones = new Set<string>();
           const existingByPhone = new Map<string, { id: string; name: string | null; avatar_url: string | null }>();
           for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-            const phones = rows.slice(i, i + BATCH_SIZE).map((r) => r.phone);
+            const slice = rows.slice(i, i + BATCH_SIZE);
+            // Expande cada telefone nas suas variantes (BR 9º dígito) pra
+            // consulta case matching. Sem isso, o mesmo contato é reinserido
+            // toda vez que a Evolution devolve o formato oposto.
+            const phones = Array.from(
+              new Set(slice.flatMap((r) => phoneMatchVariants(r.phone))),
+            );
             const { data: existing, error: existingErr } = await sbAdmin
               .from("crm_contacts")
               .select("id,name,avatar_url,phone_norm,phone")
@@ -217,13 +223,17 @@ export const Route = createFileRoute("/api/public/evolution/sync-contacts")({
             }
             for (const item of existing ?? []) {
               const phone = digitsOnly(item.phone_norm ?? item.phone ?? "");
-              if (phone) {
-                existingPhones.add(phone);
-                existingByPhone.set(phone, {
-                  id: item.id,
-                  name: item.name ?? null,
-                  avatar_url: item.avatar_url ?? null,
-                });
+              if (!phone) continue;
+              const entry = {
+                id: item.id,
+                name: item.name ?? null,
+                avatar_url: item.avatar_url ?? null,
+              };
+              // Registra sob TODAS as variantes pra qualquer formato do
+              // lado da Evolution encontrar o existente.
+              for (const v of phoneMatchVariants(phone)) {
+                existingPhones.add(v);
+                if (!existingByPhone.has(v)) existingByPhone.set(v, entry);
               }
             }
           }
