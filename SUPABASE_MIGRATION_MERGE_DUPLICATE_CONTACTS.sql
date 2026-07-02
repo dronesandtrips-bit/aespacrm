@@ -4,31 +4,16 @@
 -- Problema: no Brasil, a Evolution/WhatsApp às vezes devolve o número
 -- com o 9º dígito (55DD9XXXXXXXX, 13 dígitos) e às vezes sem
 -- (55DDXXXXXXXX, 12 dígitos). Como phone_norm é dígitos crus, o mesmo
--- contato acaba com 2 linhas em crm_contacts. Este script:
---   1) mostra os pares duplicados
---   2) escolhe UM "vencedor" por par (o que tem mais mensagens; empate =
---      criado antes)
---   3) migra mensagens, tags, sequências e pipeline do loser para o winner
---   4) apaga os losers
+-- contato acaba com 2 linhas em crm_contacts.
 --
--- Executar por partes no SQL Editor. Idempotente: rodar de novo não faz mal.
--- Só afeta schema aespacrm. Não altera public/auth.
+-- Cada passo é INDEPENDENTE — pode rodar 1 sozinho no SQL Editor.
+-- A chave canônica (sem 9º dígito quando for celular BR) está inline
+-- em cada passo, então não precisa criar função nenhuma antes.
+--
+-- Só afeta schema aespacrm. Não altera public/auth. Idempotente.
 -- =====================================================================
 
 SET search_path = aespacrm, public;
-
--- ---------------------------------------------------------------------
--- Helper: chave canônica de match (BR ganha versão SEM 9º dígito)
--- ---------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION aespacrm._contact_match_key(p text)
-RETURNS text
-LANGUAGE sql IMMUTABLE AS $$
-  SELECT CASE
-    WHEN p ~ '^55[0-9]{2}9[0-9]{8}$'
-      THEN '55' || substr(p, 3, 2) || substr(p, 6)   -- tira o 9
-    ELSE p
-  END
-$$;
 
 -- ---------------------------------------------------------------------
 -- 1) PREVIEW — pares duplicados por user_id + chave canônica
@@ -36,7 +21,11 @@ $$;
 WITH base AS (
   SELECT
     c.id, c.user_id, c.name, c.phone_norm, c.created_at, c.avatar_url,
-    aespacrm._contact_match_key(c.phone_norm) AS key,
+    CASE
+      WHEN c.phone_norm ~ '^55[0-9]{2}9[0-9]{8}$'
+        THEN '55' || substr(c.phone_norm, 3, 2) || substr(c.phone_norm, 6)
+      ELSE c.phone_norm
+    END AS key,
     (SELECT count(*) FROM aespacrm.crm_messages m WHERE m.contact_id = c.id) AS msg_count
   FROM aespacrm.crm_contacts c
   WHERE c.is_group = false AND c.phone_norm <> ''
@@ -63,7 +52,11 @@ CREATE TEMP TABLE _contact_dedup_map AS
 WITH base AS (
   SELECT
     c.id, c.user_id, c.phone_norm, c.created_at, c.avatar_url, c.name,
-    aespacrm._contact_match_key(c.phone_norm) AS key,
+    CASE
+      WHEN c.phone_norm ~ '^55[0-9]{2}9[0-9]{8}$'
+        THEN '55' || substr(c.phone_norm, 3, 2) || substr(c.phone_norm, 6)
+      ELSE c.phone_norm
+    END AS key,
     (SELECT count(*) FROM aespacrm.crm_messages m WHERE m.contact_id = c.id) AS msg_count
   FROM aespacrm.crm_contacts c
   WHERE c.is_group = false AND c.phone_norm <> ''
@@ -94,9 +87,7 @@ FROM _contact_dedup_map d
 WHERE m.contact_id = d.loser_id;
 
 -- ---------------------------------------------------------------------
--- 4) TAGS (crm_contact_categories) — PK (contact_id, category_id).
---    Apaga primeiro linhas do loser que colidiriam com o winner, depois
---    faz UPDATE simples pra promover o resto. Também alinha user_id.
+-- 4) TAGS (crm_contact_categories) — PK (contact_id, category_id)
 -- ---------------------------------------------------------------------
 DELETE FROM aespacrm.crm_contact_categories cc
 USING _contact_dedup_map d
@@ -111,12 +102,8 @@ SET contact_id = d.winner_id
 FROM _contact_dedup_map d
 WHERE cc.contact_id = d.loser_id;
 
--- Espelha categoria primária (crm_contacts.category_id do winner) via trigger
--- existente — nada a fazer aqui.
-
 -- ---------------------------------------------------------------------
--- 5) SEQUÊNCIAS (crm_contact_sequences) — unique (contact_id, sequence_id).
---    Mesma estratégia: apaga colisões, depois UPDATE.
+-- 5) SEQUÊNCIAS (crm_contact_sequences) — unique (contact_id, sequence_id)
 -- ---------------------------------------------------------------------
 DELETE FROM aespacrm.crm_contact_sequences cs
 USING _contact_dedup_map d
@@ -132,8 +119,7 @@ FROM _contact_dedup_map d
 WHERE cs.contact_id = d.loser_id;
 
 -- ---------------------------------------------------------------------
--- 6) PIPELINE (crm_pipeline_placements) — PK contact_id (1 linha/contato).
---    Se o winner já tem placement, apaga o do loser; senão, promove.
+-- 6) PIPELINE (crm_pipeline_placements) — PK contact_id
 -- ---------------------------------------------------------------------
 DELETE FROM aespacrm.crm_pipeline_placements pp
 USING _contact_dedup_map d
@@ -172,7 +158,7 @@ USING _contact_dedup_map d
 WHERE c.id = d.loser_id;
 
 -- ---------------------------------------------------------------------
--- 9) Conferência: rodar de novo o PREVIEW do passo 1 deve voltar 0 linhas.
+-- 9) Conferência: rodar o PREVIEW do passo 1 deve voltar 0 linhas.
 -- ---------------------------------------------------------------------
 
 NOTIFY pgrst, 'reload schema';
