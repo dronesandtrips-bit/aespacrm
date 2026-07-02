@@ -48,3 +48,25 @@ export function looksLikeJidOrIdName(name: string | null | undefined): boolean {
   if (/^\d{12,}$/.test(n)) return true;
   return false;
 }
+
+// Retorna variantes equivalentes de um telefone para deduplicação.
+// BR (DDI 55): celulares com/sem o 9º dígito extra são a MESMA linha, mas
+// a Evolution/WhatsApp às vezes devolve um formato, às vezes o outro (JID
+// antigo vs. novo). Sem tratar isso, o mesmo contato aparece duplicado.
+// Ex.: 5554999998888 (13) ↔ 555499998888 (12).
+// Para não-BR retorna só o próprio número. Sempre inclui o input original.
+export function phoneMatchVariants(phone: string | null | undefined): string[] {
+  const p = String(phone ?? "").replace(/\D/g, "");
+  if (!p) return [];
+  const out = new Set<string>([p]);
+  if (p.startsWith("55")) {
+    const ddd = p.slice(2, 4);
+    const rest = p.slice(4);
+    if (rest.length === 9 && rest.startsWith("9")) {
+      out.add(`55${ddd}${rest.slice(1)}`);
+    } else if (rest.length === 8) {
+      out.add(`55${ddd}9${rest}`);
+    }
+  }
+  return Array.from(out);
+}
