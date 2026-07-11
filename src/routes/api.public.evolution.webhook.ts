@@ -343,13 +343,17 @@ async function applyFollowUpTag(
     }
     if (!cat?.id) return;
     const base = { user_id: userId, contact_id: contactId, category_id: cat.id };
+    // source='manual' garante que o enrich da IA (mode=replace) NÃO apague
+    // esta tag automática, e satisfaz o check constraint que só aceita
+    // ('manual','ai'). Se a coluna `source` ainda não existir, faz fallback.
     const withSource = await sb
       .from("crm_contact_categories")
-      .insert({ ...base, source: "auto" });
+      .insert({ ...base, source: "manual" });
     if (withSource.error) {
-      const msg = (withSource.error.message || "").toLowerCase();
-      // Coluna `source` ausente → tenta sem
-      if (msg.includes("source")) {
+      const errMsg = (withSource.error.message || "").toLowerCase();
+      const isMissingColumn =
+        errMsg.includes("column") && errMsg.includes("source");
+      if (isMissingColumn) {
         await sb.from("crm_contact_categories").insert(base);
       }
       // Conflito de unique (já tem a tag) → ignora silenciosamente
