@@ -34,6 +34,7 @@ import { Route as ApiPublicLinkPreviewRouteImport } from './routes/api.public.li
 import { Route as ApiPublicWidgetSubmitRouteImport } from './routes/api.public.widget.submit'
 import { Route as ApiPublicSequencesTestSendRouteImport } from './routes/api.public.sequences.test-send'
 import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.sequences.sent'
+import { Route as ApiPublicSequencesInspectRouteImport } from './routes/api.public.sequences.inspect'
 import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.public.sequences.inbound'
 import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.sequences.due'
 import { Route as ApiPublicOptoutShortReverseRouteImport } from './routes/api.public.optout.short-reverse'
@@ -197,6 +198,12 @@ const ApiPublicSequencesSentRoute = ApiPublicSequencesSentRouteImport.update({
   path: '/api/public/sequences/sent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSequencesInspectRoute =
+  ApiPublicSequencesInspectRouteImport.update({
+    id: '/api/public/sequences/inspect',
+    path: '/api/public/sequences/inspect',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicSequencesInboundRoute =
   ApiPublicSequencesInboundRouteImport.update({
     id: '/api/public/sequences/inbound',
@@ -466,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/api/public/optout/short-reverse': typeof ApiPublicOptoutShortReverseRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
+  '/api/public/sequences/inspect': typeof ApiPublicSequencesInspectRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
   '/api/public/sequences/test-send': typeof ApiPublicSequencesTestSendRoute
   '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
@@ -529,6 +537,7 @@ export interface FileRoutesByTo {
   '/api/public/optout/short-reverse': typeof ApiPublicOptoutShortReverseRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
+  '/api/public/sequences/inspect': typeof ApiPublicSequencesInspectRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
   '/api/public/sequences/test-send': typeof ApiPublicSequencesTestSendRoute
   '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
@@ -594,6 +603,7 @@ export interface FileRoutesById {
   '/api/public/optout/short-reverse': typeof ApiPublicOptoutShortReverseRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
+  '/api/public/sequences/inspect': typeof ApiPublicSequencesInspectRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
   '/api/public/sequences/test-send': typeof ApiPublicSequencesTestSendRoute
   '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
@@ -659,6 +669,7 @@ export interface FileRouteTypes {
     | '/api/public/optout/short-reverse'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
+    | '/api/public/sequences/inspect'
     | '/api/public/sequences/sent'
     | '/api/public/sequences/test-send'
     | '/api/public/widget/submit'
@@ -722,6 +733,7 @@ export interface FileRouteTypes {
     | '/api/public/optout/short-reverse'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
+    | '/api/public/sequences/inspect'
     | '/api/public/sequences/sent'
     | '/api/public/sequences/test-send'
     | '/api/public/widget/submit'
@@ -786,6 +798,7 @@ export interface FileRouteTypes {
     | '/api/public/optout/short-reverse'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
+    | '/api/public/sequences/inspect'
     | '/api/public/sequences/sent'
     | '/api/public/sequences/test-send'
     | '/api/public/widget/submit'
@@ -838,6 +851,7 @@ export interface RootRouteChildren {
   ApiPublicOptoutShortReverseRoute: typeof ApiPublicOptoutShortReverseRoute
   ApiPublicSequencesDueRoute: typeof ApiPublicSequencesDueRoute
   ApiPublicSequencesInboundRoute: typeof ApiPublicSequencesInboundRoute
+  ApiPublicSequencesInspectRoute: typeof ApiPublicSequencesInspectRoute
   ApiPublicSequencesSentRoute: typeof ApiPublicSequencesSentRoute
   ApiPublicSequencesTestSendRoute: typeof ApiPublicSequencesTestSendRoute
   ApiPublicWidgetSubmitRoute: typeof ApiPublicWidgetSubmitRoute
@@ -1020,6 +1034,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/sequences/sent'
       fullPath: '/api/public/sequences/sent'
       preLoaderRoute: typeof ApiPublicSequencesSentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sequences/inspect': {
+      id: '/api/public/sequences/inspect'
+      path: '/api/public/sequences/inspect'
+      fullPath: '/api/public/sequences/inspect'
+      preLoaderRoute: typeof ApiPublicSequencesInspectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/sequences/inbound': {
@@ -1365,6 +1386,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicOptoutShortReverseRoute: ApiPublicOptoutShortReverseRoute,
   ApiPublicSequencesDueRoute: ApiPublicSequencesDueRoute,
   ApiPublicSequencesInboundRoute: ApiPublicSequencesInboundRoute,
+  ApiPublicSequencesInspectRoute: ApiPublicSequencesInspectRoute,
   ApiPublicSequencesSentRoute: ApiPublicSequencesSentRoute,
   ApiPublicSequencesTestSendRoute: ApiPublicSequencesTestSendRoute,
   ApiPublicWidgetSubmitRoute: ApiPublicWidgetSubmitRoute,
@@ -1374,12 +1396,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
