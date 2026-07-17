@@ -76,6 +76,7 @@ export const Route = createFileRoute("/api/public/sequences/inspect")({
             now_brt: brtNow.toISOString().replace("Z", "-03:00"),
             brt_dow: brtNow.getUTCDay(),
             brt_hour: brtNow.getUTCHours(),
+            recent_send_log: logs ?? [],
             sequences: out,
           });
         } catch (err: any) {
