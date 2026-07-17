@@ -29,7 +29,8 @@ export const Route = createFileRoute("/api/public/sequences/inspect")({
           if (!seqs?.length) return jsonResponse({ sequences: [] });
 
           const seqIds = seqs.map((s: any) => s.id);
-          const [{ data: cs }, { data: steps }] = await Promise.all([
+          const since = new Date(Date.now() - 7 * 86400_000).toISOString();
+          const [{ data: cs }, { data: steps }, { data: logs }] = await Promise.all([
             admin
               .from("crm_contact_sequences")
               .select("id,sequence_id,contact_id,current_step,status,next_send_at,paused_at,pause_reason")
@@ -40,6 +41,12 @@ export const Route = createFileRoute("/api/public/sequences/inspect")({
               .from("crm_sequence_steps")
               .select('id,sequence_id,"order",delay_value,delay_unit')
               .in("sequence_id", seqIds),
+            admin
+              .from("crm_sequence_send_log")
+              .select("id,contact_sequence_id,step_order,status,error,created_at")
+              .gte("created_at", since)
+              .order("created_at", { ascending: false })
+              .limit(200),
           ]);
 
           const now = new Date();
@@ -69,6 +76,7 @@ export const Route = createFileRoute("/api/public/sequences/inspect")({
             now_brt: brtNow.toISOString().replace("Z", "-03:00"),
             brt_dow: brtNow.getUTCDay(),
             brt_hour: brtNow.getUTCHours(),
+            recent_send_log: logs ?? [],
             sequences: out,
           });
         } catch (err: any) {
