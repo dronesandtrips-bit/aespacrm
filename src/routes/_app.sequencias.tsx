@@ -313,6 +313,7 @@ function SequenceEditorDialog({
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [metrics, setMetrics] = useState<SequenceStepMetric[]>([]);
   const [testingIdx, setTestingIdx] = useState<number | null>(null);
+  const [runningTest, setRunningTest] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
