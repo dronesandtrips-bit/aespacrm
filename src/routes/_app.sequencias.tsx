@@ -463,6 +463,45 @@ function SequenceEditorDialog({
     }
   };
 
+  const runTestNow = async () => {
+    if (!sequence.isActive) {
+      toast.error("Ative a sequência antes de testar");
+      return;
+    }
+    if (!confirm(
+      "Disparar 1 mensagem REAL agora para o primeiro contato pronto desta sequência (ignorando janela de horário)?",
+    )) return;
+    setRunningTest(true);
+    try {
+      const c = await getSupabaseClient();
+      if (!c) throw new Error("Supabase não configurado");
+      const { data: sess } = await c.auth.getSession();
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("Não autenticado");
+      const res = await fetch("/api/public/sequences/test-run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sequence_id: sequence.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error ?? `Falha (${res.status})`);
+      const to = data?.sent_to;
+      toast.success(
+        `Disparado para ${to?.name ?? to?.phone ?? "contato"} — step ${data?.step_order}${data?.completed ? " (sequência concluída)" : ""}`,
+      );
+      await reloadMetrics();
+      onChange();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setRunningTest(false);
+    }
+  };
+
+
   const save = async () => {
     if (steps.some((s) => !s.message.trim())) {
       toast.error("Todos os passos precisam de mensagem");
