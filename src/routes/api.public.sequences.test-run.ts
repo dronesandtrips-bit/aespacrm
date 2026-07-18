@@ -70,8 +70,8 @@ export const Route = createFileRoute("/api/public/sequences/test-run")({
           if (!seq.is_active)
             return jsonResponse({ error: "Ative a sequência antes de testar" }, 400);
 
-          // Escolhe 1 contact_sequence "active" com next_send_at vencido.
-          // Aceita id específico OU pega o primeiro disponível.
+          // Escolhe 1 contact_sequence "active" com next_send_at vencido,
+          // pulando contatos na blacklist (busca até 50 candidatos).
           let query = admin
             .from("crm_contact_sequences")
             .select("id,user_id,contact_id,sequence_id,current_step,next_send_at,status")
@@ -80,17 +80,32 @@ export const Route = createFileRoute("/api/public/sequences/test-run")({
             .eq("status", "active")
             .lte("next_send_at", new Date().toISOString())
             .order("next_send_at", { ascending: true })
-            .limit(1);
+            .limit(50);
           if (contact_sequence_id) query = query.eq("id", contact_sequence_id);
           const { data: dueRows, error: dueErr } = await query;
           if (dueErr) throw dueErr;
-          const cs = dueRows?.[0];
-          if (!cs) {
+          if (!dueRows || dueRows.length === 0) {
             return jsonResponse(
               {
                 error:
                   "Nenhum contato pronto para envio nesta sequência (todos aguardando delay ou pausados)",
               },
+              404,
+            );
+          }
+
+          // Filtra contatos válidos (não blacklistados)
+          const contactIds = dueRows.map((r: any) => r.contact_id);
+          const { data: candidates, error: candErr } = await admin
+            .from("crm_contacts")
+            .select("id,name,phone,email,is_ignored")
+            .in("id", contactIds);
+          if (candErr) throw candErr;
+          const validContact = (candidates ?? []).find((c: any) => !c.is_ignored);
+          const cs = dueRows.find((r: any) => r.contact_id === validContact?.id);
+          if (!cs || !validContact) {
+            return jsonResponse(
+              { error: "Todos os contatos prontos estão na blacklist" },
               404,
             );
           }
