@@ -682,6 +682,20 @@ function SequenceEditorDialog({
           <DialogTitle className="flex items-center justify-between gap-3">
             <span>{sequence.name}</span>
             <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={runTestNow}
+                disabled={runningTest || !sequence.isActive}
+                title="Dispara 1 mensagem real ao primeiro contato pronto (ignora janela de horário)"
+              >
+                {runningTest ? (
+                  <Loader2 className="size-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Play className="size-3.5 mr-1" />
+                )}
+                Testar disparo agora
+              </Button>
               <Button variant="outline" size="sm" onClick={toggleActive}>
                 {sequence.isActive ? "Pausar" : "Ativar"}
               </Button>
