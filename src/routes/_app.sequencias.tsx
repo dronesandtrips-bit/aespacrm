@@ -313,6 +313,7 @@ function SequenceEditorDialog({
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [metrics, setMetrics] = useState<SequenceStepMetric[]>([]);
   const [testingIdx, setTestingIdx] = useState<number | null>(null);
+  const [runningTest, setRunningTest] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -461,6 +462,45 @@ function SequenceEditorDialog({
       setTestingIdx(null);
     }
   };
+
+  const runTestNow = async () => {
+    if (!sequence.isActive) {
+      toast.error("Ative a sequência antes de testar");
+      return;
+    }
+    if (!confirm(
+      "Disparar 1 mensagem REAL agora para o primeiro contato pronto desta sequência (ignorando janela de horário)?",
+    )) return;
+    setRunningTest(true);
+    try {
+      const c = await getSupabaseClient();
+      if (!c) throw new Error("Supabase não configurado");
+      const { data: sess } = await c.auth.getSession();
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("Não autenticado");
+      const res = await fetch("/api/public/sequences/test-run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ sequence_id: sequence.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error ?? `Falha (${res.status})`);
+      const to = data?.sent_to;
+      toast.success(
+        `Disparado para ${to?.name ?? to?.phone ?? "contato"} — step ${data?.step_order}${data?.completed ? " (sequência concluída)" : ""}`,
+      );
+      await reloadMetrics();
+      onChange();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setRunningTest(false);
+    }
+  };
+
 
   const save = async () => {
     if (steps.some((s) => !s.message.trim())) {
@@ -642,6 +682,20 @@ function SequenceEditorDialog({
           <DialogTitle className="flex items-center justify-between gap-3">
             <span>{sequence.name}</span>
             <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={runTestNow}
+                disabled={runningTest || !sequence.isActive}
+                title="Dispara 1 mensagem real ao primeiro contato pronto (ignora janela de horário)"
+              >
+                {runningTest ? (
+                  <Loader2 className="size-3.5 mr-1 animate-spin" />
+                ) : (
+                  <Play className="size-3.5 mr-1" />
+                )}
+                Testar disparo agora
+              </Button>
               <Button variant="outline" size="sm" onClick={toggleActive}>
                 {sequence.isActive ? "Pausar" : "Ativar"}
               </Button>

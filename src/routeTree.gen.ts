@@ -33,6 +33,7 @@ import { Route as WidgetFormIdRouteImport } from './routes/widget.form.$id'
 import { Route as ApiPublicLinkPreviewRouteImport } from './routes/api.public.link-preview'
 import { Route as ApiPublicWidgetSubmitRouteImport } from './routes/api.public.widget.submit'
 import { Route as ApiPublicSequencesTestSendRouteImport } from './routes/api.public.sequences.test-send'
+import { Route as ApiPublicSequencesTestRunRouteImport } from './routes/api.public.sequences.test-run'
 import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.sequences.sent'
 import { Route as ApiPublicSequencesInspectRouteImport } from './routes/api.public.sequences.inspect'
 import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.public.sequences.inbound'
@@ -191,6 +192,12 @@ const ApiPublicSequencesTestSendRoute =
   ApiPublicSequencesTestSendRouteImport.update({
     id: '/api/public/sequences/test-send',
     path: '/api/public/sequences/test-send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSequencesTestRunRoute =
+  ApiPublicSequencesTestRunRouteImport.update({
+    id: '/api/public/sequences/test-run',
+    path: '/api/public/sequences/test-run',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicSequencesSentRoute = ApiPublicSequencesSentRouteImport.update({
@@ -475,6 +482,7 @@ export interface FileRoutesByFullPath {
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/inspect': typeof ApiPublicSequencesInspectRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
+  '/api/public/sequences/test-run': typeof ApiPublicSequencesTestRunRoute
   '/api/public/sequences/test-send': typeof ApiPublicSequencesTestSendRoute
   '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
   '/api/public/widget/config/$id': typeof ApiPublicWidgetConfigIdRoute
@@ -539,6 +547,7 @@ export interface FileRoutesByTo {
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/inspect': typeof ApiPublicSequencesInspectRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
+  '/api/public/sequences/test-run': typeof ApiPublicSequencesTestRunRoute
   '/api/public/sequences/test-send': typeof ApiPublicSequencesTestSendRoute
   '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
   '/api/public/widget/config/$id': typeof ApiPublicWidgetConfigIdRoute
@@ -605,6 +614,7 @@ export interface FileRoutesById {
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/inspect': typeof ApiPublicSequencesInspectRoute
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
+  '/api/public/sequences/test-run': typeof ApiPublicSequencesTestRunRoute
   '/api/public/sequences/test-send': typeof ApiPublicSequencesTestSendRoute
   '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
   '/api/public/widget/config/$id': typeof ApiPublicWidgetConfigIdRoute
@@ -671,6 +681,7 @@ export interface FileRouteTypes {
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/inspect'
     | '/api/public/sequences/sent'
+    | '/api/public/sequences/test-run'
     | '/api/public/sequences/test-send'
     | '/api/public/widget/submit'
     | '/api/public/widget/config/$id'
@@ -735,6 +746,7 @@ export interface FileRouteTypes {
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/inspect'
     | '/api/public/sequences/sent'
+    | '/api/public/sequences/test-run'
     | '/api/public/sequences/test-send'
     | '/api/public/widget/submit'
     | '/api/public/widget/config/$id'
@@ -800,6 +812,7 @@ export interface FileRouteTypes {
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/inspect'
     | '/api/public/sequences/sent'
+    | '/api/public/sequences/test-run'
     | '/api/public/sequences/test-send'
     | '/api/public/widget/submit'
     | '/api/public/widget/config/$id'
@@ -853,6 +866,7 @@ export interface RootRouteChildren {
   ApiPublicSequencesInboundRoute: typeof ApiPublicSequencesInboundRoute
   ApiPublicSequencesInspectRoute: typeof ApiPublicSequencesInspectRoute
   ApiPublicSequencesSentRoute: typeof ApiPublicSequencesSentRoute
+  ApiPublicSequencesTestRunRoute: typeof ApiPublicSequencesTestRunRoute
   ApiPublicSequencesTestSendRoute: typeof ApiPublicSequencesTestSendRoute
   ApiPublicWidgetSubmitRoute: typeof ApiPublicWidgetSubmitRoute
   ApiPublicWidgetConfigIdRoute: typeof ApiPublicWidgetConfigIdRoute
@@ -1027,6 +1041,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/sequences/test-send'
       fullPath: '/api/public/sequences/test-send'
       preLoaderRoute: typeof ApiPublicSequencesTestSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sequences/test-run': {
+      id: '/api/public/sequences/test-run'
+      path: '/api/public/sequences/test-run'
+      fullPath: '/api/public/sequences/test-run'
+      preLoaderRoute: typeof ApiPublicSequencesTestRunRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/sequences/sent': {
@@ -1388,6 +1409,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSequencesInboundRoute: ApiPublicSequencesInboundRoute,
   ApiPublicSequencesInspectRoute: ApiPublicSequencesInspectRoute,
   ApiPublicSequencesSentRoute: ApiPublicSequencesSentRoute,
+  ApiPublicSequencesTestRunRoute: ApiPublicSequencesTestRunRoute,
   ApiPublicSequencesTestSendRoute: ApiPublicSequencesTestSendRoute,
   ApiPublicWidgetSubmitRoute: ApiPublicWidgetSubmitRoute,
   ApiPublicWidgetConfigIdRoute: ApiPublicWidgetConfigIdRoute,
