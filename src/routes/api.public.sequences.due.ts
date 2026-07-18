@@ -148,7 +148,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               if (!seq || !contact || !seq.is_active) return null;
               // Cinto-e-suspensório: nunca dispara para contato na blacklist.
               if (contact.is_ignored) return null;
-              if (!inWindow(seq)) return null;
+              if (!bypassWindow && !inWindow(seq)) return null;
               const steps = (stepsBySeq.get(d.sequence_id) ?? []).sort(
                 (a: any, b: any) => a.order - b.order,
               );
