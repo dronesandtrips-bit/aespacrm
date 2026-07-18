@@ -110,15 +110,7 @@ export const Route = createFileRoute("/api/public/sequences/test-run")({
             );
           }
 
-          const { data: contact, error: cErr } = await admin
-            .from("crm_contacts")
-            .select("id,name,phone,email,is_ignored")
-            .eq("id", cs.contact_id)
-            .maybeSingle();
-          if (cErr) throw cErr;
-          if (!contact) return jsonResponse({ error: "Contato não encontrado" }, 404);
-          if (contact.is_ignored)
-            return jsonResponse({ error: "Contato está na blacklist" }, 400);
+          const contact = validContact;
 
           const { data: steps, error: stErr } = await admin
             .from("crm_sequence_steps")
