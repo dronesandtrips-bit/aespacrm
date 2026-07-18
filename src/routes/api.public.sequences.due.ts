@@ -59,6 +59,11 @@ export const Route = createFileRoute("/api/public/sequences/due")({
           const url = new URL(request.url);
           const userId = url.searchParams.get("user_id");
           const limit = Math.min(Number(url.searchParams.get("limit") ?? 50), 200);
+          // Modo teste: ignora janela de horário para validar o pipeline ponta-a-ponta.
+          // Ex.: GET /api/public/sequences/due?bypass_window=1&limit=1
+          const bypassWindow = ["1", "true", "yes"].includes(
+            (url.searchParams.get("bypass_window") ?? "").toLowerCase(),
+          );
 
           const admin = getSupabaseAdmin();
 
@@ -143,7 +148,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               if (!seq || !contact || !seq.is_active) return null;
               // Cinto-e-suspensório: nunca dispara para contato na blacklist.
               if (contact.is_ignored) return null;
-              if (!inWindow(seq)) return null;
+              if (!bypassWindow && !inWindow(seq)) return null;
               const steps = (stepsBySeq.get(d.sequence_id) ?? []).sort(
                 (a: any, b: any) => a.order - b.order,
               );
