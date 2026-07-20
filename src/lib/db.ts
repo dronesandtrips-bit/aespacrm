@@ -983,6 +983,11 @@ export const bulkSendsDb = {
     const { error } = await c.from("crm_bulk_sends").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
+  async remove(id: string) {
+    const c = await client();
+    const { error } = await c.from("crm_bulk_sends").delete().eq("id", id);
+    if (error) throw error;
+  },
 };
 
 // ===================== Sequências =====================
