@@ -25,6 +25,7 @@ import {
   Ban,
   CalendarDays,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -351,6 +352,18 @@ function DisparosPage() {
     }
   };
 
+  const removeBulk = async (b: BulkSend) => {
+    if (!confirm(`Apagar o disparo "${b.name}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await bulkSendsDb.remove(b.id);
+      toast.success("Disparo apagado");
+      setDetail((d) => (d?.id === b.id ? null : d));
+      setHistory(await bulkSendsDb.list());
+    } catch (e: any) {
+      toast.error(`Falha ao apagar: ${e.message ?? e}`);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5 max-w-[1400px]">
       {/* Form principal */}
@@ -581,6 +594,7 @@ function DisparosPage() {
             const canPause = b.status === "in_progress" && b.control !== "paused";
             const canResume = b.status === "paused" || b.control === "paused";
             const canCancel = ["scheduled", "in_progress", "paused"].includes(b.status);
+            const canDelete = ["cancelled", "error", "completed"].includes(b.status);
             return (
               <div
                 key={b.id}
@@ -615,8 +629,8 @@ function DisparosPage() {
                     <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
-                {(canPause || canResume || canCancel) && (
-                  <div className="flex gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
+                {(canPause || canResume || canCancel || canDelete) && (
+                  <div className="flex gap-1 pt-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
                     {canPause && (
                       <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setControl(b, "paused")}>
                         <Pause className="size-3" /> Pausar
@@ -630,6 +644,11 @@ function DisparosPage() {
                     {canCancel && (
                       <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-destructive" onClick={() => setControl(b, "cancelled")}>
                         <Square className="size-3" /> Cancelar
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-destructive" onClick={() => removeBulk(b)}>
+                        <Trash2 className="size-3" /> Apagar
                       </Button>
                     )}
                   </div>
