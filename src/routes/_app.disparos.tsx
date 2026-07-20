@@ -594,7 +594,7 @@ function DisparosPage() {
             const canPause = b.status === "in_progress" && b.control !== "paused";
             const canResume = b.status === "paused" || b.control === "paused";
             const canCancel = ["scheduled", "in_progress", "paused"].includes(b.status);
-            const canDelete = ["cancelled", "error", "completed"].includes(b.status);
+            const canDelete = ["cancelled", "error", "completed", "scheduled"].includes(b.status);
             return (
               <div
                 key={b.id}
