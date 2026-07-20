@@ -101,21 +101,27 @@ export async function runBulkDispatch(opts: {
     return { sent: 0, failed: 0, total: contactIds.length, cancelled: true, done: true };
   }
 
-  const { data: contacts, error: contactsError } = await sb
-    .from("crm_contacts")
-    .select("id, name, phone_norm, notes, category_id, category:crm_categories!crm_contacts_category_id_fkey(name)")
-    .eq("user_id", userId)
-    .eq("is_group", false)
-    .in("id", contactIds);
-
-  if (contactsError) {
-    console.error("[bulk] contacts query failed", contactsError);
-    await sb
-      .from("crm_bulk_sends")
-      .update({ status: "error", claimed_at: null })
-      .eq("id", bulkId)
-      .eq("user_id", userId);
-    throw contactsError;
+  // Busca em lotes para evitar "URI too long" no PostgREST (listas grandes).
+  const CHUNK = 200;
+  const contacts: any[] = [];
+  for (let i = 0; i < contactIds.length; i += CHUNK) {
+    const slice = contactIds.slice(i, i + CHUNK);
+    const { data, error } = await sb
+      .from("crm_contacts")
+      .select("id, name, phone_norm, notes, category_id, category:crm_categories!crm_contacts_category_id_fkey(name)")
+      .eq("user_id", userId)
+      .eq("is_group", false)
+      .in("id", slice);
+    if (error) {
+      console.error("[bulk] contacts query failed", error);
+      await sb
+        .from("crm_bulk_sends")
+        .update({ status: "error", claimed_at: null })
+        .eq("id", bulkId)
+        .eq("user_id", userId);
+      throw error;
+    }
+    if (data) contacts.push(...data);
   }
 
   // Mantém ordem de contactIds (o cursor é índice nessa lista).
