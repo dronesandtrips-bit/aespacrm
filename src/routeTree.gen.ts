@@ -20,6 +20,7 @@ import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
 import { Route as AppTemplatesRouteImport } from './routes/_app.templates'
 import { Route as AppSequenciasDashboardRouteImport } from './routes/_app.sequencias-dashboard'
 import { Route as AppSequenciasRouteImport } from './routes/_app.sequencias'
+import { Route as AppRedactRouteImport } from './routes/_app.redact'
 import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
 import { Route as AppLogsRouteImport } from './routes/_app.logs'
 import { Route as AppInboxRouteImport } from './routes/_app.inbox'
@@ -126,6 +127,11 @@ const AppSequenciasDashboardRoute = AppSequenciasDashboardRouteImport.update({
 const AppSequenciasRoute = AppSequenciasRouteImport.update({
   id: '/sequencias',
   path: '/sequencias',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRedactRoute = AppRedactRouteImport.update({
+  id: '/redact',
+  path: '/redact',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPipelineRoute = AppPipelineRouteImport.update({
@@ -437,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof AppInboxRoute
   '/logs': typeof AppLogsRoute
   '/pipeline': typeof AppPipelineRoute
+  '/redact': typeof AppRedactRoute
   '/sequencias': typeof AppSequenciasRoute
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/templates': typeof AppTemplatesRoute
@@ -502,6 +509,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof AppInboxRoute
   '/logs': typeof AppLogsRoute
   '/pipeline': typeof AppPipelineRoute
+  '/redact': typeof AppRedactRoute
   '/sequencias': typeof AppSequenciasRoute
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/templates': typeof AppTemplatesRoute
@@ -569,6 +577,7 @@ export interface FileRoutesById {
   '/_app/inbox': typeof AppInboxRoute
   '/_app/logs': typeof AppLogsRoute
   '/_app/pipeline': typeof AppPipelineRoute
+  '/_app/redact': typeof AppRedactRoute
   '/_app/sequencias': typeof AppSequenciasRoute
   '/_app/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/_app/templates': typeof AppTemplatesRoute
@@ -636,6 +645,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/logs'
     | '/pipeline'
+    | '/redact'
     | '/sequencias'
     | '/sequencias-dashboard'
     | '/templates'
@@ -701,6 +711,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/logs'
     | '/pipeline'
+    | '/redact'
     | '/sequencias'
     | '/sequencias-dashboard'
     | '/templates'
@@ -767,6 +778,7 @@ export interface FileRouteTypes {
     | '/_app/inbox'
     | '/_app/logs'
     | '/_app/pipeline'
+    | '/_app/redact'
     | '/_app/sequencias'
     | '/_app/sequencias-dashboard'
     | '/_app/templates'
@@ -950,6 +962,13 @@ declare module '@tanstack/react-router' {
       path: '/sequencias'
       fullPath: '/sequencias'
       preLoaderRoute: typeof AppSequenciasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/redact': {
+      id: '/_app/redact'
+      path: '/redact'
+      fullPath: '/redact'
+      preLoaderRoute: typeof AppRedactRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/pipeline': {
@@ -1336,6 +1355,7 @@ interface AppRouteChildren {
   AppInboxRoute: typeof AppInboxRoute
   AppLogsRoute: typeof AppLogsRoute
   AppPipelineRoute: typeof AppPipelineRoute
+  AppRedactRoute: typeof AppRedactRoute
   AppSequenciasRoute: typeof AppSequenciasRoute
   AppSequenciasDashboardRoute: typeof AppSequenciasDashboardRoute
   AppTemplatesRoute: typeof AppTemplatesRoute
@@ -1352,6 +1372,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInboxRoute: AppInboxRoute,
   AppLogsRoute: AppLogsRoute,
   AppPipelineRoute: AppPipelineRoute,
+  AppRedactRoute: AppRedactRoute,
   AppSequenciasRoute: AppSequenciasRoute,
   AppSequenciasDashboardRoute: AppSequenciasDashboardRoute,
   AppTemplatesRoute: AppTemplatesRoute,
@@ -1418,12 +1439,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
