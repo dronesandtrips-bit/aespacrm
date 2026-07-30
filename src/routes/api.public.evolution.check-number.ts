@@ -12,6 +12,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin, jsonResponse, PUBLIC_CORS } from "@/integrations/supabase/server";
+import { phoneMatchVariants } from "@/lib/phone-validation";
 
 const INSTANCE = "zapcrm";
 const MIN_INTERVAL_MS = 3000;
@@ -88,14 +89,18 @@ export const Route = createFileRoute("/api/public/evolution/check-number")({
 
           const sbAdmin = getSupabaseAdmin();
 
-          // 1. Já existe no CRM?
-          const { data: existing } = await sbAdmin
+          // 1. Já existe no CRM? Considera as variantes de 9º dígito (BR),
+          // senão o mesmo contato salvo no formato oposto passa despercebido
+          // e a inserção colide em uq_crm_contacts_user_wajid.
+          const variants = phoneMatchVariants(number);
+          const { data: existingList } = await sbAdmin
             .from("crm_contacts")
             .select("id, name, phone")
             .eq("user_id", userId)
-            .eq("phone_norm", number)
             .eq("is_group", false)
-            .maybeSingle();
+            .in("phone_norm", variants)
+            .limit(1);
+          const existing = existingList?.[0];
 
           if (existing) {
             return jsonResponse({
@@ -104,6 +109,7 @@ export const Route = createFileRoute("/api/public/evolution/check-number")({
               contact: { id: existing.id, name: existing.name, phone: existing.phone },
             });
           }
+
 
           // 2. Pergunta à Evolution se o número está no WhatsApp
           const evRes = await fetch(
@@ -155,15 +161,27 @@ export const Route = createFileRoute("/api/public/evolution/check-number")({
             .single();
 
           if (insertErr) {
-            // Race condition — outro request criou no meio
+            // Conflito: já existe contato com esse telefone (qualquer variante)
+            // ou com esse wa_jid. Nesse caso devolvemos o contato existente
+            // em vez de erro — é o mesmo contato.
             if (insertErr.code === "23505") {
-              const { data: dup } = await sbAdmin
+              const { data: byPhone } = await sbAdmin
                 .from("crm_contacts")
                 .select("id, name, phone")
                 .eq("user_id", userId)
-                .eq("phone_norm", number)
                 .eq("is_group", false)
-                .maybeSingle();
+                .in("phone_norm", variants)
+                .limit(1);
+              let dup = byPhone?.[0] ?? null;
+              if (!dup) {
+                const { data: byJid } = await sbAdmin
+                  .from("crm_contacts")
+                  .select("id, name, phone")
+                  .eq("user_id", userId)
+                  .eq("wa_jid", jid)
+                  .limit(1);
+                dup = byJid?.[0] ?? null;
+              }
               if (dup) {
                 return jsonResponse({
                   ok: true,
@@ -177,6 +195,7 @@ export const Route = createFileRoute("/api/public/evolution/check-number")({
               500,
             );
           }
+
 
           return jsonResponse({
             ok: true,
