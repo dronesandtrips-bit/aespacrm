@@ -161,15 +161,27 @@ export const Route = createFileRoute("/api/public/evolution/check-number")({
             .single();
 
           if (insertErr) {
-            // Race condition — outro request criou no meio
+            // Conflito: já existe contato com esse telefone (qualquer variante)
+            // ou com esse wa_jid. Nesse caso devolvemos o contato existente
+            // em vez de erro — é o mesmo contato.
             if (insertErr.code === "23505") {
-              const { data: dup } = await sbAdmin
+              const { data: byPhone } = await sbAdmin
                 .from("crm_contacts")
                 .select("id, name, phone")
                 .eq("user_id", userId)
-                .eq("phone_norm", number)
                 .eq("is_group", false)
-                .maybeSingle();
+                .in("phone_norm", variants)
+                .limit(1);
+              let dup = byPhone?.[0] ?? null;
+              if (!dup) {
+                const { data: byJid } = await sbAdmin
+                  .from("crm_contacts")
+                  .select("id, name, phone")
+                  .eq("user_id", userId)
+                  .eq("wa_jid", jid)
+                  .limit(1);
+                dup = byJid?.[0] ?? null;
+              }
               if (dup) {
                 return jsonResponse({
                   ok: true,
@@ -183,6 +195,7 @@ export const Route = createFileRoute("/api/public/evolution/check-number")({
               500,
             );
           }
+
 
           return jsonResponse({
             ok: true,
