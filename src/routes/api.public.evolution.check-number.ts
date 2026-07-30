@@ -88,14 +88,18 @@ export const Route = createFileRoute("/api/public/evolution/check-number")({
 
           const sbAdmin = getSupabaseAdmin();
 
-          // 1. Já existe no CRM?
-          const { data: existing } = await sbAdmin
+          // 1. Já existe no CRM? Considera as variantes de 9º dígito (BR),
+          // senão o mesmo contato salvo no formato oposto passa despercebido
+          // e a inserção colide em uq_crm_contacts_user_wajid.
+          const variants = phoneMatchVariants(number);
+          const { data: existingList } = await sbAdmin
             .from("crm_contacts")
             .select("id, name, phone")
             .eq("user_id", userId)
-            .eq("phone_norm", number)
             .eq("is_group", false)
-            .maybeSingle();
+            .in("phone_norm", variants)
+            .limit(1);
+          const existing = existingList?.[0];
 
           if (existing) {
             return jsonResponse({
@@ -104,6 +108,7 @@ export const Route = createFileRoute("/api/public/evolution/check-number")({
               contact: { id: existing.id, name: existing.name, phone: existing.phone },
             });
           }
+
 
           // 2. Pergunta à Evolution se o número está no WhatsApp
           const evRes = await fetch(
