@@ -409,6 +409,25 @@ function PipelinePage() {
     const overId = e.over?.id as string | undefined;
     if (!overId) return;
 
+    // Lixeira: remove o contato do quadro (não apaga o contato)
+    if (overId === "trash") {
+      if (activeId.startsWith("stage:")) return;
+      const contactId = activeId;
+      const previous = placement;
+      setPlacement(previous.filter((p) => p.contactId !== contactId));
+      persistHidden(new Set([...hidden, contactId]));
+      try {
+        await pipelineDb.removeContactFromStage(contactId);
+        toast.success("Contato removido do pipeline");
+      } catch (err: any) {
+        setPlacement(previous);
+        toast.error(`Erro: ${err.message ?? err}`);
+      }
+      return;
+    }
+
+
+
     // Reordenação de etapas (stage:xxx -> stage:yyy)
     if (activeId.startsWith("stage:") && overId.startsWith("stage:")) {
       const fromId = activeId.slice("stage:".length);
