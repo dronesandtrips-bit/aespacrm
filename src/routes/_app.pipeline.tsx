@@ -308,7 +308,27 @@ function StageColumn({
   );
 }
 
+function TrashZone({ active }: { active: boolean }) {
+  const { setNodeRef, isOver } = useDroppable({ id: "trash" });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-sm transition-all",
+        active ? "opacity-100" : "opacity-50",
+        isOver
+          ? "border-destructive bg-destructive/10 text-destructive scale-[1.01]"
+          : "border-muted-foreground/30 text-muted-foreground",
+      )}
+    >
+      <Trash2 className={cn("size-5", isOver && "animate-pulse")} />
+      <span>{isOver ? "Solte para remover do pipeline" : "Arraste aqui para remover do pipeline"}</span>
+    </div>
+  );
+}
+
 function PipelinePage() {
+
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
