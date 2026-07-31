@@ -3,6 +3,7 @@
 // o usuário só consegue ver/modificar as próprias linhas.
 
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { phoneMatchVariants } from "@/lib/phone-validation";
 
 // ===================== Tipos =====================
 
