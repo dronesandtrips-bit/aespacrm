@@ -83,6 +83,54 @@ async function fetchWithAuthRetry(input: RequestInfo | URL, init: RequestInit = 
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  // Pipeline (mover contato para etapa sem sair do WhatsWeb)
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
+  const [stageByContact, setStageByContact] = useState<Record<string, string>>({});
+  const [movingStage, setMovingStage] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [s, p] = await Promise.all([pipelineDb.listStages(), pipelineDb.listPlacements()]);
+        setPipelineStages(s);
+        const map: Record<string, string> = {};
+        p.forEach((x) => { map[x.contactId] = x.stageId; });
+        setStageByContact(map);
+      } catch {
+        /* pipeline opcional */
+      }
+    })();
+  }, []);
+  const handleMoveToStage = async (contactId: string, stageId: string) => {
+    setMovingStage(true);
+    const previous = stageByContact;
+    setStageByContact({ ...previous, [contactId]: stageId });
+    try {
+      await pipelineDb.moveContactToStage(contactId, stageId);
+      toast.success(`Movido para ${pipelineStages.find((s) => s.id === stageId)?.name ?? "etapa"}`);
+    } catch (e: any) {
+      setStageByContact(previous);
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setMovingStage(false);
+    }
+  };
+  const handleRemoveFromPipeline = async (contactId: string) => {
+    setMovingStage(true);
+    const previous = stageByContact;
+    const next = { ...previous };
+    delete next[contactId];
+    setStageByContact(next);
+    try {
+      await pipelineDb.removeContactFromStage(contactId);
+      toast.success("Removido do pipeline");
+    } catch (e: any) {
+      setStageByContact(previous);
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setMovingStage(false);
+    }
+  };
+
   const [lastByContact, setLastByContact] = useState<LastMap>({});
   const [replyPauseByContact, setReplyPauseByContact] = useState<PauseMap>({});
   // Estado de "não lidas" por conversa — calculado contra crm_contacts.last_read_at
