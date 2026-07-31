@@ -618,15 +618,25 @@ function InboxPage() {
     };
   }, [refreshInbox]);
 
-  // Fallback: se o Realtime do servidor não entregar evento, sincroniza a lista
-  // periodicamente para manter o WhatsWeb atualizado sem precisar clicar em atualizar.
+  // Fallback: se o Realtime do servidor não entregar evento, sincroniza a lista.
+  // Ciclo curto (5s) = incremental (só mensagens novas). A cada 60s roda um
+  // refresh completo como rede de segurança (nomes, tags, categorias).
   useEffect(() => {
     if (loading) return;
+    let ticks = 0;
+    let running = false;
     const id = window.setInterval(() => {
-      refreshInbox().catch((e: any) => console.warn("Falha ao sincronizar inbox", e));
+      if (running) return;
+      running = true;
+      ticks += 1;
+      const full = ticks % 12 === 0;
+      (full ? refreshInbox() : refreshIncremental())
+        .catch((e: any) => console.warn("Falha ao sincronizar inbox", e))
+        .finally(() => { running = false; });
     }, 5000);
     return () => window.clearInterval(id);
-  }, [loading, refreshInbox]);
+  }, [loading, refreshInbox, refreshIncremental]);
+
 
   // Carrega sequências pausadas por resposta do lead (badge no Inbox)
   useEffect(() => {
