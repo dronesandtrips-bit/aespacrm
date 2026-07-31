@@ -1530,6 +1530,57 @@ function InboxPage() {
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5">
+                                  {movingStage ? <Loader2 className="size-4 animate-spin" /> : <Kanban className="size-4 text-sky-400" />}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-64">
+                                <DropdownMenuLabel>Mover no Pipeline</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {pipelineStages.length === 0 ? (
+                                  <DropdownMenuItem disabled>Nenhuma etapa criada</DropdownMenuItem>
+                                ) : (
+                                  pipelineStages.map((st) => {
+                                    const current = stageByContact[active.id] === st.id;
+                                    return (
+                                      <DropdownMenuItem
+                                        key={st.id}
+                                        onSelect={(e) => {
+                                          e.preventDefault();
+                                          if (!current) handleMoveToStage(active.id, st.id);
+                                        }}
+                                      >
+                                        <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: st.color }} />
+                                        <span className="flex-1 truncate">{st.name}</span>
+                                        {current && <Check className="size-4 text-primary" />}
+                                      </DropdownMenuItem>
+                                    );
+                                  })
+                                )}
+                                {stageByContact[active.id] && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleRemoveFromPipeline(active.id);
+                                      }}
+                                    >
+                                      <Trash2 className="size-4 opacity-60" />
+                                      <span className="flex-1">Remover do pipeline</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TooltipTrigger>
+                          <TooltipContent>Mover no Pipeline</TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
