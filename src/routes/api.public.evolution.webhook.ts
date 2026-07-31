@@ -15,6 +15,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getSupabaseAdmin, jsonResponse } from "@/integrations/supabase/server";
 import { isStrictValidPhone, phoneMatchVariants } from "@/lib/phone-validation";
+import { cacheAvatarFromUrl } from "@/lib/avatar-cache.server";
+
 
 const INSTANCE = "zapcrm";
 
