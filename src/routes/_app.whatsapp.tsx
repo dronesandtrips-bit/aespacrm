@@ -787,3 +787,79 @@ function CleanupGroupsButton() {
     </div>
   );
 }
+
+function CacheAvatarsButton() {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<null | {
+    scanned?: number;
+    cached?: number;
+    skipped?: number;
+    failed?: number;
+    lastError?: string | null;
+  }>(null);
+
+  async function run() {
+    setLoading(true);
+    setResult(null);
+    try {
+      const c = await getSupabaseClient();
+      const { data: sess } = (await c?.auth.getSession()) ?? { data: { session: null } };
+      const token = sess?.session?.access_token;
+      if (!token) throw new Error("sessão expirada — faça login novamente");
+
+      const res = await fetch("/api/public/avatars/refresh", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ limit: 200 }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.detail || data?.error || `HTTP ${res.status}`);
+      }
+      setResult(data);
+      if ((data.cached ?? 0) > 0) toast.success(`${data.cached} foto(s) armazenada(s)!`);
+      else toast.info("Nenhuma foto nova para armazenar");
+    } catch (e: any) {
+      toast.error("Falha ao armazenar fotos", { description: String(e?.message ?? e) });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="text-left space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h4 className="font-semibold text-sm flex items-center gap-2">
+            <ImageIcon className="size-4 text-primary" />
+            Armazenar fotos de perfil
+          </h4>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Baixa as fotos do WhatsApp e guarda uma cópia própria — acaba com os
+            avatares que somem (erro 403) quando o link do WhatsApp expira.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={run}
+          disabled={loading}
+          className="gap-2 shrink-0"
+        >
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+          {loading ? "Processando..." : "Armazenar"}
+        </Button>
+      </div>
+      {result ? (
+        <div className="text-xs text-muted-foreground bg-muted/40 rounded-md p-2 space-y-0.5">
+          <div>🖼️ Armazenadas: <b className="text-foreground">{result.cached ?? 0}</b></div>
+          <div>🔎 Analisados: <b className="text-foreground">{result.scanned ?? 0}</b></div>
+          <div>⏭️ Já em cache/sem foto: <b className="text-foreground">{result.skipped ?? 0}</b></div>
+          {result.failed ? <div className="text-destructive">⚠️ Falhas: {result.failed}</div> : null}
+          {result.lastError ? <div className="text-destructive break-words">Detalhe: {result.lastError}</div> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
