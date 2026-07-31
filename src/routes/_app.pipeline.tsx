@@ -256,7 +256,17 @@ function ContactCard({
   );
 }
 
-function DraggableCard({ contact, category }: { contact: Contact; category?: Category }) {
+function DraggableCard({
+  contact,
+  category,
+  selected,
+  onToggleSelect,
+}: {
+  contact: Contact;
+  category?: Category;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: contact.id });
   return (
     <div
@@ -265,7 +275,12 @@ function DraggableCard({ contact, category }: { contact: Contact; category?: Cat
       {...listeners}
       style={{ opacity: isDragging ? 0.4 : 1 }}
     >
-      <ContactCard contact={contact} category={category} />
+      <ContactCard
+        contact={contact}
+        category={category}
+        selected={selected}
+        onToggleSelect={onToggleSelect}
+      />
     </div>
   );
 }
