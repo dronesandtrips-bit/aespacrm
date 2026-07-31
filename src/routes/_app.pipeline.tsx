@@ -564,26 +564,13 @@ function PipelinePage() {
       return;
     }
 
-    // Mover contato para etapa (contactId -> drop:stageId ou stage:stageId)
-    const contactId = activeId;
+    // Mover contato(s) para etapa (contactId -> drop:stageId ou stage:stageId)
     const targetStageId = overId.startsWith("drop:")
       ? overId.slice("drop:".length)
       : overId.startsWith("stage:")
       ? overId.slice("stage:".length)
       : overId;
-    const previous = placement;
-    const next = previous.find((p) => p.contactId === contactId)
-      ? previous.map((p) => (p.contactId === contactId ? { ...p, stageId: targetStageId } : p))
-      : [...previous, { contactId, stageId: targetStageId }];
-    setPlacement(next);
-    try {
-      await pipelineDb.moveContactToStage(contactId, targetStageId);
-      const stage = stages.find((s) => s.id === targetStageId);
-      toast.success(`Movido para ${stage?.name}`);
-    } catch (err: any) {
-      setPlacement(previous);
-      toast.error(`Erro: ${err.message ?? err}`);
-    }
+    await bulkMove(batch, targetStageId);
   };
 
   const activeContact = activeId ? allContacts.find((c) => c.id === activeId) : null;
