@@ -665,7 +665,6 @@ function PipelinePage() {
             ))}
           </div>
         </SortableContext>
-        </SortableContext>
         <TrashZone active={!!activeId && !activeId.startsWith("stage:")} />
         <DragOverlay>
 
