@@ -289,10 +289,16 @@ function StageColumn({
   stage,
   contacts,
   categories,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll,
 }: {
   stage: PipelineStage;
   contacts: Contact[];
   categories: Category[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onSelectAll: (ids: string[], select: boolean) => void;
 }) {
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: `drop:${stage.id}` });
   const {
