@@ -830,7 +830,17 @@ export const pipelineDb = {
         .in("sequence_id", ids);
     }
   },
+  /** Remove o contato do Kanban (não apaga o contato). */
+  async removeContactFromStage(contactId: string) {
+    const c = await client();
+    const { error } = await c
+      .from("crm_pipeline_placements")
+      .delete()
+      .eq("contact_id", contactId);
+    if (error) throw error;
+  },
 };
+
 
 // ===================== Mensagens (Inbox) =====================
 
