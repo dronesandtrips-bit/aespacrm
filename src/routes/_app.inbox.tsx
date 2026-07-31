@@ -312,6 +312,10 @@ function InboxPage() {
 
   // Marca d'água do último "at" já processado — base do refresh incremental.
   const lastSyncAtRef = useRef<string>("");
+  // Saúde do Realtime: guarda o timestamp do último evento recebido via
+  // websocket. Se estiver "vivo", o polling de segurança fica mais lento.
+  const realtimeLastEventRef = useRef<number>(0);
+  const realtimeSubscribedRef = useRef<boolean>(false);
   const lastReadRef = useRef<Record<string, string | null>>({});
   useEffect(() => { lastReadRef.current = lastReadByContact; }, [lastReadByContact]);
   const knownContactIdsRef = useRef<Set<string>>(new Set());
@@ -639,23 +643,45 @@ function InboxPage() {
   }, [refreshInbox]);
 
   // Fallback: se o Realtime do servidor não entregar evento, sincroniza a lista.
-  // Ciclo curto (5s) = incremental (só mensagens novas). A cada 60s roda um
-  // refresh completo como rede de segurança (nomes, tags, categorias).
+  // Ciclo curto (5s) = incremental (só mensagens novas). Quando o Realtime está
+  // saudável (evento recebido nos últimos 2 min), o ciclo relaxa para 20s.
+  // A cada ~60s (ou ~4min no modo relaxado) roda um refresh completo.
   useEffect(() => {
     if (loading) return;
     let ticks = 0;
     let running = false;
-    const id = window.setInterval(() => {
-      if (running) return;
+    let timer: number | null = null;
+
+    const realtimeHealthy = () =>
+      realtimeSubscribedRef.current &&
+      Date.now() - realtimeLastEventRef.current < 120_000;
+
+    const schedule = () => {
+      timer = window.setTimeout(tick, realtimeHealthy() ? 20_000 : 5000);
+    };
+
+    const tick = () => {
+      if (running) {
+        schedule();
+        return;
+      }
       running = true;
       ticks += 1;
       const full = ticks % 12 === 0;
       (full ? refreshInbox() : refreshIncremental())
         .catch((e: any) => console.warn("Falha ao sincronizar inbox", e))
-        .finally(() => { running = false; });
-    }, 5000);
-    return () => window.clearInterval(id);
+        .finally(() => {
+          running = false;
+          schedule();
+        });
+    };
+
+    schedule();
+    return () => {
+      if (timer != null) window.clearTimeout(timer);
+    };
   }, [loading, refreshInbox, refreshIncremental]);
+
 
 
   // Carrega sequências pausadas por resposta do lead (badge no Inbox)
@@ -754,6 +780,7 @@ function InboxPage() {
           "postgres_changes",
           { event: "INSERT", schema: "aespacrm", table: "crm_messages" },
           (payload: any) => {
+            realtimeLastEventRef.current = Date.now();
             const row = payload.new;
             const msg: ChatMessage = {
               id: row.id,
@@ -811,6 +838,7 @@ function InboxPage() {
           "postgres_changes",
           { event: "UPDATE", schema: "aespacrm", table: "crm_messages" },
           (payload: any) => {
+            realtimeLastEventRef.current = Date.now();
             const row = payload.new;
             const msg: ChatMessage = {
               id: row.id,
@@ -835,6 +863,7 @@ function InboxPage() {
           "postgres_changes",
           { event: "INSERT", schema: "aespacrm", table: "crm_contacts" },
           () => {
+            realtimeLastEventRef.current = Date.now();
             if (refreshTimer == null) {
               refreshTimer = window.setTimeout(() => {
                 refreshTimer = null;
@@ -843,7 +872,12 @@ function InboxPage() {
             }
           },
         )
-        .subscribe();
+        .subscribe((status: string) => {
+          realtimeSubscribedRef.current = status === "SUBSCRIBED";
+          if (status === "SUBSCRIBED") realtimeLastEventRef.current = Date.now();
+          // eslint-disable-next-line no-console
+          console.log("[inbox] realtime status:", status);
+        });
     })();
     return () => {
       cancelled = true;
