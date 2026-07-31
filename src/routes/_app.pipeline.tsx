@@ -334,6 +334,12 @@ function StageColumn({
           >
             <GripVertical className="size-4" />
           </button>
+          <Checkbox
+            className="shrink-0"
+            aria-label={`Selecionar todos de ${stage.name}`}
+            checked={contacts.length > 0 && contacts.every((c) => selectedIds.has(c.id))}
+            onCheckedChange={(v) => onSelectAll(contacts.map((c) => c.id), !!v)}
+          />
           <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
           <h4 className="font-semibold text-sm truncate">{stage.name}</h4>
         </div>
@@ -350,6 +356,8 @@ function StageColumn({
               key={c.id}
               contact={c}
               category={categories.find((cat) => cat.id === c.categoryId)}
+              selected={selectedIds.has(c.id)}
+              onToggleSelect={onToggleSelect}
             />
           ))
         )}
