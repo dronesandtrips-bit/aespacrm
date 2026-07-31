@@ -42,8 +42,16 @@ import {
   type PipelineStage,
   type PipelinePlacement,
 } from "@/lib/db";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { GripVertical, Phone, Loader2, Sparkles, AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Phone, Loader2, Sparkles, AlertTriangle, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/pipeline")({
@@ -149,10 +157,14 @@ function ContactCard({
   contact,
   category,
   dragging,
+  selected,
+  onToggleSelect,
 }: {
   contact: Contact;
   category?: Category;
   dragging?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
   const hasAi = !!contact.aiPersonaSummary || !!contact.urgencyLevel;
   const card = (
@@ -160,9 +172,23 @@ function ContactCard({
       className={cn(
         "bg-card border rounded-lg p-3 shadow-sm space-y-2 cursor-grab active:cursor-grabbing",
         dragging && "shadow-[var(--shadow-elegant)] rotate-2",
+        selected && "border-primary ring-1 ring-primary/40 bg-primary/5",
       )}
     >
       <div className="flex items-start gap-2">
+        {onToggleSelect && (
+          <span
+            className="mt-0.5 shrink-0"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Checkbox
+              checked={!!selected}
+              onCheckedChange={() => onToggleSelect(contact.id)}
+              aria-label="Selecionar contato"
+            />
+          </span>
+        )}
         <GripVertical className="size-4 text-muted-foreground shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
@@ -230,7 +256,17 @@ function ContactCard({
   );
 }
 
-function DraggableCard({ contact, category }: { contact: Contact; category?: Category }) {
+function DraggableCard({
+  contact,
+  category,
+  selected,
+  onToggleSelect,
+}: {
+  contact: Contact;
+  category?: Category;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: contact.id });
   return (
     <div
@@ -239,7 +275,12 @@ function DraggableCard({ contact, category }: { contact: Contact; category?: Cat
       {...listeners}
       style={{ opacity: isDragging ? 0.4 : 1 }}
     >
-      <ContactCard contact={contact} category={category} />
+      <ContactCard
+        contact={contact}
+        category={category}
+        selected={selected}
+        onToggleSelect={onToggleSelect}
+      />
     </div>
   );
 }
@@ -248,10 +289,16 @@ function StageColumn({
   stage,
   contacts,
   categories,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll,
 }: {
   stage: PipelineStage;
   contacts: Contact[];
   categories: Category[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onSelectAll: (ids: string[], select: boolean) => void;
 }) {
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: `drop:${stage.id}` });
   const {
@@ -287,6 +334,12 @@ function StageColumn({
           >
             <GripVertical className="size-4" />
           </button>
+          <Checkbox
+            className="shrink-0"
+            aria-label={`Selecionar todos de ${stage.name}`}
+            checked={contacts.length > 0 && contacts.every((c) => selectedIds.has(c.id))}
+            onCheckedChange={(v) => onSelectAll(contacts.map((c) => c.id), !!v)}
+          />
           <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
           <h4 className="font-semibold text-sm truncate">{stage.name}</h4>
         </div>
@@ -303,6 +356,8 @@ function StageColumn({
               key={c.id}
               contact={c}
               category={categories.find((cat) => cat.id === c.categoryId)}
+              selected={selectedIds.has(c.id)}
+              onToggleSelect={onToggleSelect}
             />
           ))
         )}
@@ -339,7 +394,25 @@ function PipelinePage() {
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const selectAll = (ids: string[], select: boolean) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => (select ? next.add(id) : next.delete(id)));
+      return next;
+    });
+
 
   useEffect(() => {
     try {
@@ -402,6 +475,52 @@ function PipelinePage() {
 
   const total = allContacts.length || 1;
 
+  const bulkRemove = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    const previous = placement;
+    setPlacement(previous.filter((p) => !ids.includes(p.contactId)));
+    persistHidden(new Set([...hidden, ...ids]));
+    try {
+      for (const id of ids) await pipelineDb.removeContactFromStage(id);
+      setSelectedIds(new Set());
+      toast.success(
+        ids.length === 1 ? "Contato removido do pipeline" : `${ids.length} contatos removidos do pipeline`,
+      );
+    } catch (err: any) {
+      setPlacement(previous);
+      toast.error(`Erro: ${err.message ?? err}`);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const bulkMove = async (ids: string[], targetStageId: string) => {
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    const previous = placement;
+    const next = [...previous];
+    ids.forEach((id) => {
+      const idx = next.findIndex((p) => p.contactId === id);
+      if (idx >= 0) next[idx] = { ...next[idx], stageId: targetStageId };
+      else next.push({ contactId: id, stageId: targetStageId });
+    });
+    setPlacement(next);
+    try {
+      for (const id of ids) await pipelineDb.moveContactToStage(id, targetStageId);
+      setSelectedIds(new Set());
+      const stage = stages.find((s) => s.id === targetStageId);
+      toast.success(
+        ids.length === 1 ? `Movido para ${stage?.name}` : `${ids.length} contatos movidos para ${stage?.name}`,
+      );
+    } catch (err: any) {
+      setPlacement(previous);
+      toast.error(`Erro: ${err.message ?? err}`);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const handleStart = (e: DragStartEvent) => setActiveId(e.active.id as string);
   const handleEnd = async (e: DragEndEvent) => {
     setActiveId(null);
@@ -409,20 +528,16 @@ function PipelinePage() {
     const overId = e.over?.id as string | undefined;
     if (!overId) return;
 
-    // Lixeira: remove o contato do quadro (não apaga o contato)
+    // Se o card arrastado faz parte de uma seleção, aplica em todos
+    const batch =
+      !activeId.startsWith("stage:") && selectedIds.has(activeId)
+        ? [...selectedIds]
+        : [activeId];
+
+    // Lixeira: remove os contatos do quadro (não apaga o contato)
     if (overId === "trash") {
       if (activeId.startsWith("stage:")) return;
-      const contactId = activeId;
-      const previous = placement;
-      setPlacement(previous.filter((p) => p.contactId !== contactId));
-      persistHidden(new Set([...hidden, contactId]));
-      try {
-        await pipelineDb.removeContactFromStage(contactId);
-        toast.success("Contato removido do pipeline");
-      } catch (err: any) {
-        setPlacement(previous);
-        toast.error(`Erro: ${err.message ?? err}`);
-      }
+      await bulkRemove(batch);
       return;
     }
 
@@ -449,26 +564,13 @@ function PipelinePage() {
       return;
     }
 
-    // Mover contato para etapa (contactId -> drop:stageId ou stage:stageId)
-    const contactId = activeId;
+    // Mover contato(s) para etapa (contactId -> drop:stageId ou stage:stageId)
     const targetStageId = overId.startsWith("drop:")
       ? overId.slice("drop:".length)
       : overId.startsWith("stage:")
       ? overId.slice("stage:".length)
       : overId;
-    const previous = placement;
-    const next = previous.find((p) => p.contactId === contactId)
-      ? previous.map((p) => (p.contactId === contactId ? { ...p, stageId: targetStageId } : p))
-      : [...previous, { contactId, stageId: targetStageId }];
-    setPlacement(next);
-    try {
-      await pipelineDb.moveContactToStage(contactId, targetStageId);
-      const stage = stages.find((s) => s.id === targetStageId);
-      toast.success(`Movido para ${stage?.name}`);
-    } catch (err: any) {
-      setPlacement(previous);
-      toast.error(`Erro: ${err.message ?? err}`);
-    }
+    await bulkMove(batch, targetStageId);
   };
 
   const activeContact = activeId ? allContacts.find((c) => c.id === activeId) : null;
@@ -512,6 +614,38 @@ function PipelinePage() {
         </div>
 
       </div>
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
+          <span className="text-sm font-medium">
+            {selectedIds.size} selecionado(s)
+          </span>
+          <Select onValueChange={(v) => bulkMove([...selectedIds], v)} disabled={bulkBusy}>
+            <SelectTrigger className="h-9 w-[200px]">
+              <SelectValue placeholder="Mover para etapa..." />
+            </SelectTrigger>
+            <SelectContent>
+              {stages.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="gap-2"
+            disabled={bulkBusy}
+            onClick={() => bulkRemove([...selectedIds])}
+          >
+            {bulkBusy ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+            Remover do pipeline
+          </Button>
+          <Button size="sm" variant="ghost" className="gap-2" onClick={() => setSelectedIds(new Set())}>
+            <X className="size-4" /> Limpar seleção
+          </Button>
+        </div>
+      )}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleStart} onDragEnd={handleEnd}>
         <SortableContext
           items={stages.map((s) => `stage:${s.id}`)}
@@ -519,7 +653,15 @@ function PipelinePage() {
         >
           <div className="flex gap-3 overflow-x-auto pb-2">
             {grouped.map(({ stage, contacts }) => (
-              <StageColumn key={stage.id} stage={stage} contacts={contacts} categories={categories} />
+              <StageColumn
+                key={stage.id}
+                stage={stage}
+                contacts={contacts}
+                categories={categories}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+                onSelectAll={selectAll}
+              />
             ))}
           </div>
         </SortableContext>
