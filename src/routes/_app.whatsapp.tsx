@@ -204,6 +204,9 @@ function WhatsAppPage() {
             <CleanupGroupsButton />
             <Separator className="my-4" />
             <SyncMessagesButton />
+            <Separator className="my-4" />
+            <CacheAvatarsButton />
+
           </div>
         ) : (
           <div className="text-center space-y-4">
