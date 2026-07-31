@@ -643,23 +643,45 @@ function InboxPage() {
   }, [refreshInbox]);
 
   // Fallback: se o Realtime do servidor não entregar evento, sincroniza a lista.
-  // Ciclo curto (5s) = incremental (só mensagens novas). A cada 60s roda um
-  // refresh completo como rede de segurança (nomes, tags, categorias).
+  // Ciclo curto (5s) = incremental (só mensagens novas). Quando o Realtime está
+  // saudável (evento recebido nos últimos 2 min), o ciclo relaxa para 20s.
+  // A cada ~60s (ou ~4min no modo relaxado) roda um refresh completo.
   useEffect(() => {
     if (loading) return;
     let ticks = 0;
     let running = false;
-    const id = window.setInterval(() => {
-      if (running) return;
+    let timer: number | null = null;
+
+    const realtimeHealthy = () =>
+      realtimeSubscribedRef.current &&
+      Date.now() - realtimeLastEventRef.current < 120_000;
+
+    const schedule = () => {
+      timer = window.setTimeout(tick, realtimeHealthy() ? 20_000 : 5000);
+    };
+
+    const tick = () => {
+      if (running) {
+        schedule();
+        return;
+      }
       running = true;
       ticks += 1;
       const full = ticks % 12 === 0;
       (full ? refreshInbox() : refreshIncremental())
         .catch((e: any) => console.warn("Falha ao sincronizar inbox", e))
-        .finally(() => { running = false; });
-    }, 5000);
-    return () => window.clearInterval(id);
+        .finally(() => {
+          running = false;
+          schedule();
+        });
+    };
+
+    schedule();
+    return () => {
+      if (timer != null) window.clearTimeout(timer);
+    };
   }, [loading, refreshInbox, refreshIncremental]);
+
 
 
   // Carrega sequências pausadas por resposta do lead (badge no Inbox)
