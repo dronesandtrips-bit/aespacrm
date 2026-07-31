@@ -936,6 +936,19 @@ function InboxPage() {
   });
   const unreadTotal = Object.values(unreadByContact).reduce((a, b) => a + (b > 0 ? 1 : 0), 0);
 
+  // Paginação da lista de conversas: renderiza 50 e vai carregando ao rolar.
+  const PAGE = 50;
+  const [visibleCount, setVisibleCount] = useState(PAGE);
+  useEffect(() => { setVisibleCount(PAGE); }, [search, chipFilter, chipCategoryId]);
+  const visibleConversations = filtered.slice(0, visibleCount);
+  const handleListScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 300) {
+      setVisibleCount((n) => (n < filtered.length ? n + PAGE : n));
+    }
+  }, [filtered.length]);
+
+
   const active = contacts.find((c) => c.id === activeId);
 
   useEffect(() => {
