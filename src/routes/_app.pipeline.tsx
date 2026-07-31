@@ -515,7 +515,9 @@ function PipelinePage() {
             ))}
           </div>
         </SortableContext>
+        <TrashZone active={!!activeId && !activeId.startsWith("stage:")} />
         <DragOverlay>
+
           {activeContact && (
             <ContactCard
               contact={activeContact}
