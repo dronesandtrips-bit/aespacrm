@@ -290,6 +290,12 @@ function InboxPage() {
     return { unread, lastRead };
   }, []);
 
+  // Marca d'água do último "at" já processado — base do refresh incremental.
+  const lastSyncAtRef = useRef<string>("");
+  const lastReadRef = useRef<Record<string, string | null>>({});
+  useEffect(() => { lastReadRef.current = lastReadByContact; }, [lastReadByContact]);
+  const knownContactIdsRef = useRef<Set<string>>(new Set());
+
   const refreshInbox = useCallback(async (options?: { initial?: boolean }) => {
     const [cs, cats] = await Promise.all([
       contactsDb.listAll(),
@@ -301,10 +307,19 @@ function InboxPage() {
     ]);
 
     setContacts(cs);
+    knownContactIdsRef.current = new Set(cs.map((x) => x.id));
     setCategories(cats);
     setLastByContact(lastMap);
     setUnreadByContact(unreadState.unread);
     setLastReadByContact(unreadState.lastRead);
+    lastReadRef.current = unreadState.lastRead;
+
+    // Atualiza a marca d'água com a mensagem mais recente conhecida.
+    const maxAt = Object.values(lastMap).reduce(
+      (acc, m) => (m && m.at > acc ? m.at : acc),
+      lastSyncAtRef.current,
+    );
+    if (maxAt) lastSyncAtRef.current = maxAt;
 
     if (options?.initial || !activeIdRef.current) {
       const sorted = cs
@@ -313,6 +328,77 @@ function InboxPage() {
       setActiveId(sorted[0]?.id ?? cs[0]?.id ?? "");
     }
   }, [loadLastMessages, loadUnreadState]);
+
+  // Refresh INCREMENTAL: busca apenas mensagens novas desde a última marca
+  // d'água. Na maior parte dos ciclos isso retorna zero linhas (consulta
+  // barata com índice em `at`), em vez das ~3.000 linhas do refresh completo.
+  const refreshIncremental = useCallback(async () => {
+    const since = lastSyncAtRef.current;
+    if (!since) {
+      await refreshInbox();
+      return;
+    }
+    const c = await getSupabaseClient();
+    if (!c) return;
+    const { data, error } = await c
+      .from("crm_messages")
+      .select("id,contact_id,body,from_me,at,type,media_url,media_mime,media_caption,status,message_id")
+      .gt("at", since)
+      .order("at", { ascending: true })
+      .limit(500);
+    if (error) throw error;
+    const rows = data ?? [];
+    if (rows.length === 0) return;
+
+    lastSyncAtRef.current = rows[rows.length - 1].at;
+
+    const lastPatch: LastMap = {};
+    const unreadPatch: Record<string, number> = {};
+    let hasUnknownContact = false;
+
+    rows.forEach((row: any) => {
+      const msg = {
+        id: row.id,
+        contactId: row.contact_id,
+        body: row.body,
+        fromMe: row.from_me,
+        at: row.at,
+        type: (row.type ?? "text") as ChatMessage["type"],
+        mediaUrl: row.media_url ?? null,
+        mediaMime: row.media_mime ?? null,
+        mediaCaption: row.media_caption ?? null,
+        status: row.status ?? null,
+        messageId: row.message_id ?? null,
+      };
+      const prev = lastPatch[msg.contactId];
+      if (!prev || msg.at >= prev.at) lastPatch[msg.contactId] = msg as any;
+      if (!knownContactIdsRef.current.has(msg.contactId)) hasUnknownContact = true;
+      if (!msg.fromMe && msg.contactId !== activeIdRef.current) {
+        const lr = lastReadRef.current[msg.contactId];
+        if (!lr || msg.at > lr) {
+          unreadPatch[msg.contactId] = (unreadPatch[msg.contactId] ?? 0) + 1;
+        }
+      }
+    });
+
+    setLastByContact((prev) => ({ ...prev, ...lastPatch }));
+    if (Object.keys(unreadPatch).length > 0) {
+      setUnreadByContact((prev) => {
+        const next = { ...prev };
+        Object.entries(unreadPatch).forEach(([id, n]) => {
+          next[id] = (next[id] ?? 0) + n;
+        });
+        return next;
+      });
+    }
+    // Conversa nova (contato ainda desconhecido) → recarrega a lista de contatos.
+    if (hasUnknownContact) {
+      const cs = await contactsDb.listAll();
+      setContacts(cs);
+      knownContactIdsRef.current = new Set(cs.map((x) => x.id));
+    }
+  }, [refreshInbox]);
+
 
   const refreshContacts = async () => {
     try {
