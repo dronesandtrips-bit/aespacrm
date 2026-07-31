@@ -312,6 +312,10 @@ function InboxPage() {
 
   // Marca d'água do último "at" já processado — base do refresh incremental.
   const lastSyncAtRef = useRef<string>("");
+  // Saúde do Realtime: guarda o timestamp do último evento recebido via
+  // websocket. Se estiver "vivo", o polling de segurança fica mais lento.
+  const realtimeLastEventRef = useRef<number>(0);
+  const realtimeSubscribedRef = useRef<boolean>(false);
   const lastReadRef = useRef<Record<string, string | null>>({});
   useEffect(() => { lastReadRef.current = lastReadByContact; }, [lastReadByContact]);
   const knownContactIdsRef = useRef<Set<string>>(new Set());
