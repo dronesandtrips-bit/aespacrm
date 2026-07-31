@@ -42,8 +42,16 @@ import {
   type PipelineStage,
   type PipelinePlacement,
 } from "@/lib/db";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { GripVertical, Phone, Loader2, Sparkles, AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Phone, Loader2, Sparkles, AlertTriangle, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/pipeline")({
