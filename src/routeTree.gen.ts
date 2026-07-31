@@ -67,6 +67,7 @@ import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api
 import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
 import { Route as ApiPublicContactsBlacklistToggleRouteImport } from './routes/api.public.contacts.blacklist-toggle'
 import { Route as ApiPublicCleanupGroupsRouteImport } from './routes/api.public.cleanup.groups'
+import { Route as ApiPublicAvatarsRefreshRouteImport } from './routes/api.public.avatars.refresh'
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
 import { Route as ApiPublicAiInterestTermsRouteImport } from './routes/api.public.ai.interest-terms'
 import { Route as ApiPublicAiExistingCategoriesRouteImport } from './routes/api.public.ai.existing-categories'
@@ -388,6 +389,11 @@ const ApiPublicCleanupGroupsRoute = ApiPublicCleanupGroupsRouteImport.update({
   path: '/api/public/cleanup/groups',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAvatarsRefreshRoute = ApiPublicAvatarsRefreshRouteImport.update({
+  id: '/api/public/avatars/refresh',
+  path: '/api/public/avatars/refresh',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAiLovableProxyRoute = ApiPublicAiLovableProxyRouteImport.update({
   id: '/api/public/ai/lovable-proxy',
   path: '/api/public/ai/lovable-proxy',
@@ -457,6 +463,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -523,6 +530,7 @@ export interface FileRoutesByTo {
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -591,6 +599,7 @@ export interface FileRoutesById {
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -659,6 +668,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/avatars/refresh'
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
@@ -725,6 +735,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/avatars/refresh'
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
@@ -792,6 +803,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/avatars/refresh'
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
@@ -846,6 +858,7 @@ export interface RootRouteChildren {
   ApiPublicAiExistingCategoriesRoute: typeof ApiPublicAiExistingCategoriesRoute
   ApiPublicAiInterestTermsRoute: typeof ApiPublicAiInterestTermsRoute
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
+  ApiPublicAvatarsRefreshRoute: typeof ApiPublicAvatarsRefreshRoute
   ApiPublicCleanupGroupsRoute: typeof ApiPublicCleanupGroupsRoute
   ApiPublicContactsBlacklistToggleRoute: typeof ApiPublicContactsBlacklistToggleRoute
   ApiPublicContactsCleanupRoute: typeof ApiPublicContactsCleanupRoute
@@ -1293,6 +1306,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCleanupGroupsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/avatars/refresh': {
+      id: '/api/public/avatars/refresh'
+      path: '/api/public/avatars/refresh'
+      fullPath: '/api/public/avatars/refresh'
+      preLoaderRoute: typeof ApiPublicAvatarsRefreshRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ai/lovable-proxy': {
       id: '/api/public/ai/lovable-proxy'
       path: '/api/public/ai/lovable-proxy'
@@ -1396,6 +1416,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAiExistingCategoriesRoute: ApiPublicAiExistingCategoriesRoute,
   ApiPublicAiInterestTermsRoute: ApiPublicAiInterestTermsRoute,
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
+  ApiPublicAvatarsRefreshRoute: ApiPublicAvatarsRefreshRoute,
   ApiPublicCleanupGroupsRoute: ApiPublicCleanupGroupsRoute,
   ApiPublicContactsBlacklistToggleRoute: ApiPublicContactsBlacklistToggleRoute,
   ApiPublicContactsCleanupRoute: ApiPublicContactsCleanupRoute,

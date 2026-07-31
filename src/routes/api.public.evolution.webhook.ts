@@ -15,6 +15,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getSupabaseAdmin, jsonResponse } from "@/integrations/supabase/server";
 import { isStrictValidPhone, phoneMatchVariants } from "@/lib/phone-validation";
+import { cacheAvatarFromUrl } from "@/lib/avatar-cache.server";
+
 
 const INSTANCE = "zapcrm";
 
@@ -296,7 +298,12 @@ async function enrichGroupIfNeeded(
     const pictureUrl = info?.pictureUrl ?? info?.profilePicUrl ?? null;
     const patch: Record<string, any> = {};
     if (subject) patch.name = subject;
-    if (pictureUrl) patch.avatar_url = pictureUrl;
+    if (pictureUrl) {
+      // guarda uma cópia no storage (o link do CDN expira e vira 403)
+      const cached = await cacheAvatarFromUrl(userId, contactId, pictureUrl);
+      patch.avatar_url = cached ?? pictureUrl;
+    }
+
     if (Object.keys(patch).length === 0) return;
 
     await sb
