@@ -17,6 +17,7 @@
 
 import { createHmac, timingSafeEqual, randomBytes } from "crypto";
 import { getSupabaseAdmin } from "@/integrations/supabase/server";
+import { phoneMatchVariants } from "@/lib/phone-validation";
 
 const INSTANCE = "zapcrm";
 
@@ -176,11 +177,11 @@ export async function performOptOut(opts: {
 
   if (!alreadyOptedOut) {
     const { error: insErr } = await sb.from("crm_ignored_phones").upsert(
-      {
+      phoneMatchVariants(phone).map((v) => ({
         user_id: userId,
-        phone_norm: phone,
+        phone_norm: v,
         reason: `whatsapp:${source}`,
-      },
+      })),
       { onConflict: "user_id,phone_norm", ignoreDuplicates: true },
     );
     if (insErr) {
@@ -235,7 +236,7 @@ export async function performOptIn(opts: {
     .from("crm_ignored_phones")
     .delete()
     .eq("user_id", userId)
-    .eq("phone_norm", phone)
+    .in("phone_norm", phoneMatchVariants(phone))
     .select("id");
   if (delErr) {
     console.error("[optout] delete blacklist error", delErr);

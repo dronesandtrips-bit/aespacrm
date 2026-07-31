@@ -13,6 +13,7 @@ import {
   jsonResponse,
   PUBLIC_CORS,
 } from "@/integrations/supabase/server";
+import { phoneMatchVariants } from "@/lib/phone-validation";
 
 function digitsOnly(s: string): string {
   return String(s ?? "").replace(/\D/g, "");
@@ -47,7 +48,7 @@ export const Route = createFileRoute("/api/public/contacts/blacklist-toggle")({
           const { data: contacts, error: lookupErr } = await sb
             .from("crm_contacts")
             .select("user_id")
-            .eq("phone_norm", phone);
+            .in("phone_norm", phoneMatchVariants(phone));
 
           if (lookupErr) {
             return jsonResponse(
@@ -74,11 +75,13 @@ export const Route = createFileRoute("/api/public/contacts/blacklist-toggle")({
           let affected = 0;
           if (action === "off") {
             // INSERT idempotente em crm_ignored_phones para cada user_id
-            const rows = userIds.map((uid) => ({
-              user_id: uid,
-              phone_norm: phone,
-              reason,
-            }));
+            const rows = userIds.flatMap((uid) =>
+              phoneMatchVariants(phone).map((v) => ({
+                user_id: uid,
+                phone_norm: v,
+                reason,
+              })),
+            );
             const { data, error } = await sb
               .from("crm_ignored_phones")
               .upsert(rows, { onConflict: "user_id,phone_norm", ignoreDuplicates: true })
@@ -96,7 +99,7 @@ export const Route = createFileRoute("/api/public/contacts/blacklist-toggle")({
               .from("crm_ignored_phones")
               .delete()
               .in("user_id", userIds)
-              .eq("phone_norm", phone)
+              .in("phone_norm", phoneMatchVariants(phone))
               .select("id");
             if (error) {
               return jsonResponse(
