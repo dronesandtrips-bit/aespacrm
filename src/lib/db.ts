@@ -1747,9 +1747,17 @@ export const ignoredPhonesDb = {
     const user_id = await uid();
     const phone_norm = normalizePhoneStr(phone);
     if (phone_norm.length < 6) throw new Error("Telefone inválido");
+    // Grava TODAS as variantes equivalentes (BR com/sem 9º dígito) para que
+    // o contato continue bloqueado mesmo se o telefone for regravado no
+    // outro formato pela sync/merge.
+    const rows = phoneMatchVariants(phone_norm).map((v) => ({
+      user_id,
+      phone_norm: v,
+      reason: reason || null,
+    }));
     const { error } = await c
       .from("crm_ignored_phones")
-      .upsert({ user_id, phone_norm, reason: reason || null }, { onConflict: "user_id,phone_norm" });
+      .upsert(rows, { onConflict: "user_id,phone_norm" });
     if (error) throw error;
   },
   async removeOne(phoneNorm: string): Promise<void> {
@@ -1757,7 +1765,7 @@ export const ignoredPhonesDb = {
     const { error } = await c
       .from("crm_ignored_phones")
       .delete()
-      .eq("phone_norm", phoneNorm);
+      .in("phone_norm", phoneMatchVariants(phoneNorm));
     if (error) throw error;
   },
   /** Remove pela versão original do telefone (normaliza antes). */
@@ -1768,7 +1776,7 @@ export const ignoredPhonesDb = {
     const { error } = await c
       .from("crm_ignored_phones")
       .delete()
-      .eq("phone_norm", phone_norm);
+      .in("phone_norm", phoneMatchVariants(phone_norm));
     if (error) throw error;
   },
   /** Adiciona vários telefones em lote (normaliza e dedupe). Retorna quantos foram inseridos. */
