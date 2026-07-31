@@ -780,6 +780,7 @@ function InboxPage() {
           "postgres_changes",
           { event: "INSERT", schema: "aespacrm", table: "crm_messages" },
           (payload: any) => {
+            realtimeLastEventRef.current = Date.now();
             const row = payload.new;
             const msg: ChatMessage = {
               id: row.id,
