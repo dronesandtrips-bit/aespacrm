@@ -614,6 +614,38 @@ function PipelinePage() {
         </div>
 
       </div>
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
+          <span className="text-sm font-medium">
+            {selectedIds.size} selecionado(s)
+          </span>
+          <Select onValueChange={(v) => bulkMove([...selectedIds], v)} disabled={bulkBusy}>
+            <SelectTrigger className="h-9 w-[200px]">
+              <SelectValue placeholder="Mover para etapa..." />
+            </SelectTrigger>
+            <SelectContent>
+              {stages.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="gap-2"
+            disabled={bulkBusy}
+            onClick={() => bulkRemove([...selectedIds])}
+          >
+            {bulkBusy ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+            Remover do pipeline
+          </Button>
+          <Button size="sm" variant="ghost" className="gap-2" onClick={() => setSelectedIds(new Set())}>
+            <X className="size-4" /> Limpar seleção
+          </Button>
+        </div>
+      )}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleStart} onDragEnd={handleEnd}>
         <SortableContext
           items={stages.map((s) => `stage:${s.id}`)}
@@ -621,9 +653,18 @@ function PipelinePage() {
         >
           <div className="flex gap-3 overflow-x-auto pb-2">
             {grouped.map(({ stage, contacts }) => (
-              <StageColumn key={stage.id} stage={stage} contacts={contacts} categories={categories} />
+              <StageColumn
+                key={stage.id}
+                stage={stage}
+                contacts={contacts}
+                categories={categories}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+                onSelectAll={selectAll}
+              />
             ))}
           </div>
+        </SortableContext>
         </SortableContext>
         <TrashZone active={!!activeId && !activeId.startsWith("stage:")} />
         <DragOverlay>
