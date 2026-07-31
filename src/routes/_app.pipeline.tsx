@@ -335,7 +335,26 @@ function PipelinePage() {
   const [placement, setPlacement] = useState<PipelinePlacement[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(HIDDEN_KEY);
+      if (raw) setHidden(new Set(JSON.parse(raw) as string[]));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const persistHidden = (next: Set<string>) => {
+    setHidden(next);
+    try {
+      localStorage.setItem(HIDDEN_KEY, JSON.stringify([...next]));
+    } catch {
+      /* ignore */
+    }
+  };
 
   const load = async () => {
     try {
@@ -369,13 +388,14 @@ function PipelinePage() {
 
   // Contatos sem etapa (para mostrar e poder arrastar pra primeira coluna)
   const placedIds = new Set(placement.map((p) => p.contactId));
-  const unplaced = allContacts.filter((c) => !placedIds.has(c.id));
+  const unplaced = allContacts.filter((c) => !placedIds.has(c.id) && !hidden.has(c.id));
   if (unplaced.length > 0 && stages.length > 0) {
     grouped[0] = {
       stage: grouped[0].stage,
       contacts: [...unplaced, ...grouped[0].contacts],
     };
   }
+
 
   const total = allContacts.length || 1;
 
