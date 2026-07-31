@@ -157,10 +157,14 @@ function ContactCard({
   contact,
   category,
   dragging,
+  selected,
+  onToggleSelect,
 }: {
   contact: Contact;
   category?: Category;
   dragging?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
   const hasAi = !!contact.aiPersonaSummary || !!contact.urgencyLevel;
   const card = (
@@ -168,9 +172,23 @@ function ContactCard({
       className={cn(
         "bg-card border rounded-lg p-3 shadow-sm space-y-2 cursor-grab active:cursor-grabbing",
         dragging && "shadow-[var(--shadow-elegant)] rotate-2",
+        selected && "border-primary ring-1 ring-primary/40 bg-primary/5",
       )}
     >
       <div className="flex items-start gap-2">
+        {onToggleSelect && (
+          <span
+            className="mt-0.5 shrink-0"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Checkbox
+              checked={!!selected}
+              onCheckedChange={() => onToggleSelect(contact.id)}
+              aria-label="Selecionar contato"
+            />
+          </span>
+        )}
         <GripVertical className="size-4 text-muted-foreground shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
