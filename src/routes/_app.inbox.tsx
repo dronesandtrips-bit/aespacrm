@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, BellOff, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Reply, Copy, MapPin, User } from "lucide-react";
+import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, BellOff, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Kanban, Reply, Copy, MapPin, User } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, type Contact, type ChatMessage, type Category, type Sequence } from "@/lib/db";
+import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, pipelineDb, type Contact, type ChatMessage, type Category, type Sequence, type PipelineStage } from "@/lib/db";
 import { activateNotifications, isSoundEnabled, notifyIncomingMessage, setBrowserNotificationsEnabled, setSoundEnabled } from "@/lib/notification-sound";
 import { getSupabaseClient, getSupabaseClientSync } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -83,6 +83,54 @@ async function fetchWithAuthRetry(input: RequestInfo | URL, init: RequestInit = 
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  // Pipeline (mover contato para etapa sem sair do WhatsWeb)
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([]);
+  const [stageByContact, setStageByContact] = useState<Record<string, string>>({});
+  const [movingStage, setMovingStage] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [s, p] = await Promise.all([pipelineDb.listStages(), pipelineDb.listPlacements()]);
+        setPipelineStages(s);
+        const map: Record<string, string> = {};
+        p.forEach((x) => { map[x.contactId] = x.stageId; });
+        setStageByContact(map);
+      } catch {
+        /* pipeline opcional */
+      }
+    })();
+  }, []);
+  const handleMoveToStage = async (contactId: string, stageId: string) => {
+    setMovingStage(true);
+    const previous = stageByContact;
+    setStageByContact({ ...previous, [contactId]: stageId });
+    try {
+      await pipelineDb.moveContactToStage(contactId, stageId);
+      toast.success(`Movido para ${pipelineStages.find((s) => s.id === stageId)?.name ?? "etapa"}`);
+    } catch (e: any) {
+      setStageByContact(previous);
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setMovingStage(false);
+    }
+  };
+  const handleRemoveFromPipeline = async (contactId: string) => {
+    setMovingStage(true);
+    const previous = stageByContact;
+    const next = { ...previous };
+    delete next[contactId];
+    setStageByContact(next);
+    try {
+      await pipelineDb.removeContactFromStage(contactId);
+      toast.success("Removido do pipeline");
+    } catch (e: any) {
+      setStageByContact(previous);
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setMovingStage(false);
+    }
+  };
+
   const [lastByContact, setLastByContact] = useState<LastMap>({});
   const [replyPauseByContact, setReplyPauseByContact] = useState<PauseMap>({});
   // Estado de "não lidas" por conversa — calculado contra crm_contacts.last_read_at
@@ -1480,6 +1528,57 @@ function InboxPage() {
                           </TooltipTrigger>
                           <TooltipContent>Adicionar a uma categoria</TooltipContent>
                         </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5">
+                                  {movingStage ? <Loader2 className="size-4 animate-spin" /> : <Kanban className="size-4 text-sky-400" />}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-64">
+                                <DropdownMenuLabel>Mover no Pipeline</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {pipelineStages.length === 0 ? (
+                                  <DropdownMenuItem disabled>Nenhuma etapa criada</DropdownMenuItem>
+                                ) : (
+                                  pipelineStages.map((st) => {
+                                    const current = stageByContact[active.id] === st.id;
+                                    return (
+                                      <DropdownMenuItem
+                                        key={st.id}
+                                        onSelect={(e) => {
+                                          e.preventDefault();
+                                          if (!current) handleMoveToStage(active.id, st.id);
+                                        }}
+                                      >
+                                        <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: st.color }} />
+                                        <span className="flex-1 truncate">{st.name}</span>
+                                        {current && <Check className="size-4 text-primary" />}
+                                      </DropdownMenuItem>
+                                    );
+                                  })
+                                )}
+                                {stageByContact[active.id] && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        handleRemoveFromPipeline(active.id);
+                                      }}
+                                    >
+                                      <Trash2 className="size-4 opacity-60" />
+                                      <span className="flex-1">Remover do pipeline</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TooltipTrigger>
+                          <TooltipContent>Mover no Pipeline</TooltipContent>
+                        </Tooltip>
+
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button

@@ -43,14 +43,17 @@ import {
   type PipelinePlacement,
 } from "@/lib/db";
 import { cn } from "@/lib/utils";
-import { GripVertical, Phone, Loader2, Sparkles, AlertTriangle, Plus } from "lucide-react";
+import { GripVertical, Phone, Loader2, Sparkles, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/pipeline")({
   component: PipelinePage,
 });
 
+const HIDDEN_KEY = "zapcrm-pipeline-hidden";
+
 const STAGE_COLORS = [
+
   "#10B981",
   "#3B82F6",
   "#8B5CF6",
@@ -308,14 +311,53 @@ function StageColumn({
   );
 }
 
+function TrashZone({ active }: { active: boolean }) {
+  const { setNodeRef, isOver } = useDroppable({ id: "trash" });
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "flex items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-sm transition-all",
+        active ? "opacity-100" : "opacity-50",
+        isOver
+          ? "border-destructive bg-destructive/10 text-destructive scale-[1.01]"
+          : "border-muted-foreground/30 text-muted-foreground",
+      )}
+    >
+      <Trash2 className={cn("size-5", isOver && "animate-pulse")} />
+      <span>{isOver ? "Solte para remover do pipeline" : "Arraste aqui para remover do pipeline"}</span>
+    </div>
+  );
+}
+
 function PipelinePage() {
+
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [placement, setPlacement] = useState<PipelinePlacement[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(HIDDEN_KEY);
+      if (raw) setHidden(new Set(JSON.parse(raw) as string[]));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const persistHidden = (next: Set<string>) => {
+    setHidden(next);
+    try {
+      localStorage.setItem(HIDDEN_KEY, JSON.stringify([...next]));
+    } catch {
+      /* ignore */
+    }
+  };
 
   const load = async () => {
     try {
@@ -349,13 +391,14 @@ function PipelinePage() {
 
   // Contatos sem etapa (para mostrar e poder arrastar pra primeira coluna)
   const placedIds = new Set(placement.map((p) => p.contactId));
-  const unplaced = allContacts.filter((c) => !placedIds.has(c.id));
+  const unplaced = allContacts.filter((c) => !placedIds.has(c.id) && !hidden.has(c.id));
   if (unplaced.length > 0 && stages.length > 0) {
     grouped[0] = {
       stage: grouped[0].stage,
       contacts: [...unplaced, ...grouped[0].contacts],
     };
   }
+
 
   const total = allContacts.length || 1;
 
@@ -365,6 +408,25 @@ function PipelinePage() {
     const activeId = e.active.id as string;
     const overId = e.over?.id as string | undefined;
     if (!overId) return;
+
+    // Lixeira: remove o contato do quadro (não apaga o contato)
+    if (overId === "trash") {
+      if (activeId.startsWith("stage:")) return;
+      const contactId = activeId;
+      const previous = placement;
+      setPlacement(previous.filter((p) => p.contactId !== contactId));
+      persistHidden(new Set([...hidden, contactId]));
+      try {
+        await pipelineDb.removeContactFromStage(contactId);
+        toast.success("Contato removido do pipeline");
+      } catch (err: any) {
+        setPlacement(previous);
+        toast.error(`Erro: ${err.message ?? err}`);
+      }
+      return;
+    }
+
+
 
     // Reordenação de etapas (stage:xxx -> stage:yyy)
     if (activeId.startsWith("stage:") && overId.startsWith("stage:")) {
@@ -440,7 +502,15 @@ function PipelinePage() {
         <p className="text-sm text-muted-foreground">
           {stages.length} {stages.length === 1 ? "etapa" : "etapas"} · {allContacts.length} contatos
         </p>
-        <NewStageDialog onCreated={load} />
+        <div className="flex items-center gap-2">
+          {hidden.size > 0 && (
+            <Button size="sm" variant="ghost" className="gap-2" onClick={() => persistHidden(new Set())}>
+              <Trash2 className="size-4" /> Restaurar {hidden.size} removido(s)
+            </Button>
+          )}
+          <NewStageDialog onCreated={load} />
+        </div>
+
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleStart} onDragEnd={handleEnd}>
         <SortableContext
@@ -453,7 +523,9 @@ function PipelinePage() {
             ))}
           </div>
         </SortableContext>
+        <TrashZone active={!!activeId && !activeId.startsWith("stage:")} />
         <DragOverlay>
+
           {activeContact && (
             <ContactCard
               contact={activeContact}

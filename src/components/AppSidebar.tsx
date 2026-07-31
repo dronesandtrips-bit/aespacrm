@@ -36,7 +36,7 @@ import { useEffect, useRef, useState } from "react";
 
 const items = [
   { to: "/inbox", label: "WhatsWeb", icon: WhatsAppIcon, highlight: true },
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/pipeline", label: "Pipeline", icon: Kanban },
   { to: "/explorar", label: "Explorar", icon: Search },
   { to: "/contatos", label: "Contatos", icon: Users },
   { to: "/disparos", label: "Disparos", icon: Send },
@@ -45,9 +45,10 @@ const items = [
   { to: "/templates", label: "Templates", icon: FileText },
   { to: "/historico-ia", label: "Histórico IA", icon: Sparkles },
   { to: "/logs", label: "Logs", icon: Activity },
-  { to: "/pipeline", label: "Pipeline", icon: Kanban },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/whatsapp", label: "WhatsApp", icon: Smartphone },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
+
 ] as const;
 
 const WIDTH_KEY = "wpp-crm-sidebar-width";
