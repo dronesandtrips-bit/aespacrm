@@ -50,7 +50,10 @@ export const Route = createFileRoute("/_app/pipeline")({
   component: PipelinePage,
 });
 
+const HIDDEN_KEY = "zapcrm-pipeline-hidden";
+
 const STAGE_COLORS = [
+
   "#10B981",
   "#3B82F6",
   "#8B5CF6",
