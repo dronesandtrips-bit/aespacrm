@@ -863,6 +863,7 @@ function InboxPage() {
           "postgres_changes",
           { event: "INSERT", schema: "aespacrm", table: "crm_contacts" },
           () => {
+            realtimeLastEventRef.current = Date.now();
             if (refreshTimer == null) {
               refreshTimer = window.setTimeout(() => {
                 refreshTimer = null;
@@ -871,7 +872,12 @@ function InboxPage() {
             }
           },
         )
-        .subscribe();
+        .subscribe((status: string) => {
+          realtimeSubscribedRef.current = status === "SUBSCRIBED";
+          if (status === "SUBSCRIBED") realtimeLastEventRef.current = Date.now();
+          // eslint-disable-next-line no-console
+          console.log("[inbox] realtime status:", status);
+        });
     })();
     return () => {
       cancelled = true;
