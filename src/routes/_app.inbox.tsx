@@ -271,6 +271,25 @@ function InboxPage() {
   const loadUnreadState = useCallback(async () => {
     const c = await getSupabaseClient();
     if (!c) return { unread: {} as Record<string, number>, lastRead: {} as Record<string, string | null> };
+
+    // Caminho rápido: contagem feita no banco (1 linha por contato).
+    // Requer SUPABASE_MIGRATION_UNREAD_COUNTS_RPC.sql. Se não existir, cai
+    // no cálculo antigo no cliente.
+    try {
+      const { data, error } = await (c as any).rpc("crm_unread_counts");
+      if (!error && Array.isArray(data)) {
+        const unread: Record<string, number> = {};
+        const lastRead: Record<string, string | null> = {};
+        data.forEach((r: any) => {
+          lastRead[r.contact_id] = r.last_read_at ?? null;
+          if (Number(r.unread) > 0) unread[r.contact_id] = Number(r.unread);
+        });
+        return { unread, lastRead };
+      }
+    } catch {
+      /* fallback abaixo */
+    }
+
     const [{ data: cts, error: ctsErr }, { data: msgs }] = await Promise.all([
       c.from("crm_contacts").select("id,last_read_at"),
       c
@@ -289,6 +308,7 @@ function InboxPage() {
     });
     return { unread, lastRead };
   }, []);
+
 
   // Marca d'água do último "at" já processado — base do refresh incremental.
   const lastSyncAtRef = useRef<string>("");
