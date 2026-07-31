@@ -1376,7 +1376,7 @@ function InboxPage() {
 
 
 
-            <div className="overflow-auto flex-1">
+            <div className="overflow-auto flex-1" onScroll={handleListScroll}>
               {loading ? (
                 <div className="p-8 text-center text-[color:var(--ww-text-muted)]">
                   <Loader2 className="size-5 mx-auto animate-spin opacity-60" />
@@ -1386,7 +1386,7 @@ function InboxPage() {
                   Nenhuma conversa
                 </div>
               ) : (
-                filtered.map(({ contact, last }) => {
+                visibleConversations.map(({ contact, last }) => {
                   const isActive = contact.id === activeId;
                   const pause = replyPauseByContact[contact.id];
                   const unreadCount = unreadByContact[contact.id] ?? 0;
