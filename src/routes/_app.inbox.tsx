@@ -271,6 +271,25 @@ function InboxPage() {
   const loadUnreadState = useCallback(async () => {
     const c = await getSupabaseClient();
     if (!c) return { unread: {} as Record<string, number>, lastRead: {} as Record<string, string | null> };
+
+    // Caminho rápido: contagem feita no banco (1 linha por contato).
+    // Requer SUPABASE_MIGRATION_UNREAD_COUNTS_RPC.sql. Se não existir, cai
+    // no cálculo antigo no cliente.
+    try {
+      const { data, error } = await (c as any).rpc("crm_unread_counts");
+      if (!error && Array.isArray(data)) {
+        const unread: Record<string, number> = {};
+        const lastRead: Record<string, string | null> = {};
+        data.forEach((r: any) => {
+          lastRead[r.contact_id] = r.last_read_at ?? null;
+          if (Number(r.unread) > 0) unread[r.contact_id] = Number(r.unread);
+        });
+        return { unread, lastRead };
+      }
+    } catch {
+      /* fallback abaixo */
+    }
+
     const [{ data: cts, error: ctsErr }, { data: msgs }] = await Promise.all([
       c.from("crm_contacts").select("id,last_read_at"),
       c
@@ -290,6 +309,13 @@ function InboxPage() {
     return { unread, lastRead };
   }, []);
 
+
+  // Marca d'água do último "at" já processado — base do refresh incremental.
+  const lastSyncAtRef = useRef<string>("");
+  const lastReadRef = useRef<Record<string, string | null>>({});
+  useEffect(() => { lastReadRef.current = lastReadByContact; }, [lastReadByContact]);
+  const knownContactIdsRef = useRef<Set<string>>(new Set());
+
   const refreshInbox = useCallback(async (options?: { initial?: boolean }) => {
     const [cs, cats] = await Promise.all([
       contactsDb.listAll(),
@@ -301,10 +327,19 @@ function InboxPage() {
     ]);
 
     setContacts(cs);
+    knownContactIdsRef.current = new Set(cs.map((x) => x.id));
     setCategories(cats);
     setLastByContact(lastMap);
     setUnreadByContact(unreadState.unread);
     setLastReadByContact(unreadState.lastRead);
+    lastReadRef.current = unreadState.lastRead;
+
+    // Atualiza a marca d'água com a mensagem mais recente conhecida.
+    const maxAt = Object.values(lastMap).reduce(
+      (acc, m) => (m && m.at > acc ? m.at : acc),
+      lastSyncAtRef.current,
+    );
+    if (maxAt) lastSyncAtRef.current = maxAt;
 
     if (options?.initial || !activeIdRef.current) {
       const sorted = cs
@@ -313,6 +348,77 @@ function InboxPage() {
       setActiveId(sorted[0]?.id ?? cs[0]?.id ?? "");
     }
   }, [loadLastMessages, loadUnreadState]);
+
+  // Refresh INCREMENTAL: busca apenas mensagens novas desde a última marca
+  // d'água. Na maior parte dos ciclos isso retorna zero linhas (consulta
+  // barata com índice em `at`), em vez das ~3.000 linhas do refresh completo.
+  const refreshIncremental = useCallback(async () => {
+    const since = lastSyncAtRef.current;
+    if (!since) {
+      await refreshInbox();
+      return;
+    }
+    const c = await getSupabaseClient();
+    if (!c) return;
+    const { data, error } = await c
+      .from("crm_messages")
+      .select("id,contact_id,body,from_me,at,type,media_url,media_mime,media_caption,status,message_id")
+      .gt("at", since)
+      .order("at", { ascending: true })
+      .limit(500);
+    if (error) throw error;
+    const rows = data ?? [];
+    if (rows.length === 0) return;
+
+    lastSyncAtRef.current = rows[rows.length - 1].at;
+
+    const lastPatch: LastMap = {};
+    const unreadPatch: Record<string, number> = {};
+    let hasUnknownContact = false;
+
+    rows.forEach((row: any) => {
+      const msg = {
+        id: row.id,
+        contactId: row.contact_id,
+        body: row.body,
+        fromMe: row.from_me,
+        at: row.at,
+        type: (row.type ?? "text") as ChatMessage["type"],
+        mediaUrl: row.media_url ?? null,
+        mediaMime: row.media_mime ?? null,
+        mediaCaption: row.media_caption ?? null,
+        status: row.status ?? null,
+        messageId: row.message_id ?? null,
+      };
+      const prev = lastPatch[msg.contactId];
+      if (!prev || msg.at >= prev.at) lastPatch[msg.contactId] = msg as any;
+      if (!knownContactIdsRef.current.has(msg.contactId)) hasUnknownContact = true;
+      if (!msg.fromMe && msg.contactId !== activeIdRef.current) {
+        const lr = lastReadRef.current[msg.contactId];
+        if (!lr || msg.at > lr) {
+          unreadPatch[msg.contactId] = (unreadPatch[msg.contactId] ?? 0) + 1;
+        }
+      }
+    });
+
+    setLastByContact((prev) => ({ ...prev, ...lastPatch }));
+    if (Object.keys(unreadPatch).length > 0) {
+      setUnreadByContact((prev) => {
+        const next = { ...prev };
+        Object.entries(unreadPatch).forEach(([id, n]) => {
+          next[id] = (next[id] ?? 0) + n;
+        });
+        return next;
+      });
+    }
+    // Conversa nova (contato ainda desconhecido) → recarrega a lista de contatos.
+    if (hasUnknownContact) {
+      const cs = await contactsDb.listAll();
+      setContacts(cs);
+      knownContactIdsRef.current = new Set(cs.map((x) => x.id));
+    }
+  }, [refreshInbox]);
+
 
   const refreshContacts = async () => {
     try {
@@ -532,15 +638,25 @@ function InboxPage() {
     };
   }, [refreshInbox]);
 
-  // Fallback: se o Realtime do servidor não entregar evento, sincroniza a lista
-  // periodicamente para manter o WhatsWeb atualizado sem precisar clicar em atualizar.
+  // Fallback: se o Realtime do servidor não entregar evento, sincroniza a lista.
+  // Ciclo curto (5s) = incremental (só mensagens novas). A cada 60s roda um
+  // refresh completo como rede de segurança (nomes, tags, categorias).
   useEffect(() => {
     if (loading) return;
+    let ticks = 0;
+    let running = false;
     const id = window.setInterval(() => {
-      refreshInbox().catch((e: any) => console.warn("Falha ao sincronizar inbox", e));
+      if (running) return;
+      running = true;
+      ticks += 1;
+      const full = ticks % 12 === 0;
+      (full ? refreshInbox() : refreshIncremental())
+        .catch((e: any) => console.warn("Falha ao sincronizar inbox", e))
+        .finally(() => { running = false; });
     }, 5000);
     return () => window.clearInterval(id);
-  }, [loading, refreshInbox]);
+  }, [loading, refreshInbox, refreshIncremental]);
+
 
   // Carrega sequências pausadas por resposta do lead (badge no Inbox)
   useEffect(() => {
@@ -819,6 +935,19 @@ function InboxPage() {
     return true;
   });
   const unreadTotal = Object.values(unreadByContact).reduce((a, b) => a + (b > 0 ? 1 : 0), 0);
+
+  // Paginação da lista de conversas: renderiza 50 e vai carregando ao rolar.
+  const PAGE = 50;
+  const [visibleCount, setVisibleCount] = useState(PAGE);
+  useEffect(() => { setVisibleCount(PAGE); }, [search, chipFilter, chipCategoryId]);
+  const visibleConversations = filtered.slice(0, visibleCount);
+  const handleListScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 300) {
+      setVisibleCount((n) => (n < filtered.length ? n + PAGE : n));
+    }
+  }, [filtered.length]);
+
 
   const active = contacts.find((c) => c.id === activeId);
 
@@ -1247,7 +1376,7 @@ function InboxPage() {
 
 
 
-            <div className="overflow-auto flex-1">
+            <div className="overflow-auto flex-1" onScroll={handleListScroll}>
               {loading ? (
                 <div className="p-8 text-center text-[color:var(--ww-text-muted)]">
                   <Loader2 className="size-5 mx-auto animate-spin opacity-60" />
@@ -1257,7 +1386,7 @@ function InboxPage() {
                   Nenhuma conversa
                 </div>
               ) : (
-                filtered.map(({ contact, last }) => {
+                visibleConversations.map(({ contact, last }) => {
                   const isActive = contact.id === activeId;
                   const pause = replyPauseByContact[contact.id];
                   const unreadCount = unreadByContact[contact.id] ?? 0;
