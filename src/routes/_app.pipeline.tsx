@@ -475,6 +475,52 @@ function PipelinePage() {
 
   const total = allContacts.length || 1;
 
+  const bulkRemove = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    const previous = placement;
+    setPlacement(previous.filter((p) => !ids.includes(p.contactId)));
+    persistHidden(new Set([...hidden, ...ids]));
+    try {
+      for (const id of ids) await pipelineDb.removeContactFromStage(id);
+      setSelectedIds(new Set());
+      toast.success(
+        ids.length === 1 ? "Contato removido do pipeline" : `${ids.length} contatos removidos do pipeline`,
+      );
+    } catch (err: any) {
+      setPlacement(previous);
+      toast.error(`Erro: ${err.message ?? err}`);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const bulkMove = async (ids: string[], targetStageId: string) => {
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    const previous = placement;
+    const next = [...previous];
+    ids.forEach((id) => {
+      const idx = next.findIndex((p) => p.contactId === id);
+      if (idx >= 0) next[idx] = { ...next[idx], stageId: targetStageId };
+      else next.push({ contactId: id, stageId: targetStageId });
+    });
+    setPlacement(next);
+    try {
+      for (const id of ids) await pipelineDb.moveContactToStage(id, targetStageId);
+      setSelectedIds(new Set());
+      const stage = stages.find((s) => s.id === targetStageId);
+      toast.success(
+        ids.length === 1 ? `Movido para ${stage?.name}` : `${ids.length} contatos movidos para ${stage?.name}`,
+      );
+    } catch (err: any) {
+      setPlacement(previous);
+      toast.error(`Erro: ${err.message ?? err}`);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const handleStart = (e: DragStartEvent) => setActiveId(e.active.id as string);
   const handleEnd = async (e: DragEndEvent) => {
     setActiveId(null);
@@ -482,20 +528,16 @@ function PipelinePage() {
     const overId = e.over?.id as string | undefined;
     if (!overId) return;
 
-    // Lixeira: remove o contato do quadro (não apaga o contato)
+    // Se o card arrastado faz parte de uma seleção, aplica em todos
+    const batch =
+      !activeId.startsWith("stage:") && selectedIds.has(activeId)
+        ? [...selectedIds]
+        : [activeId];
+
+    // Lixeira: remove os contatos do quadro (não apaga o contato)
     if (overId === "trash") {
       if (activeId.startsWith("stage:")) return;
-      const contactId = activeId;
-      const previous = placement;
-      setPlacement(previous.filter((p) => p.contactId !== contactId));
-      persistHidden(new Set([...hidden, contactId]));
-      try {
-        await pipelineDb.removeContactFromStage(contactId);
-        toast.success("Contato removido do pipeline");
-      } catch (err: any) {
-        setPlacement(previous);
-        toast.error(`Erro: ${err.message ?? err}`);
-      }
+      await bulkRemove(batch);
       return;
     }
 
