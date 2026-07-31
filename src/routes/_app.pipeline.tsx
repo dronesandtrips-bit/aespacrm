@@ -502,7 +502,15 @@ function PipelinePage() {
         <p className="text-sm text-muted-foreground">
           {stages.length} {stages.length === 1 ? "etapa" : "etapas"} · {allContacts.length} contatos
         </p>
-        <NewStageDialog onCreated={load} />
+        <div className="flex items-center gap-2">
+          {hidden.size > 0 && (
+            <Button size="sm" variant="ghost" className="gap-2" onClick={() => persistHidden(new Set())}>
+              <Trash2 className="size-4" /> Restaurar {hidden.size} removido(s)
+            </Button>
+          )}
+          <NewStageDialog onCreated={load} />
+        </div>
+
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleStart} onDragEnd={handleEnd}>
         <SortableContext
