@@ -165,6 +165,7 @@ export function AppSidebar({ inSheet = false, onNavigate, focusMode = false }: P
           {items.map((item) => {
             const { to, label, icon: Icon } = item;
             const highlight = "highlight" in item && item.highlight;
+            const pipeline = "pipeline" in item && item.pipeline;
             const active =
               location.pathname === to || location.pathname.startsWith(to + "/");
             const link = (
@@ -180,12 +181,16 @@ export function AppSidebar({ inSheet = false, onNavigate, focusMode = false }: P
                     ? active
                       ? "bg-[#25D366]/20 text-[#25D366] ring-1 ring-[#25D366]/40"
                       : "bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20"
-                    : active
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    : pipeline
+                      ? active
+                        ? "bg-[#3B82F6]/15 text-[#2563EB] ring-1 ring-[#3B82F6]/40"
+                        : "bg-[#3B82F6]/8 text-[#2563EB] hover:bg-[#3B82F6]/15"
+                      : active
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                <Icon className={cn("shrink-0", highlight ? "size-6" : "size-4")} />
+                <Icon className={cn("shrink-0", highlight || pipeline ? "size-6" : "size-4")} />
                 {!isCollapsed && <span className="truncate">{label}</span>}
               </Link>
             );
