@@ -516,7 +516,8 @@ function ContactsPage() {
     else toast.warning(`${ok} removidos, ${fail} falharam`);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    const Papa = (await import("papaparse")).default;
     const rows = filtered.map((c) => {
       const tagIds = c.categoryIds && c.categoryIds.length
         ? c.categoryIds
