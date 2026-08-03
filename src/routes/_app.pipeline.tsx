@@ -499,12 +499,6 @@ function PipelinePage() {
       .filter((c): c is Contact => !!c),
   }));
 
-  // Contatos que nunca foram colocados no Kanban — ficam numa coluna própria
-  // ("Sem etapa"), NUNCA misturados na primeira etapa.
-  const placedIds = new Set(placement.map((p) => p.contactId));
-  const unplaced = allContacts.filter((c) => !placedIds.has(c.id) && !hidden.has(c.id));
-
-
   const total = allContacts.length || 1;
 
   const bulkRemove = async (ids: string[]) => {
