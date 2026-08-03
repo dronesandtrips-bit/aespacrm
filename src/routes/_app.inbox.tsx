@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, BellOff, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Kanban, Reply, Copy, MapPin, User } from "lucide-react";
+import { ScheduleEventDialog } from "@/components/ScheduleEventDialog";
+import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, BellOff, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Kanban, Reply, Copy, MapPin, User, CalendarPlus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, pipelineDb, type Contact, type ChatMessage, type Category, type Sequence, type PipelineStage } from "@/lib/db";
 import { activateNotifications, isSoundEnabled, notifyIncomingMessage, setBrowserNotificationsEnabled, setSoundEnabled } from "@/lib/notification-sound";
@@ -181,6 +182,7 @@ function InboxPage() {
   const [enriching, setEnriching] = useState<Set<string>>(new Set());
   const [togglingIgnore, setTogglingIgnore] = useState<Set<string>>(new Set());
   const [editOpen, setEditOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
   // Viewer de imagem (lightbox) + dialog de encaminhar
   const [viewer, setViewer] = useState<{ messageId: string; src: string; alt: string } | null>(null);
@@ -1748,6 +1750,22 @@ function InboxPage() {
                               variant="ghost"
                               size="icon"
                               className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
+                              onClick={() => setScheduleOpen(true)}
+                            >
+                              <CalendarPlus className="size-4 text-violet-400" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Agendar no Google Agenda</TooltipContent>
+                        </Tooltip>
+
+
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
                               disabled={togglingIgnore.has(active.id)}
                               onClick={async () => {
                                 await handleToggleIgnore(active);
@@ -2129,6 +2147,17 @@ function InboxPage() {
           />
         )}
       </Dialog>
+
+      {/* Dialog: agendar compromisso no Google Agenda */}
+      {active && (
+        <ScheduleEventDialog
+          open={scheduleOpen}
+          onOpenChange={setScheduleOpen}
+          contactName={active.name}
+          contactPhone={active.phone}
+          authFetch={fetchWithAuthRetry}
+        />
+      )}
 
       {/* Dialog: inscrever em sequência */}
       <EnrollDialog
