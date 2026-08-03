@@ -4,7 +4,7 @@ import {
   Users,
   Send,
   Inbox,
-  Kanban,
+  
   Settings,
   Smartphone,
   MessageCircle,
