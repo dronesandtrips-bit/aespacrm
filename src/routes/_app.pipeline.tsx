@@ -458,7 +458,30 @@ function PipelinePage() {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [clearTarget, setClearTarget] = useState<{ stage: PipelineStage; count: number } | null>(null);
+  const [clearing, setClearing] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const confirmClearStage = async () => {
+    if (!clearTarget) return;
+    setClearing(true);
+    const previous = placement;
+    const ids = previous.filter((p) => p.stageId === clearTarget.stage.id).map((p) => p.contactId);
+    setPlacement(previous.filter((p) => p.stageId !== clearTarget.stage.id));
+    persistHidden(new Set([...hidden, ...ids]));
+    try {
+      await pipelineDb.clearStage(clearTarget.stage.id);
+      setSelectedIds(new Set());
+      toast.success(`${ids.length} contato(s) removidos de ${clearTarget.stage.name}`);
+      setClearTarget(null);
+    } catch (err: any) {
+      setPlacement(previous);
+      toast.error(`Erro: ${err.message ?? err}`);
+    } finally {
+      setClearing(false);
+    }
+  };
+
 
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => {
