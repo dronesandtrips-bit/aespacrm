@@ -67,6 +67,7 @@ import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api
 import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
 import { Route as ApiPublicContactsBlacklistToggleRouteImport } from './routes/api.public.contacts.blacklist-toggle'
 import { Route as ApiPublicCleanupGroupsRouteImport } from './routes/api.public.cleanup.groups'
+import { Route as ApiPublicCalendarRemindersTickRouteImport } from './routes/api.public.calendar.reminders-tick'
 import { Route as ApiPublicCalendarCreateEventRouteImport } from './routes/api.public.calendar.create-event'
 import { Route as ApiPublicAvatarsRefreshRouteImport } from './routes/api.public.avatars.refresh'
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
@@ -390,6 +391,12 @@ const ApiPublicCleanupGroupsRoute = ApiPublicCleanupGroupsRouteImport.update({
   path: '/api/public/cleanup/groups',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCalendarRemindersTickRoute =
+  ApiPublicCalendarRemindersTickRouteImport.update({
+    id: '/api/public/calendar/reminders-tick',
+    path: '/api/public/calendar/reminders-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCalendarCreateEventRoute =
   ApiPublicCalendarCreateEventRouteImport.update({
     id: '/api/public/calendar/create-event',
@@ -472,6 +479,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
+  '/api/public/calendar/reminders-tick': typeof ApiPublicCalendarRemindersTickRoute
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -540,6 +548,7 @@ export interface FileRoutesByTo {
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
+  '/api/public/calendar/reminders-tick': typeof ApiPublicCalendarRemindersTickRoute
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -610,6 +619,7 @@ export interface FileRoutesById {
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
+  '/api/public/calendar/reminders-tick': typeof ApiPublicCalendarRemindersTickRoute
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -680,6 +690,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/create-event'
+    | '/api/public/calendar/reminders-tick'
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
@@ -748,6 +759,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/create-event'
+    | '/api/public/calendar/reminders-tick'
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
@@ -817,6 +829,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/create-event'
+    | '/api/public/calendar/reminders-tick'
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
@@ -873,6 +886,7 @@ export interface RootRouteChildren {
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
   ApiPublicAvatarsRefreshRoute: typeof ApiPublicAvatarsRefreshRoute
   ApiPublicCalendarCreateEventRoute: typeof ApiPublicCalendarCreateEventRoute
+  ApiPublicCalendarRemindersTickRoute: typeof ApiPublicCalendarRemindersTickRoute
   ApiPublicCleanupGroupsRoute: typeof ApiPublicCleanupGroupsRoute
   ApiPublicContactsBlacklistToggleRoute: typeof ApiPublicContactsBlacklistToggleRoute
   ApiPublicContactsCleanupRoute: typeof ApiPublicContactsCleanupRoute
@@ -1320,6 +1334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCleanupGroupsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/calendar/reminders-tick': {
+      id: '/api/public/calendar/reminders-tick'
+      path: '/api/public/calendar/reminders-tick'
+      fullPath: '/api/public/calendar/reminders-tick'
+      preLoaderRoute: typeof ApiPublicCalendarRemindersTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/calendar/create-event': {
       id: '/api/public/calendar/create-event'
       path: '/api/public/calendar/create-event'
@@ -1439,6 +1460,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
   ApiPublicAvatarsRefreshRoute: ApiPublicAvatarsRefreshRoute,
   ApiPublicCalendarCreateEventRoute: ApiPublicCalendarCreateEventRoute,
+  ApiPublicCalendarRemindersTickRoute: ApiPublicCalendarRemindersTickRoute,
   ApiPublicCleanupGroupsRoute: ApiPublicCleanupGroupsRoute,
   ApiPublicContactsBlacklistToggleRoute: ApiPublicContactsBlacklistToggleRoute,
   ApiPublicContactsCleanupRoute: ApiPublicContactsCleanupRoute,
@@ -1482,12 +1504,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
