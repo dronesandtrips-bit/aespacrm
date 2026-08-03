@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarPlus, Loader2 } from "lucide-react";
+import { CalendarPlus, Copy, Loader2, MapPin, Send } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -30,6 +30,8 @@ type Props = {
   contactPhone: string;
   /** fetch já autenticado (mesmo helper usado nas demais chamadas da inbox) */
   authFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+  /** opcional: envia um texto para o contato no WhatsApp */
+  onSendToContact?: (text: string) => Promise<void> | void;
 };
 
 // Valor inicial para <input type="datetime-local"> — próxima hora cheia.
@@ -41,18 +43,30 @@ function defaultLocalDateTime(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+type Created = {
+  htmlLink: string | null;
+  mapsLink: string | null;
+  location: string | null;
+  startISO: string;
+  title: string;
+};
+
 export function ScheduleEventDialog({
   open,
   onOpenChange,
   contactName,
   contactPhone,
   authFetch,
+  onSendToContact,
 }: Props) {
   const [title, setTitle] = useState("");
   const [when, setWhen] = useState(defaultLocalDateTime());
   const [duration, setDuration] = useState("60");
+  const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
+  const [created, setCreated] = useState<Created | null>(null);
 
   const conversationLink = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -61,9 +75,11 @@ export function ScheduleEventDialog({
 
   useEffect(() => {
     if (!open) return;
+    setCreated(null);
     setTitle(`Compromisso — ${contactName}`);
     setWhen(defaultLocalDateTime());
     setDuration("60");
+    setLocation("");
     setDescription(
       [
         `Contato: ${contactName}`,
@@ -74,6 +90,24 @@ export function ScheduleEventDialog({
         .join("\n"),
     );
   }, [open, contactName, contactPhone, conversationLink]);
+
+  const shareText = useMemo(() => {
+    if (!created) return "";
+    const dt = new Date(created.startISO);
+    const quando = dt.toLocaleString("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+    return [
+      `Olá ${contactName}! Agendei nosso compromisso: ${created.title}`,
+      `Data: ${quando}`,
+      created.location ? `Local: ${created.location}` : "",
+      created.mapsLink ? `Mapa: ${created.mapsLink}` : "",
+      created.htmlLink ? `Agenda: ${created.htmlLink}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }, [created, contactName]);
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -95,6 +129,7 @@ export function ScheduleEventDialog({
           startISO: start.toISOString(),
           durationMinutes: Number(duration),
           description: description.trim() || undefined,
+          location: location.trim() || undefined,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo",
         }),
       });
@@ -102,19 +137,41 @@ export function ScheduleEventDialog({
       if (!res.ok || json?.ok === false) {
         throw new Error(json?.error ?? res.statusText);
       }
-      toast.success("Compromisso criado no Google Agenda", {
-        action: json?.htmlLink
-          ? {
-              label: "Abrir",
-              onClick: () => window.open(json.htmlLink, "_blank", "noopener,noreferrer"),
-            }
-          : undefined,
+      toast.success("Compromisso criado no Google Agenda");
+      setCreated({
+        htmlLink: json?.htmlLink ?? null,
+        mapsLink: json?.mapsLink ?? null,
+        location: json?.location ?? (location.trim() || null),
+        startISO: json?.start ?? start.toISOString(),
+        title: title.trim(),
       });
-      onOpenChange(false);
     } catch (e: any) {
       toast.error(`Falha ao agendar: ${e?.message ?? String(e)}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+      toast.success("Link copiado");
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+
+  const handleSendToContact = async () => {
+    if (!onSendToContact) return;
+    setSendingLink(true);
+    try {
+      await onSendToContact(shareText);
+      toast.success("Link enviado no WhatsApp");
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error(`Falha ao enviar: ${e?.message ?? String(e)}`);
+    } finally {
+      setSendingLink(false);
     }
   };
 
@@ -124,72 +181,133 @@ export function ScheduleEventDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarPlus className="size-4" />
-            Agendar compromisso
+            {created ? "Compartilhar compromisso" : "Agendar compromisso"}
           </DialogTitle>
           <DialogDescription>
-            Cria o evento no Google Agenda de jehahn38@gmail.com.
+            {created
+              ? "Evento criado. Compartilhe os detalhes com o cliente."
+              : "Cria o evento no Google Agenda de jehahn38@gmail.com."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="evt-title">Título</Label>
-            <Input
-              id="evt-title"
-              value={title}
-              maxLength={200}
-              onChange={(e) => setTitle(e.target.value)}
-            />
+        {created ? (
+          <div className="space-y-3">
+            <Textarea rows={7} readOnly value={shareText} className="text-sm" />
+            {created.htmlLink && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => window.open(created.htmlLink!, "_blank", "noopener,noreferrer")}
+              >
+                Abrir no Google Agenda
+              </Button>
+            )}
+            {created.mapsLink && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => window.open(created.mapsLink!, "_blank", "noopener,noreferrer")}
+              >
+                <MapPin className="size-4" />
+                Ver local no Maps
+              </Button>
+            )}
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
+        ) : (
+          <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="evt-when">Data e hora</Label>
+              <Label htmlFor="evt-title">Título</Label>
               <Input
-                id="evt-when"
-                type="datetime-local"
-                value={when}
-                onChange={(e) => setWhen(e.target.value)}
+                id="evt-title"
+                value={title}
+                maxLength={200}
+                onChange={(e) => setTitle(e.target.value)}
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="evt-when">Data e hora</Label>
+                <Input
+                  id="evt-when"
+                  type="datetime-local"
+                  value={when}
+                  onChange={(e) => setWhen(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="evt-duration">Duração</Label>
+                <Select value={duration} onValueChange={setDuration}>
+                  <SelectTrigger id="evt-duration">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="15">15 minutos</SelectItem>
+                    <SelectItem value="30">30 minutos</SelectItem>
+                    <SelectItem value="60">1 hora</SelectItem>
+                    <SelectItem value="90">1h30</SelectItem>
+                    <SelectItem value="120">2 horas</SelectItem>
+                    <SelectItem value="240">4 horas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="space-y-1.5">
-              <Label htmlFor="evt-duration">Duração</Label>
-              <Select value={duration} onValueChange={setDuration}>
-                <SelectTrigger id="evt-duration">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="15">15 minutos</SelectItem>
-                  <SelectItem value="30">30 minutos</SelectItem>
-                  <SelectItem value="60">1 hora</SelectItem>
-                  <SelectItem value="90">1h30</SelectItem>
-                  <SelectItem value="120">2 horas</SelectItem>
-                  <SelectItem value="240">4 horas</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="evt-location" className="flex items-center gap-1.5">
+                <MapPin className="size-3.5" />
+                Local (endereço do cliente)
+              </Label>
+              <Input
+                id="evt-location"
+                placeholder="Ex.: Rua José de Carli, 640 — Chapecó/SC"
+                value={location}
+                maxLength={300}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="evt-desc">Descrição</Label>
+              <Textarea
+                id="evt-desc"
+                rows={4}
+                maxLength={4000}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
             </div>
           </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="evt-desc">Descrição</Label>
-            <Textarea
-              id="evt-desc"
-              rows={4}
-              maxLength={4000}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-        </div>
+        )}
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="size-4 animate-spin" />}
-            Agendar
-          </Button>
+          {created ? (
+            <>
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>
+                Fechar
+              </Button>
+              <Button variant="outline" onClick={handleCopy}>
+                <Copy className="size-4" />
+                Copiar
+              </Button>
+              {onSendToContact && (
+                <Button onClick={handleSendToContact} disabled={sendingLink}>
+                  {sendingLink ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                  Enviar ao cliente
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving && <Loader2 className="size-4 animate-spin" />}
+                Agendar
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
