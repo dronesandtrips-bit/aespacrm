@@ -839,6 +839,17 @@ export const pipelineDb = {
       .eq("contact_id", contactId);
     if (error) throw error;
   },
+  /** Remove TODOS os contatos de uma etapa do Kanban (não apaga os contatos). */
+  async clearStage(stageId: string): Promise<number> {
+    const c = await client();
+    const { data, error } = await c
+      .from("crm_pipeline_placements")
+      .delete()
+      .eq("stage_id", stageId)
+      .select("contact_id");
+    if (error) throw error;
+    return (data ?? []).length;
+  },
 };
 
 

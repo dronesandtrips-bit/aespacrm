@@ -292,6 +292,7 @@ function StageColumn({
   selectedIds,
   onToggleSelect,
   onSelectAll,
+  onClear,
 }: {
   stage: PipelineStage;
   contacts: Contact[];
@@ -299,6 +300,7 @@ function StageColumn({
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
   onSelectAll: (ids: string[], select: boolean) => void;
+  onClear: (stage: PipelineStage, count: number) => void;
 }) {
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: `drop:${stage.id}` });
   const {
@@ -343,7 +345,19 @@ function StageColumn({
           <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
           <h4 className="font-semibold text-sm truncate">{stage.name}</h4>
         </div>
-        <Badge variant="secondary" className="text-xs">{contacts.length}</Badge>
+        <div className="flex items-center gap-1 shrink-0">
+          <Badge variant="secondary" className="text-xs">{contacts.length}</Badge>
+          <button
+            type="button"
+            title="Esvaziar etapa"
+            aria-label={`Esvaziar etapa ${stage.name}`}
+            disabled={contacts.length === 0}
+            onClick={() => onClear(stage, contacts.length)}
+            className="text-muted-foreground hover:text-destructive disabled:opacity-30 transition-colors"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
       </div>
       <div ref={setDropRef} className="p-2 space-y-2 flex-1 overflow-auto max-h-[calc(100vh-300px)]">
         {contacts.length === 0 ? (
@@ -385,6 +399,54 @@ function TrashZone({ active }: { active: boolean }) {
   );
 }
 
+function UnassignedColumn({
+  contacts,
+  categories,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll,
+}: {
+  contacts: Contact[];
+  categories: Category[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onSelectAll: (ids: string[], select: boolean) => void;
+}) {
+  const visible = contacts.slice(0, 100);
+  return (
+    <div className="flex flex-col rounded-xl bg-muted/20 border border-dashed min-w-[260px] w-[260px]">
+      <div className="p-3 border-b flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <Checkbox
+            className="shrink-0"
+            aria-label="Selecionar contatos sem etapa"
+            checked={visible.length > 0 && visible.every((c) => selectedIds.has(c.id))}
+            onCheckedChange={(v) => onSelectAll(visible.map((c) => c.id), !!v)}
+          />
+          <h4 className="font-semibold text-sm truncate text-muted-foreground">Sem etapa</h4>
+        </div>
+        <Badge variant="outline" className="text-xs">{contacts.length}</Badge>
+      </div>
+      <div className="p-2 space-y-2 flex-1 overflow-auto max-h-[calc(100vh-300px)]">
+        {visible.map((c) => (
+          <DraggableCard
+            key={c.id}
+            contact={c}
+            category={categories.find((cat) => cat.id === c.categoryId)}
+            selected={selectedIds.has(c.id)}
+            onToggleSelect={onToggleSelect}
+          />
+        ))}
+        {contacts.length > visible.length && (
+          <p className="text-center text-[11px] text-muted-foreground py-2">
+            +{contacts.length - visible.length} contatos sem etapa
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PipelinePage() {
 
   const [stages, setStages] = useState<PipelineStage[]>([]);
@@ -396,7 +458,30 @@ function PipelinePage() {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [clearTarget, setClearTarget] = useState<{ stage: PipelineStage; count: number } | null>(null);
+  const [clearing, setClearing] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const confirmClearStage = async () => {
+    if (!clearTarget) return;
+    setClearing(true);
+    const previous = placement;
+    const ids = previous.filter((p) => p.stageId === clearTarget.stage.id).map((p) => p.contactId);
+    setPlacement(previous.filter((p) => p.stageId !== clearTarget.stage.id));
+    persistHidden(new Set([...hidden, ...ids]));
+    try {
+      await pipelineDb.clearStage(clearTarget.stage.id);
+      setSelectedIds(new Set());
+      toast.success(`${ids.length} contato(s) removidos de ${clearTarget.stage.name}`);
+      setClearTarget(null);
+    } catch (err: any) {
+      setPlacement(previous);
+      toast.error(`Erro: ${err.message ?? err}`);
+    } finally {
+      setClearing(false);
+    }
+  };
+
 
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => {
@@ -462,15 +547,10 @@ function PipelinePage() {
       .filter((c): c is Contact => !!c),
   }));
 
-  // Contatos sem etapa (para mostrar e poder arrastar pra primeira coluna)
+  // Contatos que nunca foram colocados no Kanban — ficam numa coluna própria
+  // ("Sem etapa"), NUNCA misturados na primeira etapa.
   const placedIds = new Set(placement.map((p) => p.contactId));
   const unplaced = allContacts.filter((c) => !placedIds.has(c.id) && !hidden.has(c.id));
-  if (unplaced.length > 0 && stages.length > 0) {
-    grouped[0] = {
-      stage: grouped[0].stage,
-      contacts: [...unplaced, ...grouped[0].contacts],
-    };
-  }
 
 
   const total = allContacts.length || 1;
@@ -661,8 +741,18 @@ function PipelinePage() {
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}
                 onSelectAll={selectAll}
+                onClear={(s, count) => setClearTarget({ stage: s, count })}
               />
             ))}
+            {unplaced.length > 0 && (
+              <UnassignedColumn
+                contacts={unplaced}
+                categories={categories}
+                selectedIds={selectedIds}
+                onToggleSelect={toggleSelect}
+                onSelectAll={selectAll}
+              />
+            )}
           </div>
         </SortableContext>
         <TrashZone active={!!activeId && !activeId.startsWith("stage:")} />
@@ -677,6 +767,30 @@ function PipelinePage() {
           )}
         </DragOverlay>
       </DndContext>
+
+      <Dialog open={!!clearTarget} onOpenChange={(v) => !v && setClearTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Esvaziar etapa</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Remover os {clearTarget?.count ?? 0} contatos da etapa{" "}
+            <strong className="text-foreground">{clearTarget?.stage.name}</strong>? Os contatos
+            continuam existindo no CRM — só saem do Kanban.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setClearTarget(null)} disabled={clearing}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmClearStage} disabled={clearing} className="gap-2">
+              {clearing ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+              Esvaziar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {grouped.map(({ stage, contacts }) => {
