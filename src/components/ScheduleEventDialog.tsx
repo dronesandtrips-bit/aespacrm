@@ -64,6 +64,9 @@ export function ScheduleEventDialog({
   const [duration, setDuration] = useState("60");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
+  const [reminderMinutes, setReminderMinutes] = useState("60");
+  const [remindClient, setRemindClient] = useState(true);
+  const [ownerPhone, setOwnerPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [sendingLink, setSendingLink] = useState(false);
   const [created, setCreated] = useState<Created | null>(null);
@@ -80,6 +83,13 @@ export function ScheduleEventDialog({
     setWhen(defaultLocalDateTime());
     setDuration("60");
     setLocation("");
+    setReminderMinutes("60");
+    setRemindClient(true);
+    try {
+      setOwnerPhone(window.localStorage.getItem("zapcrm:ownerPhone") ?? "");
+    } catch {
+      /* ignore */
+    }
     setDescription(
       [
         `Contato: ${contactName}`,
@@ -130,6 +140,16 @@ export function ScheduleEventDialog({
           durationMinutes: Number(duration),
           description: description.trim() || undefined,
           location: location.trim() || undefined,
+          reminderMinutes: reminderMinutes === "0" ? undefined : Number(reminderMinutes),
+          contactName,
+          contactPhone:
+            reminderMinutes !== "0" && remindClient
+              ? contactPhone.replace(/\D/g, "")
+              : undefined,
+          ownerPhone:
+            reminderMinutes !== "0" && ownerPhone.replace(/\D/g, "").length >= 10
+              ? ownerPhone.replace(/\D/g, "")
+              : undefined,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo",
         }),
       });
@@ -137,7 +157,17 @@ export function ScheduleEventDialog({
       if (!res.ok || json?.ok === false) {
         throw new Error(json?.error ?? res.statusText);
       }
-      toast.success("Compromisso criado no Google Agenda");
+      try {
+        const digits = ownerPhone.replace(/\D/g, "");
+        if (digits.length >= 10) window.localStorage.setItem("zapcrm:ownerPhone", digits);
+      } catch {
+        /* ignore */
+      }
+      toast.success(
+        json?.remindersCreated
+          ? `Compromisso criado — ${json.remindersCreated} lembrete(s) agendado(s)`
+          : "Compromisso criado no Google Agenda",
+      );
       setCreated({
         htmlLink: json?.htmlLink ?? null,
         mapsLink: json?.mapsLink ?? null,
@@ -252,6 +282,50 @@ export function ScheduleEventDialog({
                 </Select>
               </div>
             </div>
+
+            <div className="rounded-md border border-border p-3 space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="evt-reminder">Lembrete automático no WhatsApp</Label>
+                <Select value={reminderMinutes} onValueChange={setReminderMinutes}>
+                  <SelectTrigger id="evt-reminder">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Sem lembrete</SelectItem>
+                    <SelectItem value="30">30 minutos antes</SelectItem>
+                    <SelectItem value="60">1 hora antes</SelectItem>
+                    <SelectItem value="120">2 horas antes</SelectItem>
+                    <SelectItem value="1440">1 dia antes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {reminderMinutes !== "0" && (
+                <>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-[var(--ww-accent,#25d366)]"
+                      checked={remindClient}
+                      onChange={(e) => setRemindClient(e.target.checked)}
+                    />
+                    Avisar o cliente ({contactPhone})
+                  </label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="evt-owner-phone">Meu WhatsApp (lembrete para mim)</Label>
+                    <Input
+                      id="evt-owner-phone"
+                      inputMode="tel"
+                      placeholder="5551999999999"
+                      value={ownerPhone}
+                      onChange={(e) => setOwnerPhone(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+
 
             <div className="space-y-1.5">
               <Label htmlFor="evt-location" className="flex items-center gap-1.5">

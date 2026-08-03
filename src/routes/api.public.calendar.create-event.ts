@@ -7,7 +7,7 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { checkApiKey, requireUserJwt } from "@/integrations/supabase/server";
+import { checkApiKey, requireUserJwt, getSupabaseAdmin } from "@/integrations/supabase/server";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 const CALENDAR_ID = "primary";
@@ -19,17 +19,34 @@ const EventSchema = z.object({
   description: z.string().trim().max(4000).optional(),
   location: z.string().trim().max(300).optional(),
   timeZone: z.string().trim().min(1).max(64).optional(),
+  // Lembretes automáticos por WhatsApp (opcional, aditivo)
+  reminderMinutes: z.number().int().min(5).max(10080).optional(),
+  contactName: z.string().trim().max(120).optional(),
+  contactPhone: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^\+?\d+$/)
+    .optional(),
+  ownerPhone: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^\+?\d+$/)
+    .optional(),
 });
 
 export const Route = createFileRoute("/api/public/calendar/create-event")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        let userId: string | null = null;
         if (!checkApiKey(request)) {
           const auth = await requireUserJwt(request);
           if ("error" in auth) {
             return Response.json({ ok: false, error: auth.error }, { status: auth.status });
           }
+          userId = auth.userId;
         }
 
         const lovableKey = process.env.LOVABLE_API_KEY?.trim();
@@ -94,14 +111,54 @@ export const Route = createFileRoute("/api/public/calendar/create-event")({
           /* resposta sem JSON */
         }
 
+        const mapsLink = parsed.location
+          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parsed.location)}`
+          : null;
+
+        // Lembretes automáticos por WhatsApp (best-effort — não quebra o agendamento)
+        let remindersCreated = 0;
+        const remindAt = parsed.reminderMinutes
+          ? new Date(start.getTime() - parsed.reminderMinutes * 60_000)
+          : null;
+        if (userId && remindAt && remindAt.getTime() > Date.now()) {
+          const base = {
+            user_id: userId,
+            event_id: data?.id ?? null,
+            title: parsed.title,
+            start_at: start.toISOString(),
+            location: parsed.location ?? null,
+            html_link: data?.htmlLink ?? null,
+            maps_link: mapsLink,
+            contact_name: parsed.contactName ?? null,
+            remind_at: remindAt.toISOString(),
+            status: "pending",
+          };
+          const rows: any[] = [];
+          if (parsed.contactPhone) {
+            rows.push({ ...base, target: "client", phone: parsed.contactPhone.replace(/\D/g, "") });
+          }
+          if (parsed.ownerPhone) {
+            rows.push({ ...base, target: "owner", phone: parsed.ownerPhone.replace(/\D/g, "") });
+          }
+          if (rows.length) {
+            try {
+              const sb = getSupabaseAdmin();
+              const { error: insErr } = await sb.from("crm_appointment_reminders").insert(rows);
+              if (insErr) console.error(`[calendar] falha ao criar lembretes: ${insErr.message}`);
+              else remindersCreated = rows.length;
+            } catch (e: any) {
+              console.error(`[calendar] lembretes indisponíveis: ${e?.message ?? String(e)}`);
+            }
+          }
+        }
+
         return Response.json({
           ok: true,
+          remindersCreated,
           id: data?.id ?? null,
           htmlLink: data?.htmlLink ?? null,
           location: data?.location ?? parsed.location ?? null,
-          mapsLink: parsed.location
-            ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parsed.location)}`
-            : null,
+          mapsLink,
           start: data?.start?.dateTime ?? start.toISOString(),
         });
       },
