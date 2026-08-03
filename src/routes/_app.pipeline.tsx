@@ -696,15 +696,6 @@ function PipelinePage() {
                 onClear={(s, count) => setClearTarget({ stage: s, count })}
               />
             ))}
-            {unplaced.length > 0 && (
-              <UnassignedColumn
-                contacts={unplaced}
-                categories={categories}
-                selectedIds={selectedIds}
-                onToggleSelect={toggleSelect}
-                onSelectAll={selectAll}
-              />
-            )}
           </div>
         </SortableContext>
         <TrashZone active={!!activeId && !activeId.startsWith("stage:")} />
