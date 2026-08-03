@@ -1145,8 +1145,9 @@ function ImportDialog({
     if (inputRef.current) inputRef.current.value = "";
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     setFileName(file.name);
+    const Papa = (await import("papaparse")).default;
     Papa.parse<Record<string, string>>(file, {
       header: true,
       skipEmptyLines: true,
