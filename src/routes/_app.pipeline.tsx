@@ -768,6 +768,30 @@ function PipelinePage() {
         </DragOverlay>
       </DndContext>
 
+      <Dialog open={!!clearTarget} onOpenChange={(v) => !v && setClearTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Esvaziar etapa</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Remover os {clearTarget?.count ?? 0} contatos da etapa{" "}
+            <strong className="text-foreground">{clearTarget?.stage.name}</strong>? Os contatos
+            continuam existindo no CRM — só saem do Kanban.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setClearTarget(null)} disabled={clearing}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmClearStage} disabled={clearing} className="gap-2">
+              {clearing ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+              Esvaziar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {grouped.map(({ stage, contacts }) => {
           const pct = Math.round((contacts.length / total) * 100);
