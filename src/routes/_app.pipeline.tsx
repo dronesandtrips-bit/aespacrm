@@ -476,15 +476,10 @@ function PipelinePage() {
       .filter((c): c is Contact => !!c),
   }));
 
-  // Contatos sem etapa (para mostrar e poder arrastar pra primeira coluna)
+  // Contatos que nunca foram colocados no Kanban — ficam numa coluna própria
+  // ("Sem etapa"), NUNCA misturados na primeira etapa.
   const placedIds = new Set(placement.map((p) => p.contactId));
   const unplaced = allContacts.filter((c) => !placedIds.has(c.id) && !hidden.has(c.id));
-  if (unplaced.length > 0 && stages.length > 0) {
-    grouped[0] = {
-      stage: grouped[0].stage,
-      contacts: [...unplaced, ...grouped[0].contacts],
-    };
-  }
 
 
   const total = allContacts.length || 1;
