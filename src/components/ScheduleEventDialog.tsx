@@ -283,6 +283,50 @@ export function ScheduleEventDialog({
               </div>
             </div>
 
+            <div className="rounded-md border border-border p-3 space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="evt-reminder">Lembrete automático no WhatsApp</Label>
+                <Select value={reminderMinutes} onValueChange={setReminderMinutes}>
+                  <SelectTrigger id="evt-reminder">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Sem lembrete</SelectItem>
+                    <SelectItem value="30">30 minutos antes</SelectItem>
+                    <SelectItem value="60">1 hora antes</SelectItem>
+                    <SelectItem value="120">2 horas antes</SelectItem>
+                    <SelectItem value="1440">1 dia antes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {reminderMinutes !== "0" && (
+                <>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-[var(--ww-accent,#25d366)]"
+                      checked={remindClient}
+                      onChange={(e) => setRemindClient(e.target.checked)}
+                    />
+                    Avisar o cliente ({contactPhone})
+                  </label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="evt-owner-phone">Meu WhatsApp (lembrete para mim)</Label>
+                    <Input
+                      id="evt-owner-phone"
+                      inputMode="tel"
+                      placeholder="5551999999999"
+                      value={ownerPhone}
+                      onChange={(e) => setOwnerPhone(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+
+
             <div className="space-y-1.5">
               <Label htmlFor="evt-location" className="flex items-center gap-1.5">
                 <MapPin className="size-3.5" />
