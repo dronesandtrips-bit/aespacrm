@@ -2156,7 +2156,20 @@ function InboxPage() {
           contactName={active.name}
           contactPhone={active.phone}
           authFetch={fetchWithAuthRetry}
+          onSendToContact={async (text) => {
+            const res = await fetchWithAuthRetry("/api/public/evolution/send-and-log", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ contactId: active.id, text }),
+            });
+            const data = await res.json().catch(() => null as any);
+            if (!res.ok || !data?.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+            const msg: ChatMessage = data.message;
+            setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
+            setLastByContact((prev) => ({ ...prev, [active.id]: msg }));
+          }}
         />
+
       )}
 
       {/* Dialog: inscrever em sequência */}
