@@ -98,6 +98,10 @@ export const Route = createFileRoute("/api/public/calendar/create-event")({
           ok: true,
           id: data?.id ?? null,
           htmlLink: data?.htmlLink ?? null,
+          location: data?.location ?? parsed.location ?? null,
+          mapsLink: parsed.location
+            ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parsed.location)}`
+            : null,
           start: data?.start?.dateTime ?? start.toISOString(),
         });
       },
