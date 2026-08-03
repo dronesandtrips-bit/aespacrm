@@ -181,6 +181,7 @@ function InboxPage() {
   const [enriching, setEnriching] = useState<Set<string>>(new Set());
   const [togglingIgnore, setTogglingIgnore] = useState<Set<string>>(new Set());
   const [editOpen, setEditOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [enrollContact, setEnrollContact] = useState<Contact | null>(null);
   // Viewer de imagem (lightbox) + dialog de encaminhar
   const [viewer, setViewer] = useState<{ messageId: string; src: string; alt: string } | null>(null);
@@ -2145,6 +2146,17 @@ function InboxPage() {
           />
         )}
       </Dialog>
+
+      {/* Dialog: agendar compromisso no Google Agenda */}
+      {active && (
+        <ScheduleEventDialog
+          open={scheduleOpen}
+          onOpenChange={setScheduleOpen}
+          contactName={active.name}
+          contactPhone={active.phone}
+          authFetch={fetchWithAuthRetry}
+        />
+      )}
 
       {/* Dialog: inscrever em sequência */}
       <EnrollDialog
