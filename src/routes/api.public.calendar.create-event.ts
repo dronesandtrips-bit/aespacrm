@@ -17,6 +17,7 @@ const EventSchema = z.object({
   startISO: z.string().trim().min(10).max(40),
   durationMinutes: z.number().int().min(5).max(1440),
   description: z.string().trim().max(4000).optional(),
+  location: z.string().trim().max(300).optional(),
   timeZone: z.string().trim().min(1).max(64).optional(),
 });
 
@@ -69,8 +70,10 @@ export const Route = createFileRoute("/api/public/calendar/create-event")({
             body: JSON.stringify({
               summary: parsed.title,
               description: parsed.description ?? undefined,
+              location: parsed.location || undefined,
               start: { dateTime: start.toISOString(), timeZone },
               end: { dateTime: end.toISOString(), timeZone },
+              reminders: { useDefault: false, overrides: [{ method: "popup", minutes: 30 }] },
             }),
           },
         );
@@ -95,6 +98,10 @@ export const Route = createFileRoute("/api/public/calendar/create-event")({
           ok: true,
           id: data?.id ?? null,
           htmlLink: data?.htmlLink ?? null,
+          location: data?.location ?? parsed.location ?? null,
+          mapsLink: parsed.location
+            ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parsed.location)}`
+            : null,
           start: data?.start?.dateTime ?? start.toISOString(),
         });
       },
