@@ -292,6 +292,7 @@ function StageColumn({
   selectedIds,
   onToggleSelect,
   onSelectAll,
+  onClear,
 }: {
   stage: PipelineStage;
   contacts: Contact[];
@@ -299,6 +300,7 @@ function StageColumn({
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
   onSelectAll: (ids: string[], select: boolean) => void;
+  onClear: (stage: PipelineStage, count: number) => void;
 }) {
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: `drop:${stage.id}` });
   const {
@@ -343,7 +345,19 @@ function StageColumn({
           <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
           <h4 className="font-semibold text-sm truncate">{stage.name}</h4>
         </div>
-        <Badge variant="secondary" className="text-xs">{contacts.length}</Badge>
+        <div className="flex items-center gap-1 shrink-0">
+          <Badge variant="secondary" className="text-xs">{contacts.length}</Badge>
+          <button
+            type="button"
+            title="Esvaziar etapa"
+            aria-label={`Esvaziar etapa ${stage.name}`}
+            disabled={contacts.length === 0}
+            onClick={() => onClear(stage, contacts.length)}
+            className="text-muted-foreground hover:text-destructive disabled:opacity-30 transition-colors"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
       </div>
       <div ref={setDropRef} className="p-2 space-y-2 flex-1 overflow-auto max-h-[calc(100vh-300px)]">
         {contacts.length === 0 ? (
