@@ -399,6 +399,54 @@ function TrashZone({ active }: { active: boolean }) {
   );
 }
 
+function UnassignedColumn({
+  contacts,
+  categories,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll,
+}: {
+  contacts: Contact[];
+  categories: Category[];
+  selectedIds: Set<string>;
+  onToggleSelect: (id: string) => void;
+  onSelectAll: (ids: string[], select: boolean) => void;
+}) {
+  const visible = contacts.slice(0, 100);
+  return (
+    <div className="flex flex-col rounded-xl bg-muted/20 border border-dashed min-w-[260px] w-[260px]">
+      <div className="p-3 border-b flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <Checkbox
+            className="shrink-0"
+            aria-label="Selecionar contatos sem etapa"
+            checked={visible.length > 0 && visible.every((c) => selectedIds.has(c.id))}
+            onCheckedChange={(v) => onSelectAll(visible.map((c) => c.id), !!v)}
+          />
+          <h4 className="font-semibold text-sm truncate text-muted-foreground">Sem etapa</h4>
+        </div>
+        <Badge variant="outline" className="text-xs">{contacts.length}</Badge>
+      </div>
+      <div className="p-2 space-y-2 flex-1 overflow-auto max-h-[calc(100vh-300px)]">
+        {visible.map((c) => (
+          <DraggableCard
+            key={c.id}
+            contact={c}
+            category={categories.find((cat) => cat.id === c.categoryId)}
+            selected={selectedIds.has(c.id)}
+            onToggleSelect={onToggleSelect}
+          />
+        ))}
+        {contacts.length > visible.length && (
+          <p className="text-center text-[11px] text-muted-foreground py-2">
+            +{contacts.length - visible.length} contatos sem etapa
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PipelinePage() {
 
   const [stages, setStages] = useState<PipelineStage[]>([]);
