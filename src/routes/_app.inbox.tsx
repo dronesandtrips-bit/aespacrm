@@ -1748,6 +1748,22 @@ function InboxPage() {
                               variant="ghost"
                               size="icon"
                               className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
+                              onClick={() => setScheduleOpen(true)}
+                            >
+                              <CalendarPlus className="size-4 text-violet-400" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Agendar no Google Agenda</TooltipContent>
+                        </Tooltip>
+
+
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-[color:var(--ww-text-muted)] hover:text-[color:var(--ww-text)] hover:bg-white/5"
                               disabled={togglingIgnore.has(active.id)}
                               onClick={async () => {
                                 await handleToggleIgnore(active);
