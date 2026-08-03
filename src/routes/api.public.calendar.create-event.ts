@@ -17,6 +17,7 @@ const EventSchema = z.object({
   startISO: z.string().trim().min(10).max(40),
   durationMinutes: z.number().int().min(5).max(1440),
   description: z.string().trim().max(4000).optional(),
+  location: z.string().trim().max(300).optional(),
   timeZone: z.string().trim().min(1).max(64).optional(),
 });
 
