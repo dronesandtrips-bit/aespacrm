@@ -70,8 +70,10 @@ export const Route = createFileRoute("/api/public/calendar/create-event")({
             body: JSON.stringify({
               summary: parsed.title,
               description: parsed.description ?? undefined,
+              location: parsed.location || undefined,
               start: { dateTime: start.toISOString(), timeZone },
               end: { dateTime: end.toISOString(), timeZone },
+              reminders: { useDefault: false, overrides: [{ method: "popup", minutes: 30 }] },
             }),
           },
         );
