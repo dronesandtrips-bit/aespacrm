@@ -34,6 +34,9 @@ type Props = {
   onSendToContact?: (text: string) => Promise<void> | void;
 };
 
+// WhatsApp do dono (pré-preenchido; pode ser alterado no campo).
+const DEFAULT_OWNER_PHONE = "5554991495959";
+
 // Valor inicial para <input type="datetime-local"> — próxima hora cheia.
 function defaultLocalDateTime(): string {
   const d = new Date();
@@ -86,9 +89,9 @@ export function ScheduleEventDialog({
     setReminderMinutes("60");
     setRemindClient(true);
     try {
-      setOwnerPhone(window.localStorage.getItem("zapcrm:ownerPhone") ?? "");
+      setOwnerPhone(window.localStorage.getItem("zapcrm:ownerPhone") || DEFAULT_OWNER_PHONE);
     } catch {
-      /* ignore */
+      setOwnerPhone(DEFAULT_OWNER_PHONE);
     }
     setDescription(
       [
