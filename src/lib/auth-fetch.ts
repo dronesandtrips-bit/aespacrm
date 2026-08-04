@@ -2,7 +2,8 @@
 import { getSupabaseClient } from "@/integrations/supabase/client";
 
 async function freshToken(force = false): Promise<string> {
-  const c = getSupabaseClient();
+  const c = await getSupabaseClient();
+  if (!c) throw new Error("Supabase não configurado");
   let { data } = await c.auth.getSession();
   let session = data.session;
   const expiresAt = session?.expires_at ?? 0;
