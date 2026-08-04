@@ -30,6 +30,7 @@ import { Route as AppDisparosRouteImport } from './routes/_app.disparos'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppContatosRouteImport } from './routes/_app.contatos'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
+import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
 import { Route as WidgetFormIdRouteImport } from './routes/widget.form.$id'
 import { Route as ApiPublicLinkPreviewRouteImport } from './routes/api.public.link-preview'
 import { Route as ApiPublicWidgetSubmitRouteImport } from './routes/api.public.widget.submit'
@@ -67,7 +68,10 @@ import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api
 import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
 import { Route as ApiPublicContactsBlacklistToggleRouteImport } from './routes/api.public.contacts.blacklist-toggle'
 import { Route as ApiPublicCleanupGroupsRouteImport } from './routes/api.public.cleanup.groups'
+import { Route as ApiPublicCalendarUpdateEventRouteImport } from './routes/api.public.calendar.update-event'
 import { Route as ApiPublicCalendarRemindersTickRouteImport } from './routes/api.public.calendar.reminders-tick'
+import { Route as ApiPublicCalendarEventsRouteImport } from './routes/api.public.calendar.events'
+import { Route as ApiPublicCalendarDeleteEventRouteImport } from './routes/api.public.calendar.delete-event'
 import { Route as ApiPublicCalendarCreateEventRouteImport } from './routes/api.public.calendar.create-event'
 import { Route as ApiPublicAvatarsRefreshRouteImport } from './routes/api.public.avatars.refresh'
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
@@ -180,6 +184,11 @@ const AppContatosRoute = AppContatosRouteImport.update({
 const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAgendaRoute = AppAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
   getParentRoute: () => AppRoute,
 } as any)
 const WidgetFormIdRoute = WidgetFormIdRouteImport.update({
@@ -391,10 +400,27 @@ const ApiPublicCleanupGroupsRoute = ApiPublicCleanupGroupsRouteImport.update({
   path: '/api/public/cleanup/groups',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCalendarUpdateEventRoute =
+  ApiPublicCalendarUpdateEventRouteImport.update({
+    id: '/api/public/calendar/update-event',
+    path: '/api/public/calendar/update-event',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCalendarRemindersTickRoute =
   ApiPublicCalendarRemindersTickRouteImport.update({
     id: '/api/public/calendar/reminders-tick',
     path: '/api/public/calendar/reminders-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCalendarEventsRoute = ApiPublicCalendarEventsRouteImport.update({
+  id: '/api/public/calendar/events',
+  path: '/api/public/calendar/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCalendarDeleteEventRoute =
+  ApiPublicCalendarDeleteEventRouteImport.update({
+    id: '/api/public/calendar/delete-event',
+    path: '/api/public/calendar/delete-event',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCalendarCreateEventRoute =
@@ -454,6 +480,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/agenda': typeof AppAgendaRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/contatos': typeof AppContatosRoute
   '/dashboard': typeof AppDashboardRoute
@@ -479,7 +506,10 @@ export interface FileRoutesByFullPath {
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
+  '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
+  '/api/public/calendar/events': typeof ApiPublicCalendarEventsRoute
   '/api/public/calendar/reminders-tick': typeof ApiPublicCalendarRemindersTickRoute
+  '/api/public/calendar/update-event': typeof ApiPublicCalendarUpdateEventRoute
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -523,6 +553,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/agenda': typeof AppAgendaRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/contatos': typeof AppContatosRoute
   '/dashboard': typeof AppDashboardRoute
@@ -548,7 +579,10 @@ export interface FileRoutesByTo {
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
+  '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
+  '/api/public/calendar/events': typeof ApiPublicCalendarEventsRoute
   '/api/public/calendar/reminders-tick': typeof ApiPublicCalendarRemindersTickRoute
+  '/api/public/calendar/update-event': typeof ApiPublicCalendarUpdateEventRoute
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -594,6 +628,7 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_app/agenda': typeof AppAgendaRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/contatos': typeof AppContatosRoute
   '/_app/dashboard': typeof AppDashboardRoute
@@ -619,7 +654,10 @@ export interface FileRoutesById {
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
+  '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
+  '/api/public/calendar/events': typeof ApiPublicCalendarEventsRoute
   '/api/public/calendar/reminders-tick': typeof ApiPublicCalendarRemindersTickRoute
+  '/api/public/calendar/update-event': typeof ApiPublicCalendarUpdateEventRoute
   '/api/public/cleanup/groups': typeof ApiPublicCleanupGroupsRoute
   '/api/public/contacts/blacklist-toggle': typeof ApiPublicContactsBlacklistToggleRoute
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
@@ -665,6 +703,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/agenda'
     | '/configuracoes'
     | '/contatos'
     | '/dashboard'
@@ -690,7 +729,10 @@ export interface FileRouteTypes {
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/create-event'
+    | '/api/public/calendar/delete-event'
+    | '/api/public/calendar/events'
     | '/api/public/calendar/reminders-tick'
+    | '/api/public/calendar/update-event'
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
@@ -734,6 +776,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/agenda'
     | '/configuracoes'
     | '/contatos'
     | '/dashboard'
@@ -759,7 +802,10 @@ export interface FileRouteTypes {
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/create-event'
+    | '/api/public/calendar/delete-event'
+    | '/api/public/calendar/events'
     | '/api/public/calendar/reminders-tick'
+    | '/api/public/calendar/update-event'
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
@@ -804,6 +850,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/_app/agenda'
     | '/_app/configuracoes'
     | '/_app/contatos'
     | '/_app/dashboard'
@@ -829,7 +876,10 @@ export interface FileRouteTypes {
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/create-event'
+    | '/api/public/calendar/delete-event'
+    | '/api/public/calendar/events'
     | '/api/public/calendar/reminders-tick'
+    | '/api/public/calendar/update-event'
     | '/api/public/cleanup/groups'
     | '/api/public/contacts/blacklist-toggle'
     | '/api/public/contacts/cleanup'
@@ -886,7 +936,10 @@ export interface RootRouteChildren {
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
   ApiPublicAvatarsRefreshRoute: typeof ApiPublicAvatarsRefreshRoute
   ApiPublicCalendarCreateEventRoute: typeof ApiPublicCalendarCreateEventRoute
+  ApiPublicCalendarDeleteEventRoute: typeof ApiPublicCalendarDeleteEventRoute
+  ApiPublicCalendarEventsRoute: typeof ApiPublicCalendarEventsRoute
   ApiPublicCalendarRemindersTickRoute: typeof ApiPublicCalendarRemindersTickRoute
+  ApiPublicCalendarUpdateEventRoute: typeof ApiPublicCalendarUpdateEventRoute
   ApiPublicCleanupGroupsRoute: typeof ApiPublicCleanupGroupsRoute
   ApiPublicContactsBlacklistToggleRoute: typeof ApiPublicContactsBlacklistToggleRoute
   ApiPublicContactsCleanupRoute: typeof ApiPublicContactsCleanupRoute
@@ -1073,6 +1126,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/agenda': {
+      id: '/_app/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AppAgendaRouteImport
       parentRoute: typeof AppRoute
     }
     '/widget/form/$id': {
@@ -1334,11 +1394,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCleanupGroupsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/calendar/update-event': {
+      id: '/api/public/calendar/update-event'
+      path: '/api/public/calendar/update-event'
+      fullPath: '/api/public/calendar/update-event'
+      preLoaderRoute: typeof ApiPublicCalendarUpdateEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/calendar/reminders-tick': {
       id: '/api/public/calendar/reminders-tick'
       path: '/api/public/calendar/reminders-tick'
       fullPath: '/api/public/calendar/reminders-tick'
       preLoaderRoute: typeof ApiPublicCalendarRemindersTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/events': {
+      id: '/api/public/calendar/events'
+      path: '/api/public/calendar/events'
+      fullPath: '/api/public/calendar/events'
+      preLoaderRoute: typeof ApiPublicCalendarEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/delete-event': {
+      id: '/api/public/calendar/delete-event'
+      path: '/api/public/calendar/delete-event'
+      fullPath: '/api/public/calendar/delete-event'
+      preLoaderRoute: typeof ApiPublicCalendarDeleteEventRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/calendar/create-event': {
@@ -1408,6 +1489,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAgendaRoute: typeof AppAgendaRoute
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppContatosRoute: typeof AppContatosRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -1425,6 +1507,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAgendaRoute: AppAgendaRoute,
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppContatosRoute: AppContatosRoute,
   AppDashboardRoute: AppDashboardRoute,
@@ -1460,7 +1543,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
   ApiPublicAvatarsRefreshRoute: ApiPublicAvatarsRefreshRoute,
   ApiPublicCalendarCreateEventRoute: ApiPublicCalendarCreateEventRoute,
+  ApiPublicCalendarDeleteEventRoute: ApiPublicCalendarDeleteEventRoute,
+  ApiPublicCalendarEventsRoute: ApiPublicCalendarEventsRoute,
   ApiPublicCalendarRemindersTickRoute: ApiPublicCalendarRemindersTickRoute,
+  ApiPublicCalendarUpdateEventRoute: ApiPublicCalendarUpdateEventRoute,
   ApiPublicCleanupGroupsRoute: ApiPublicCleanupGroupsRoute,
   ApiPublicContactsBlacklistToggleRoute: ApiPublicContactsBlacklistToggleRoute,
   ApiPublicContactsCleanupRoute: ApiPublicContactsCleanupRoute,
@@ -1504,12 +1590,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
