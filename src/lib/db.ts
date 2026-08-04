@@ -911,6 +911,8 @@ export const pipelineDb = {
       .select('id,name,color,"order",sequence_id')
       .single();
     if (error) throw error;
+    // Espelha automaticamente a etapa como categoria de contatos.
+    await ensureCategoryForStage(name, color);
     return rowToStage(data);
   },
   async updateStage(
@@ -918,13 +920,44 @@ export const pipelineDb = {
     patch: Partial<Pick<PipelineStage, "name" | "color" | "sequenceId">>,
   ) {
     const c = await client();
+    const { data: before } = await c
+      .from("crm_pipeline_stages")
+      .select("name,color")
+      .eq("id", id)
+      .maybeSingle();
     const dbPatch: Record<string, unknown> = {};
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.color !== undefined) dbPatch.color = patch.color;
     if (patch.sequenceId !== undefined) dbPatch.sequence_id = patch.sequenceId;
     const { error } = await c.from("crm_pipeline_stages").update(dbPatch).eq("id", id);
     if (error) throw error;
+    // Mantém a categoria espelhada em sincronia (renomeia/recolore).
+    try {
+      const oldName = before?.name;
+      const newName = (patch.name ?? oldName ?? "").trim().replace(/\s+/g, " ");
+      const newColor = patch.color ?? before?.color;
+      if (oldName) {
+        const user_id = await uid();
+        const { data: cat } = await c
+          .from("crm_categories")
+          .select("id")
+          .eq("user_id", user_id)
+          .ilike("name", oldName)
+          .maybeSingle();
+        if (cat?.id) {
+          await c
+            .from("crm_categories")
+            .update({ name: newName, color: newColor })
+            .eq("id", cat.id);
+        } else if (newName && newColor) {
+          await ensureCategoryForStage(newName, newColor);
+        }
+      }
+    } catch (e) {
+      console.warn("[pipeline] sync categoria da etapa:", e);
+    }
   },
+
   async deleteStage(id: string): Promise<{ ok: boolean; reason?: string }> {
     const c = await client();
     const { count } = await c
