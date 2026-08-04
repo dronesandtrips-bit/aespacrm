@@ -488,8 +488,15 @@ function PipelinePage() {
 
   useEffect(() => {
     setLoading(true);
-    load().finally(() => setLoading(false));
+    load()
+      .then(async () => {
+        // Espelha etapas do pipeline como categorias e aplica as tags.
+        const res = await pipelineDb.syncCategories().catch(() => null);
+        if (res && res.tagged > 0) await load();
+      })
+      .finally(() => setLoading(false));
   }, []);
+
 
   const grouped = stages.map((s) => ({
     stage: s,

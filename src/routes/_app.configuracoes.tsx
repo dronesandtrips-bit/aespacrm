@@ -473,8 +473,11 @@ function PipelineTab() {
 
   useEffect(() => {
     setLoading(true);
-    refresh().finally(() => setLoading(false));
+    refresh()
+      .then(() => pipelineDb.syncCategories().catch(() => null))
+      .finally(() => setLoading(false));
   }, []);
+
 
   const save = async (name: string, color: string, sequenceId: string | null) => {
     if (!name.trim()) return toast.error("Nome obrigatório");

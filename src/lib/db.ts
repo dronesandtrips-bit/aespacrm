@@ -717,6 +717,164 @@ function rowToStage(r: any): PipelineStage {
   };
 }
 
+// ---- Espelhamento automático: etapa do Pipeline -> categoria de contatos ----
+
+/** Garante que exista uma categoria com o mesmo nome/cor da etapa. Retorna o id. */
+async function ensureCategoryForStage(
+  name: string,
+  color: string,
+): Promise<string | null> {
+  try {
+    const c = await client();
+    const user_id = await uid();
+    const clean = String(name ?? "").trim().replace(/\s+/g, " ");
+    if (!clean) return null;
+    const { data: found } = await c
+      .from("crm_categories")
+      .select("id")
+      .eq("user_id", user_id)
+      .ilike("name", clean)
+      .maybeSingle();
+    if (found?.id) return found.id;
+    const { data, error } = await c
+      .from("crm_categories")
+      .insert({ name: clean, color, user_id, status: "approved" })
+      .select("id")
+      .single();
+    if (error) {
+      console.warn("[pipeline] falha ao criar categoria da etapa:", error.message);
+      return null;
+    }
+    return data.id;
+  } catch (e) {
+    console.warn("[pipeline] ensureCategoryForStage:", e);
+    return null;
+  }
+}
+
+/** Mapa stageId -> categoryId (criando as categorias que faltarem). */
+async function stageCategoryMap(): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const stages = await pipelineDb.listStages();
+  for (const s of stages) {
+    const catId = await ensureCategoryForStage(s.name, s.color);
+    if (catId) map.set(s.id, catId);
+  }
+  return map;
+}
+
+/**
+ * Aplica a tag da etapa ao contato: adiciona a categoria da etapa atual
+ * (somando às tags que já existem) e remove tags de OUTRAS etapas.
+ */
+async function applyStageTag(contactId: string, stageId: string | null) {
+  try {
+    const c = await client();
+    const map = await stageCategoryMap();
+    const target = stageId ? (map.get(stageId) ?? null) : null;
+    const others = [...map.values()].filter((id) => id !== target);
+    if (others.length) {
+      await c
+        .from("crm_contact_categories")
+        .delete()
+        .eq("contact_id", contactId)
+        .in("category_id", others);
+    }
+    if (!target) return;
+    const { data: exists } = await c
+      .from("crm_contact_categories")
+      .select("category_id")
+      .eq("contact_id", contactId)
+      .eq("category_id", target)
+      .maybeSingle();
+    if (exists) return;
+    const { data: owner } = await c
+      .from("crm_contacts")
+      .select("user_id")
+      .eq("id", contactId)
+      .maybeSingle();
+    const user_id = owner?.user_id ?? (await uid());
+    const base = { contact_id: contactId, category_id: target, user_id };
+    let { error } = await c
+      .from("crm_contact_categories")
+      .insert({ ...base, source: "manual" });
+    if (error) {
+      await c.from("crm_contact_categories").insert(base);
+    }
+  } catch (e) {
+    console.warn("[pipeline] applyStageTag:", e);
+  }
+}
+
+/** Remove a tag de etapa (todas) de um conjunto de contatos. */
+async function removeStageTags(contactIds: string[], onlyStageId?: string) {
+  if (contactIds.length === 0) return;
+  try {
+    const c = await client();
+    const map = await stageCategoryMap();
+    const ids = onlyStageId
+      ? [map.get(onlyStageId)].filter(Boolean as unknown as (v: any) => v is string)
+      : [...map.values()];
+    if (ids.length === 0) return;
+    for (let i = 0; i < contactIds.length; i += 200) {
+      await c
+        .from("crm_contact_categories")
+        .delete()
+        .in("contact_id", contactIds.slice(i, i + 200))
+        .in("category_id", ids);
+    }
+  } catch (e) {
+    console.warn("[pipeline] removeStageTags:", e);
+  }
+}
+
+/**
+ * Sincroniza TODAS as etapas com categorias e garante que cada contato
+ * posicionado no Kanban tenha a tag da sua etapa.
+ */
+export async function syncStagesToCategories(): Promise<{
+  categories: number;
+  tagged: number;
+}> {
+  const c = await client();
+  const map = await stageCategoryMap();
+  const placements = await pipelineDb.listPlacements();
+  let tagged = 0;
+  const catIds = [...map.values()];
+  if (catIds.length === 0) return { categories: 0, tagged: 0 };
+
+  const { data: existing } = await c
+    .from("crm_contact_categories")
+    .select("contact_id,category_id")
+    .in("category_id", catIds);
+  const have = new Set(
+    (existing ?? []).map((r: any) => `${r.contact_id}:${r.category_id}`),
+  );
+
+  const rows: Array<{ contact_id: string; category_id: string; user_id: string }> = [];
+  const user_id = await uid();
+  for (const p of placements) {
+    const catId = map.get(p.stageId);
+    if (!catId) continue;
+    if (have.has(`${p.contactId}:${catId}`)) continue;
+    rows.push({ contact_id: p.contactId, category_id: catId, user_id });
+  }
+  for (let i = 0; i < rows.length; i += 200) {
+    const batch = rows.slice(i, i + 200);
+    let { error } = await c
+      .from("crm_contact_categories")
+      .insert(batch.map((r) => ({ ...r, source: "manual" })));
+    if (error) {
+      const retry = await c.from("crm_contact_categories").insert(batch);
+      error = retry.error;
+    }
+    if (!error) tagged += batch.length;
+  }
+  return { categories: map.size, tagged };
+}
+
+
+
 export const pipelineDb = {
   async listStages(): Promise<PipelineStage[]> {
     const c = await client();
@@ -753,6 +911,8 @@ export const pipelineDb = {
       .select('id,name,color,"order",sequence_id')
       .single();
     if (error) throw error;
+    // Espelha automaticamente a etapa como categoria de contatos.
+    await ensureCategoryForStage(name, color);
     return rowToStage(data);
   },
   async updateStage(
@@ -760,13 +920,44 @@ export const pipelineDb = {
     patch: Partial<Pick<PipelineStage, "name" | "color" | "sequenceId">>,
   ) {
     const c = await client();
+    const { data: before } = await c
+      .from("crm_pipeline_stages")
+      .select("name,color")
+      .eq("id", id)
+      .maybeSingle();
     const dbPatch: Record<string, unknown> = {};
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.color !== undefined) dbPatch.color = patch.color;
     if (patch.sequenceId !== undefined) dbPatch.sequence_id = patch.sequenceId;
     const { error } = await c.from("crm_pipeline_stages").update(dbPatch).eq("id", id);
     if (error) throw error;
+    // Mantém a categoria espelhada em sincronia (renomeia/recolore).
+    try {
+      const oldName = before?.name;
+      const newName = (patch.name ?? oldName ?? "").trim().replace(/\s+/g, " ");
+      const newColor = patch.color ?? before?.color;
+      if (oldName) {
+        const user_id = await uid();
+        const { data: cat } = await c
+          .from("crm_categories")
+          .select("id")
+          .eq("user_id", user_id)
+          .ilike("name", oldName)
+          .maybeSingle();
+        if (cat?.id) {
+          await c
+            .from("crm_categories")
+            .update({ name: newName, color: newColor })
+            .eq("id", cat.id);
+        } else if (newName && newColor) {
+          await ensureCategoryForStage(newName, newColor);
+        }
+      }
+    } catch (e) {
+      console.warn("[pipeline] sync categoria da etapa:", e);
+    }
   },
+
   async deleteStage(id: string): Promise<{ ok: boolean; reason?: string }> {
     const c = await client();
     const { count } = await c
@@ -829,6 +1020,8 @@ export const pipelineDb = {
         .eq("status", "active")
         .in("sequence_id", ids);
     }
+    // Espelha a etapa como tag do contato (soma às tags existentes).
+    await applyStageTag(contactId, stageId);
   },
   /** Remove o contato do Kanban (não apaga o contato). */
   async removeContactFromStage(contactId: string) {
@@ -838,6 +1031,7 @@ export const pipelineDb = {
       .delete()
       .eq("contact_id", contactId);
     if (error) throw error;
+    await removeStageTags([contactId]);
   },
   /** Remove TODOS os contatos de uma etapa do Kanban (não apaga os contatos). */
   async clearStage(stageId: string): Promise<number> {
@@ -848,8 +1042,13 @@ export const pipelineDb = {
       .eq("stage_id", stageId)
       .select("contact_id");
     if (error) throw error;
-    return (data ?? []).length;
+    const ids = (data ?? []).map((r: any) => r.contact_id);
+    await removeStageTags(ids, stageId);
+    return ids.length;
   },
+  /** Sincroniza etapas → categorias e aplica as tags nos contatos já posicionados. */
+  syncCategories: syncStagesToCategories,
+
 };
 
 
