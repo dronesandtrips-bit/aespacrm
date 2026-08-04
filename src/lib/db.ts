@@ -1020,6 +1020,8 @@ export const pipelineDb = {
         .eq("status", "active")
         .in("sequence_id", ids);
     }
+    // Espelha a etapa como tag do contato (soma às tags existentes).
+    await applyStageTag(contactId, stageId);
   },
   /** Remove o contato do Kanban (não apaga o contato). */
   async removeContactFromStage(contactId: string) {
@@ -1029,6 +1031,7 @@ export const pipelineDb = {
       .delete()
       .eq("contact_id", contactId);
     if (error) throw error;
+    await removeStageTags([contactId]);
   },
   /** Remove TODOS os contatos de uma etapa do Kanban (não apaga os contatos). */
   async clearStage(stageId: string): Promise<number> {
@@ -1039,8 +1042,13 @@ export const pipelineDb = {
       .eq("stage_id", stageId)
       .select("contact_id");
     if (error) throw error;
-    return (data ?? []).length;
+    const ids = (data ?? []).map((r: any) => r.contact_id);
+    await removeStageTags(ids, stageId);
+    return ids.length;
   },
+  /** Sincroniza etapas → categorias e aplica as tags nos contatos já posicionados. */
+  syncCategories: syncStagesToCategories,
+
 };
 
 
