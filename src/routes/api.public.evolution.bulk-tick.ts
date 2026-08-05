@@ -31,7 +31,7 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
 
         const sb = getSupabaseAdmin();
         const nowIso = new Date().toISOString();
-        const orphanCutoffIso = new Date(Date.now() - 90_000).toISOString();
+        const orphanCutoffIso = new Date(Date.now() - 45_000).toISOString();
 
         // 1) Agendados que chegaram a hora.
         const { data: dueScheduled, error: errSched } = await sb
@@ -45,7 +45,7 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
         if (errSched) return jsonResponse({ ok: false, error: errSched.message }, 500);
 
         // 2) Em andamento mas órfãos (Worker morreu / batch-per-tick precisa
-        //    continuar). claimed_at null OU < now()-90s => repesca.
+        //    continuar). claimed_at null OU < now()-45s => repesca.
         // Usa duas queries separadas para evitar problemas de parsing do
         // .or() com timestamps ISO (que contêm ":") no PostgREST self-hosted.
         const ORPHAN_COLS =
