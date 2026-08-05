@@ -340,7 +340,9 @@ function DisparosPage() {
 
   const setControl = async (b: BulkSend, control: "run" | "paused" | "cancelled") => {
     try {
-      await bulkSendsDb.update(b.id, { control });
+      if (control === "run") await bulkSendsDb.resume(b.id);
+      else await bulkSendsDb.update(b.id, { control });
+
       const label =
         control === "paused" ? "Pausando…" :
         control === "run" ? "Retomando…" :

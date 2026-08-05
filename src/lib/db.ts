@@ -1204,6 +1204,17 @@ export const bulkSendsDb = {
     const { error } = await c.from("crm_bulk_sends").update(dbPatch).eq("id", id);
     if (error) throw error;
   },
+  // Retomar: além de control='run', devolve o disparo para a fila do cron
+  // (status='in_progress' + claimed_at null => repescado no próximo tick).
+  async resume(id: string) {
+    const c = await client();
+    const { error } = await c
+      .from("crm_bulk_sends")
+      .update({ control: "run", status: "in_progress", claimed_at: null })
+      .eq("id", id);
+    if (error) throw error;
+  },
+
   async remove(id: string) {
     const c = await client();
     const { error } = await c.from("crm_bulk_sends").delete().eq("id", id);

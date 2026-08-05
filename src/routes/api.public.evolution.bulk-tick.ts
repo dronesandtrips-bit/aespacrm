@@ -67,10 +67,32 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
           .limit(20);
         if (errOrphStale) return jsonResponse({ ok: false, error: errOrphStale.message }, 500);
 
+        // 3) Pausados que o usuário já retomou (control='run') mas cujo status
+        //    ficou 'paused' — devolve à fila.
+        const { data: resumed, error: errResumed } = await sb
+          .from("crm_bulk_sends")
+          .select(ORPHAN_COLS)
+          .eq("status", "paused")
+          .eq("control", "run")
+          .limit(20);
+        if (errResumed) return jsonResponse({ ok: false, error: errResumed.message }, 500);
+        for (const r of resumed ?? []) {
+          await sb
+            .from("crm_bulk_sends")
+            .update({ status: "in_progress", claimed_at: null })
+            .eq("id", r.id)
+            .eq("status", "paused");
+          r.status = "in_progress";
+          r.claimed_at = null;
+        }
+
+
+
         // Dedupe (uma linha pode aparecer só em uma das listas, mas garante).
         const orphanMap = new Map<string, any>();
         for (const r of orphansNull ?? []) orphanMap.set(r.id, r);
         for (const r of orphansStale ?? []) orphanMap.set(r.id, r);
+        for (const r of resumed ?? []) orphanMap.set(r.id, r);
         const dueOrphans = Array.from(orphanMap.values());
 
         const due = [...(dueScheduled ?? []), ...dueOrphans];
