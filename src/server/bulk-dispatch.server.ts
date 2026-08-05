@@ -62,12 +62,28 @@ export async function runBulkDispatch(opts: {
   contactIds: string[];
   message: string;
   intervalSeconds: number;
+  /**
+   * Instante persistido do último envio antes de o cron reservar esta linha.
+   * O claim do bulk-tick atualiza claimed_at; sem esta referência, cada tick
+   * reinicia o intervalo e disparos com intervalo maior que o budget travam.
+   */
+  lastSentAt?: string | null;
   media?: BulkMedia | null;
   apiUrl: string;
   apiKey: string;
 }) {
   const sb = getSupabaseAdmin();
-  const { userId, bulkId, contactIds, message, intervalSeconds, media, apiUrl, apiKey } = opts;
+  const {
+    userId,
+    bulkId,
+    contactIds,
+    message,
+    intervalSeconds,
+    lastSentAt,
+    media,
+    apiUrl,
+    apiKey,
+  } = opts;
   const startedAt = Date.now();
 
   // Lê estado atual ANTES de reclamar (claimed_at guarda o instante do
@@ -87,9 +103,11 @@ export async function runBulkDispatch(opts: {
 
   let cursor = Math.max(0, Number(head?.next_index ?? 0));
   // Momento do último envio (claimed_at é atualizado a cada envio). Serve
-  // para respeitar o intervalo mesmo entre ticks diferentes.
+  // para respeitar o intervalo mesmo entre ticks diferentes. No cron usamos
+  // o valor capturado ANTES do claim, que sobrescreve claimed_at.
+  const persistedLastSentAt = lastSentAt ?? head?.claimed_at;
   let lastSentMs =
-    cursor > 0 && head?.claimed_at ? Date.parse(String(head.claimed_at)) || 0 : 0;
+    cursor > 0 && persistedLastSentAt ? Date.parse(String(persistedLastSentAt)) || 0 : 0;
   let processedTotal = Math.max(0, Number(head?.sent_count ?? 0));
   if (processedTotal > cursor) {
     cursor = Math.min(processedTotal, contactIds.length);
