@@ -296,7 +296,13 @@ export async function runBulkDispatch(opts: {
       status: finalStatus,
       sent_count: processedTotal,
       next_index: cursor,
-      claimed_at: done || cancelled || paused ? null : new Date().toISOString(),
+      // IMPORTANTE: em in_progress, claimed_at guarda o instante do ÚLTIMO
+      // ENVIO (não o fim do tick), senão o próximo tick recomeça a contagem
+      // do intervalo a partir do fim do tick e a espera fica errada.
+      claimed_at:
+        done || cancelled || paused
+          ? null
+          : new Date(lastSentMs || Date.now()).toISOString(),
     })
     .eq("id", bulkId)
     .eq("user_id", userId);
