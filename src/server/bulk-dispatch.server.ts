@@ -264,27 +264,20 @@ export async function runBulkDispatch(opts: {
 
     processedTotal++;
     processedThisTick++;
+    lastSentMs = Date.now();
 
     // Heartbeat + cursor após cada envio (mesmo que o Worker morra, o
-    // próximo tick retoma deste ponto).
+    // próximo tick retoma deste ponto). claimed_at também marca o instante
+    // do último envio, usado para respeitar o intervalo no próximo tick.
     await sb
       .from("crm_bulk_sends")
       .update({
         sent_count: processedTotal,
         next_index: cursor,
-        claimed_at: new Date().toISOString(),
+        claimed_at: new Date(lastSentMs).toISOString(),
       })
       .eq("id", bulkId)
       .eq("user_id", userId);
-
-    // Aplica intervalo apenas se ainda há mais para enviar dentro do budget.
-    const hasMore = cursor < contactIds.length;
-    const canContinue =
-      processedThisTick < MAX_PER_TICK &&
-      Date.now() - startedAt + intervalSeconds * 1000 < TICK_BUDGET_MS;
-    if (hasMore && canContinue) {
-      await sleep(intervalSeconds * 1000);
-    }
   }
 
   const done = !cancelled && !paused && cursor >= contactIds.length;
