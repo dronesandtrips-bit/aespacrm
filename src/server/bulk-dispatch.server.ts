@@ -70,6 +70,14 @@ export async function runBulkDispatch(opts: {
   const { userId, bulkId, contactIds, message, intervalSeconds, media, apiUrl, apiKey } = opts;
   const startedAt = Date.now();
 
+  // Lê estado atual ANTES de reclamar (claimed_at guarda o instante do
+  // último envio — precisamos dele para respeitar o intervalo entre ticks).
+  const { data: head } = await sb
+    .from("crm_bulk_sends")
+    .select("next_index, sent_count, control, claimed_at")
+    .eq("id", bulkId)
+    .maybeSingle();
+
   // Marca claim no início deste tick — heartbeat para o cron saber que
   // alguém está trabalhando nesta linha (e poder reclamar se travar).
   await sb
@@ -77,14 +85,11 @@ export async function runBulkDispatch(opts: {
     .update({ status: "in_progress", claimed_at: new Date().toISOString() })
     .eq("id", bulkId);
 
-  // Lê estado atual para retomar do cursor onde paramos.
-  const { data: head } = await sb
-    .from("crm_bulk_sends")
-    .select("next_index, sent_count, control")
-    .eq("id", bulkId)
-    .maybeSingle();
-
   let cursor = Math.max(0, Number(head?.next_index ?? 0));
+  // Momento do último envio (claimed_at é atualizado a cada envio). Serve
+  // para respeitar o intervalo mesmo entre ticks diferentes.
+  let lastSentMs =
+    cursor > 0 && head?.claimed_at ? Date.parse(String(head.claimed_at)) || 0 : 0;
   let processedTotal = Math.max(0, Number(head?.sent_count ?? 0));
   if (processedTotal > cursor) {
     cursor = Math.min(processedTotal, contactIds.length);
@@ -155,6 +160,17 @@ export async function runBulkDispatch(opts: {
     if (state?.control === "paused") { paused = true; break; }
 
     const c: any = orderedAll[cursor];
+    if (c?.phone_norm) {
+      // Respeita o intervalo desde o ÚLTIMO envio (inclusive de ticks
+      // anteriores). Se a espera não couber no budget deste tick, encerra
+      // aqui — o próximo tick do cron retoma do mesmo ponto.
+      const waitMs = lastSentMs ? intervalSeconds * 1000 - (Date.now() - lastSentMs) : 0;
+      if (waitMs > 0) {
+        if (Date.now() - startedAt + waitMs > TICK_BUDGET_MS) break;
+        await sleep(waitMs);
+      }
+    }
+
     cursor++;
     if (!c || !c.phone_norm) {
       // pula contato inválido sem gastar interval
@@ -248,27 +264,20 @@ export async function runBulkDispatch(opts: {
 
     processedTotal++;
     processedThisTick++;
+    lastSentMs = Date.now();
 
     // Heartbeat + cursor após cada envio (mesmo que o Worker morra, o
-    // próximo tick retoma deste ponto).
+    // próximo tick retoma deste ponto). claimed_at também marca o instante
+    // do último envio, usado para respeitar o intervalo no próximo tick.
     await sb
       .from("crm_bulk_sends")
       .update({
         sent_count: processedTotal,
         next_index: cursor,
-        claimed_at: new Date().toISOString(),
+        claimed_at: new Date(lastSentMs).toISOString(),
       })
       .eq("id", bulkId)
       .eq("user_id", userId);
-
-    // Aplica intervalo apenas se ainda há mais para enviar dentro do budget.
-    const hasMore = cursor < contactIds.length;
-    const canContinue =
-      processedThisTick < MAX_PER_TICK &&
-      Date.now() - startedAt + intervalSeconds * 1000 < TICK_BUDGET_MS;
-    if (hasMore && canContinue) {
-      await sleep(intervalSeconds * 1000);
-    }
   }
 
   const done = !cancelled && !paused && cursor >= contactIds.length;
