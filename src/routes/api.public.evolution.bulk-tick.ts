@@ -92,6 +92,7 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
         const orphanMap = new Map<string, any>();
         for (const r of orphansNull ?? []) orphanMap.set(r.id, r);
         for (const r of orphansStale ?? []) orphanMap.set(r.id, r);
+        for (const r of resumed ?? []) orphanMap.set(r.id, r);
         const dueOrphans = Array.from(orphanMap.values());
 
         const due = [...(dueScheduled ?? []), ...dueOrphans];
