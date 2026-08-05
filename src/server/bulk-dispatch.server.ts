@@ -85,6 +85,10 @@ export async function runBulkDispatch(opts: {
     .maybeSingle();
 
   let cursor = Math.max(0, Number(head?.next_index ?? 0));
+  // Momento do último envio (claimed_at é atualizado a cada envio). Serve
+  // para respeitar o intervalo mesmo entre ticks diferentes.
+  let lastSentMs =
+    cursor > 0 && head?.claimed_at ? Date.parse(String(head.claimed_at)) || 0 : 0;
   let processedTotal = Math.max(0, Number(head?.sent_count ?? 0));
   if (processedTotal > cursor) {
     cursor = Math.min(processedTotal, contactIds.length);
