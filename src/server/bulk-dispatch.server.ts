@@ -160,6 +160,17 @@ export async function runBulkDispatch(opts: {
     if (state?.control === "paused") { paused = true; break; }
 
     const c: any = orderedAll[cursor];
+    if (c?.phone_norm) {
+      // Respeita o intervalo desde o ÚLTIMO envio (inclusive de ticks
+      // anteriores). Se a espera não couber no budget deste tick, encerra
+      // aqui — o próximo tick do cron retoma do mesmo ponto.
+      const waitMs = lastSentMs ? intervalSeconds * 1000 - (Date.now() - lastSentMs) : 0;
+      if (waitMs > 0) {
+        if (Date.now() - startedAt + waitMs > TICK_BUDGET_MS) break;
+        await sleep(waitMs);
+      }
+    }
+
     cursor++;
     if (!c || !c.phone_norm) {
       // pula contato inválido sem gastar interval
