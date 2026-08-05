@@ -70,19 +70,20 @@ export async function runBulkDispatch(opts: {
   const { userId, bulkId, contactIds, message, intervalSeconds, media, apiUrl, apiKey } = opts;
   const startedAt = Date.now();
 
+  // Lê estado atual ANTES de reclamar (claimed_at guarda o instante do
+  // último envio — precisamos dele para respeitar o intervalo entre ticks).
+  const { data: head } = await sb
+    .from("crm_bulk_sends")
+    .select("next_index, sent_count, control, claimed_at")
+    .eq("id", bulkId)
+    .maybeSingle();
+
   // Marca claim no início deste tick — heartbeat para o cron saber que
   // alguém está trabalhando nesta linha (e poder reclamar se travar).
   await sb
     .from("crm_bulk_sends")
     .update({ status: "in_progress", claimed_at: new Date().toISOString() })
     .eq("id", bulkId);
-
-  // Lê estado atual para retomar do cursor onde paramos.
-  const { data: head } = await sb
-    .from("crm_bulk_sends")
-    .select("next_index, sent_count, control, claimed_at")
-    .eq("id", bulkId)
-    .maybeSingle();
 
   let cursor = Math.max(0, Number(head?.next_index ?? 0));
   // Momento do último envio (claimed_at é atualizado a cada envio). Serve
