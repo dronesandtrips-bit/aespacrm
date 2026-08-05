@@ -80,7 +80,7 @@ export async function runBulkDispatch(opts: {
   // Lê estado atual para retomar do cursor onde paramos.
   const { data: head } = await sb
     .from("crm_bulk_sends")
-    .select("next_index, sent_count, control")
+    .select("next_index, sent_count, control, claimed_at")
     .eq("id", bulkId)
     .maybeSingle();
 
