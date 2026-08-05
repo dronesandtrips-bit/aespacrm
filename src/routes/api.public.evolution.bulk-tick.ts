@@ -167,6 +167,10 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
             contactIds,
             message: row.message,
             intervalSeconds: row.interval_seconds,
+            // row.claimed_at foi lido antes da reserva atômica acima. Dentro
+            // do dispatch, o valor no banco já é o horário do claim; passar o
+            // anterior evita reiniciar o relógio do intervalo a cada cron.
+            lastSentAt: row.claimed_at,
             media,
             apiUrl,
             apiKey,
