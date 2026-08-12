@@ -100,7 +100,7 @@ function makeShortCode(): string {
   return randomBytes(6).toString("base64url").slice(0, 8);
 }
 
-// Gera um shortlink único para o par (userId, phone).
+// Gera (ou reaproveita) um shortlink único para o par (userId, phone).
 // Retorna o code ou null se falhar.
 export async function generateShortLink(
   userId: string,
@@ -108,6 +108,18 @@ export async function generateShortLink(
 ): Promise<string | null> {
   if (!userId || !phone) return null;
   const sb = getSupabaseAdmin();
+
+  // 1) Reaproveita o code já existente para este contato (a tabela tem
+  //    unique(user_id, phone_norm) — sem isso o insert conflita sempre e
+  //    o disparo caía no link longo /u/<token>).
+  const { data: existing } = await sb
+    .from("crm_optout_shortlinks")
+    .select("code")
+    .eq("user_id", userId)
+    .eq("phone_norm", phone)
+    .maybeSingle();
+  if (existing?.code) return String(existing.code);
+
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = makeShortCode();
     const { error } = await sb.from("crm_optout_shortlinks").insert({
@@ -116,14 +128,26 @@ export async function generateShortLink(
       code,
     });
     if (!error) return code;
-    // Conflito de código (duplicado) → tenta de novo.
-    if (!error.message?.toLowerCase().includes("duplicate") && !error.code?.includes("23505")) {
-      console.error("[optout] generateShortLink insert error", error);
-      break;
+
+    const msg = (error.message ?? "").toLowerCase();
+    const isDup = msg.includes("duplicate") || error.code === "23505";
+    if (isDup) {
+      // Conflito no par (user_id, phone_norm) → já existe; busca e devolve.
+      const { data: found } = await sb
+        .from("crm_optout_shortlinks")
+        .select("code")
+        .eq("user_id", userId)
+        .eq("phone_norm", phone)
+        .maybeSingle();
+      if (found?.code) return String(found.code);
+      continue; // conflito só no code → tenta outro
     }
+    console.error("[optout] generateShortLink insert error", error);
+    break;
   }
   return null;
 }
+
 
 // Monta a URL curta pública para o cliente.
 export function buildShortOptoutUrl(code: string): string {
