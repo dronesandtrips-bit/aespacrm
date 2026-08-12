@@ -51,7 +51,7 @@ function applyVars(
     .replaceAll("{{link_descadastro}}", ctx.optoutUrl);
 
   if (!hasOptout && ctx.optoutUrl) {
-    return `${rendered}\n\n_Não quer mais receber? Clique aqui:_ ${ctx.optoutUrl}`;
+    return `${rendered}\n\n_Sair da lista:_ ${ctx.optoutUrl}`;
   }
   return rendered;
 }

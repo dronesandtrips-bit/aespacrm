@@ -41,7 +41,7 @@ function applyVars(t: string, v: Record<string, string>) {
   const rendered = t.replace(/\{\{(\w+)\}\}/g, (_, k) => v[k] ?? "");
 
   if (!hasOptout && v["link_descadastro"]) {
-    return `${rendered}\n\n_Não quer mais receber? Clique aqui:_ ${v["link_descadastro"]}`;
+    return `${rendered}\n\n_Sair da lista:_ ${v["link_descadastro"]}`;
   }
   return rendered;
 }

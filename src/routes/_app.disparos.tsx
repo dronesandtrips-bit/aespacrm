@@ -229,7 +229,7 @@ function DisparosPage() {
       .replaceAll("{link_descadastro}", "https://crm.aespa.com.br/u/…");
     const hasOptout = message.includes("{link_descadastro}") || message.includes("{{link_descadastro}}");
     if (!hasOptout) {
-      return `${rendered}\n\n_Não quer mais receber? Clique aqui:_ https://crm.aespa.com.br/u/…`;
+      return `${rendered}\n\n_Sair da lista:_ https://crm.aespa.com.br/d/Ab3xK9pQ`;
     }
     return rendered;
   }, [message, selected, contacts, categories]);

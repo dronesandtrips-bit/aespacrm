@@ -18,7 +18,7 @@ function applyVars(template: string, vars: Record<string, string>) {
   const rendered = template.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? "");
 
   if (!hasOptout && vars["link_descadastro"]) {
-    return `${rendered}\n\n_Não quer mais receber? Clique aqui:_ ${vars["link_descadastro"]}`;
+    return `${rendered}\n\n_Sair da lista:_ ${vars["link_descadastro"]}`;
   }
   return rendered;
 }
