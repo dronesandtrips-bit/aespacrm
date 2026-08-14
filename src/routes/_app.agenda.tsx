@@ -32,8 +32,12 @@ import {
   Pencil,
   RefreshCw,
   Trash2,
+  UserPlus,
 } from "lucide-react";
 import { authFetch } from "@/lib/auth-fetch";
+import { contactsDb, type Contact } from "@/lib/db";
+
+const DEFAULT_OWNER_PHONE = "5554991495959";
 
 export const Route = createFileRoute("/_app/agenda")({
   component: AgendaPage,
@@ -48,6 +52,12 @@ type CalEvent = {
   start: string | null;
   end: string | null;
   allDay: boolean;
+  reminder?: {
+    contactPhone: string;
+    contactName: string;
+    ownerPhone: string;
+    reminderMinutes: number | null;
+  } | null;
 };
 
 function toLocalInput(iso: string): string {
@@ -76,6 +86,12 @@ function AgendaPage() {
   const [duration, setDuration] = useState("60");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactQuery, setContactQuery] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [ownerPhone, setOwnerPhone] = useState(DEFAULT_OWNER_PHONE);
+  const [reminderMinutes, setReminderMinutes] = useState("60");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -95,6 +111,26 @@ function AgendaPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    contactsDb
+      .list()
+      .then(setContacts)
+      .catch(() => setContacts([]));
+  }, []);
+
+  const contactMatches = useMemo(() => {
+    const q = contactQuery.trim().toLowerCase();
+    if (!q) return [];
+    const digits = q.replace(/\D/g, "");
+    return contacts
+      .filter(
+        (c) =>
+          c.name?.toLowerCase().includes(q) ||
+          (digits.length >= 3 && (c.phone ?? "").includes(digits)),
+      )
+      .slice(0, 6);
+  }, [contactQuery, contacts]);
+
   const openEdit = (e: CalEvent) => {
     setEditing(e);
     setTitle(e.title);
@@ -102,6 +138,15 @@ function AgendaPage() {
     setDuration(durationOf(e));
     setLocation(e.location ?? "");
     setDescription(e.description ?? "");
+    setContactPhone(e.reminder?.contactPhone ?? "");
+    setContactName(e.reminder?.contactName ?? "");
+    setContactQuery(
+      e.reminder?.contactName || e.reminder?.contactPhone
+        ? `${e.reminder?.contactName ?? ""}`.trim() || (e.reminder?.contactPhone ?? "")
+        : "",
+    );
+    setOwnerPhone(e.reminder?.ownerPhone ?? DEFAULT_OWNER_PHONE);
+    setReminderMinutes(String(e.reminder?.reminderMinutes ?? 60));
   };
 
   const handleSave = async () => {
@@ -128,6 +173,11 @@ function AgendaPage() {
           description: description.trim() || undefined,
           location: location.trim() || undefined,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo",
+          replaceReminders: true,
+          reminderMinutes: Number(reminderMinutes),
+          contactName: contactName.trim() || undefined,
+          contactPhone: contactPhone.replace(/\D/g, "") || undefined,
+          ownerPhone: ownerPhone.replace(/\D/g, "") || undefined,
         }),
       });
       const json = await res.json().catch(() => ({}) as any);
@@ -322,6 +372,90 @@ function AgendaPage() {
                 maxLength={300}
                 onChange={(ev) => setLocation(ev.target.value)}
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="ed-contact" className="flex items-center gap-1.5">
+                <UserPlus className="size-3.5" />
+                Contato do cliente
+              </Label>
+              <Input
+                id="ed-contact"
+                placeholder="Pesquisar por nome ou telefone…"
+                value={contactQuery}
+                onChange={(ev) => {
+                  setContactQuery(ev.target.value);
+                  const digits = ev.target.value.replace(/\D/g, "");
+                  if (digits.length >= 10) {
+                    setContactPhone(digits);
+                    setContactName(ev.target.value.replace(/[\d\s+()-]/g, "").trim());
+                  }
+                }}
+              />
+              {contactMatches.length > 0 && (
+                <div className="max-h-40 overflow-auto rounded-md border border-border">
+                  {contactMatches.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-accent"
+                      onClick={() => {
+                        setContactPhone(c.phone ?? "");
+                        setContactName(c.name ?? "");
+                        setContactQuery(c.name ?? c.phone ?? "");
+                      }}
+                    >
+                      <span className="truncate">{c.name}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{c.phone}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {contactPhone && (
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>
+                    Notificações para: {contactName || "cliente"} ({contactPhone})
+                  </span>
+                  <button
+                    type="button"
+                    className="underline"
+                    onClick={() => {
+                      setContactPhone("");
+                      setContactName("");
+                      setContactQuery("");
+                    }}
+                  >
+                    remover
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ed-remind">Lembrete antes</Label>
+                <Select value={reminderMinutes} onValueChange={setReminderMinutes}>
+                  <SelectTrigger id="ed-remind">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="15">15 minutos</SelectItem>
+                    <SelectItem value="30">30 minutos</SelectItem>
+                    <SelectItem value="60">1 hora</SelectItem>
+                    <SelectItem value="120">2 horas</SelectItem>
+                    <SelectItem value="1440">1 dia</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ed-owner">Meu WhatsApp</Label>
+                <Input
+                  id="ed-owner"
+                  inputMode="numeric"
+                  value={ownerPhone}
+                  onChange={(ev) => setOwnerPhone(ev.target.value)}
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5">
