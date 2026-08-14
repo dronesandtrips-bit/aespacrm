@@ -4,7 +4,7 @@
 // Aditivo: leitura apenas.
 
 import { createFileRoute } from "@tanstack/react-router";
-import { checkApiKey, requireUserJwt } from "@/integrations/supabase/server";
+import { checkApiKey, requireUserJwt, getSupabaseAdmin } from "@/integrations/supabase/server";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 const CALENDAR_ID = "primary";
@@ -13,11 +13,13 @@ export const Route = createFileRoute("/api/public/calendar/events")({
   server: {
     handlers: {
       GET: async ({ request }) => {
+        let userId: string | null = null;
         if (!checkApiKey(request)) {
           const auth = await requireUserJwt(request);
           if ("error" in auth) {
             return Response.json({ ok: false, error: auth.error }, { status: auth.status });
           }
+          userId = auth.userId;
         }
 
         const lovableKey = process.env.LOVABLE_API_KEY?.trim();
@@ -80,6 +82,48 @@ export const Route = createFileRoute("/api/public/calendar/events")({
             end: e.end?.dateTime ?? e.end?.date ?? null,
             allDay: Boolean(e.start?.date && !e.start?.dateTime),
           }));
+
+        // Anexa os lembretes pendentes (contato/antecedência) de cada evento.
+        if (userId && events.length) {
+          try {
+            const sb = getSupabaseAdmin();
+            const { data: rems } = await sb
+              .from("crm_appointment_reminders")
+              .select("event_id, target, phone, contact_name, remind_at, start_at")
+              .eq("user_id", userId)
+              .eq("status", "pending")
+              .in(
+                "event_id",
+                events.map((e: any) => e.id),
+              );
+            const byEvent = new Map<string, any>();
+            for (const r of rems ?? []) {
+              const cur = byEvent.get(r.event_id) ?? {
+                contactPhone: "",
+                contactName: "",
+                ownerPhone: "",
+                reminderMinutes: null as number | null,
+              };
+              if (r.target === "client") {
+                cur.contactPhone = r.phone;
+                cur.contactName = r.contact_name ?? "";
+              } else if (r.target === "owner") {
+                cur.ownerPhone = r.phone;
+              }
+              if (cur.reminderMinutes == null && r.start_at && r.remind_at) {
+                cur.reminderMinutes = Math.round(
+                  (new Date(r.start_at).getTime() - new Date(r.remind_at).getTime()) / 60000,
+                );
+              }
+              byEvent.set(r.event_id, cur);
+            }
+            for (const e of events as any[]) {
+              e.reminder = byEvent.get(e.id) ?? null;
+            }
+          } catch (e: any) {
+            console.error(`[calendar] falha ao ler lembretes: ${e?.message ?? String(e)}`);
+          }
+        }
 
         return Response.json({ ok: true, events });
       },

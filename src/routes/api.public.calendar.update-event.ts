@@ -18,7 +18,25 @@ const PatchSchema = z.object({
   description: z.string().trim().max(4000).optional(),
   location: z.string().trim().max(300).optional(),
   timeZone: z.string().trim().min(1).max(64).optional(),
+  // Lembretes automáticos por WhatsApp (opcional, aditivo)
+  reminderMinutes: z.number().int().min(5).max(10080).optional(),
+  contactName: z.string().trim().max(120).optional(),
+  contactPhone: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^\+?\d*$/)
+    .optional(),
+  ownerPhone: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^\+?\d*$/)
+    .optional(),
+  /** quando true, recria os lembretes com base nos campos acima */
+  replaceReminders: z.boolean().optional(),
 });
+
 
 export const Route = createFileRoute("/api/public/calendar/update-event")({
   server: {
@@ -96,38 +114,77 @@ export const Route = createFileRoute("/api/public/calendar/update-event")({
           ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parsed.location)}`
           : null;
 
-        // Reajusta lembretes pendentes deste evento (best-effort).
+        // Reajusta (ou recria) lembretes pendentes deste evento (best-effort).
         let remindersUpdated = 0;
         if (userId) {
           try {
             const sb = getSupabaseAdmin();
-            const { data: rows } = await sb
-              .from("crm_appointment_reminders")
-              .select("id, start_at, remind_at")
-              .eq("user_id", userId)
-              .eq("event_id", parsed.eventId)
-              .eq("status", "pending");
-            for (const r of rows ?? []) {
-              const offset =
-                new Date(r.start_at).getTime() - new Date(r.remind_at).getTime();
-              const nextRemind = new Date(start.getTime() - offset).toISOString();
-              const { error: upErr } = await sb
+
+            if (parsed.replaceReminders) {
+              // Recria os lembretes conforme o contato/antecedência escolhidos.
+              await sb
                 .from("crm_appointment_reminders")
-                .update({
-                  title: parsed.title,
-                  start_at: start.toISOString(),
-                  location: parsed.location ?? null,
-                  maps_link: mapsLink,
-                  html_link: data?.htmlLink ?? null,
-                  remind_at: nextRemind,
-                })
-                .eq("id", r.id);
-              if (!upErr) remindersUpdated += 1;
+                .delete()
+                .eq("user_id", userId)
+                .eq("event_id", parsed.eventId)
+                .eq("status", "pending");
+
+              const minutes = parsed.reminderMinutes ?? 60;
+              const remindAt = new Date(start.getTime() - minutes * 60_000);
+              const base = {
+                user_id: userId,
+                event_id: parsed.eventId,
+                title: parsed.title,
+                start_at: start.toISOString(),
+                location: parsed.location ?? null,
+                html_link: data?.htmlLink ?? null,
+                maps_link: mapsLink,
+                contact_name: parsed.contactName ?? null,
+                remind_at: remindAt.toISOString(),
+                status: "pending",
+              };
+              const rows: any[] = [];
+              const clientPhone = (parsed.contactPhone ?? "").replace(/\D/g, "");
+              const ownerPhone = (parsed.ownerPhone ?? "").replace(/\D/g, "");
+              if (clientPhone) rows.push({ ...base, target: "client", phone: clientPhone });
+              if (ownerPhone) rows.push({ ...base, target: "owner", phone: ownerPhone });
+              if (rows.length && remindAt.getTime() > Date.now()) {
+                const { error: insErr } = await sb
+                  .from("crm_appointment_reminders")
+                  .insert(rows);
+                if (insErr) console.error(`[calendar] falha ao recriar lembretes: ${insErr.message}`);
+                else remindersUpdated = rows.length;
+              }
+            } else {
+              const { data: rows } = await sb
+                .from("crm_appointment_reminders")
+                .select("id, start_at, remind_at")
+                .eq("user_id", userId)
+                .eq("event_id", parsed.eventId)
+                .eq("status", "pending");
+              for (const r of rows ?? []) {
+                const offset =
+                  new Date(r.start_at).getTime() - new Date(r.remind_at).getTime();
+                const nextRemind = new Date(start.getTime() - offset).toISOString();
+                const { error: upErr } = await sb
+                  .from("crm_appointment_reminders")
+                  .update({
+                    title: parsed.title,
+                    start_at: start.toISOString(),
+                    location: parsed.location ?? null,
+                    maps_link: mapsLink,
+                    html_link: data?.htmlLink ?? null,
+                    remind_at: nextRemind,
+                  })
+                  .eq("id", r.id);
+                if (!upErr) remindersUpdated += 1;
+              }
             }
           } catch (e: any) {
             console.error(`[calendar] falha ao reajustar lembretes: ${e?.message ?? String(e)}`);
           }
         }
+
 
         return Response.json({
           ok: true,
