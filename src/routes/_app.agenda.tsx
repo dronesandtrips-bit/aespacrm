@@ -185,32 +185,37 @@ function AgendaPage() {
       const res = await authFetch(
         editing ? "/api/public/calendar/update-event" : "/api/public/calendar/create-event",
         {
-
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: editing.id,
-          title: title.trim(),
-          startISO: start.toISOString(),
-          durationMinutes: Number(duration),
-          description: description.trim() || undefined,
-          location: location.trim() || undefined,
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo",
-          replaceReminders: true,
-          reminderMinutes: Number(reminderMinutes),
-          contactName: contactName.trim() || undefined,
-          contactPhone: contactPhone.replace(/\D/g, "") || undefined,
-          ownerPhone: ownerPhone.replace(/\D/g, "") || undefined,
-        }),
-      });
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...(editing ? { eventId: editing.id, replaceReminders: true } : {}),
+            title: title.trim(),
+            startISO: start.toISOString(),
+            durationMinutes: Number(duration),
+            description: description.trim() || undefined,
+            location: location.trim() || undefined,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo",
+            reminderMinutes: Number(reminderMinutes),
+            contactName: contactName.trim() || undefined,
+            contactPhone: contactPhone.replace(/\D/g, "") || undefined,
+            ownerPhone: ownerPhone.replace(/\D/g, "") || undefined,
+          }),
+        },
+      );
       const json = await res.json().catch(() => ({}) as any);
       if (!res.ok || json?.ok === false) throw new Error(json?.error ?? res.statusText);
       toast.success(
-        json?.remindersUpdated
-          ? `Compromisso atualizado — ${json.remindersUpdated} lembrete(s) reajustado(s)`
-          : "Compromisso atualizado",
+        editing
+          ? json?.remindersUpdated
+            ? `Compromisso atualizado — ${json.remindersUpdated} lembrete(s) reajustado(s)`
+            : "Compromisso atualizado"
+          : json?.remindersCreated
+            ? `Compromisso criado — ${json.remindersCreated} lembrete(s) agendado(s)`
+            : "Compromisso criado",
       );
       setEditing(null);
+      setCreating(false);
+
       await load();
     } catch (e: any) {
       toast.error(`Falha ao salvar: ${e?.message ?? String(e)}`);
