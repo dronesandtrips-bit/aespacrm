@@ -30,6 +30,7 @@ import {
   Loader2,
   MapPin,
   Pencil,
+  Plus,
   RefreshCw,
   Trash2,
   UserPlus,
@@ -78,6 +79,8 @@ function AgendaPage() {
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<CalEvent | null>(null);
+  const [creating, setCreating] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -149,8 +152,26 @@ function AgendaPage() {
     setReminderMinutes(String(e.reminder?.reminderMinutes ?? 60));
   };
 
+  const openCreate = () => {
+    const d = new Date();
+    d.setMinutes(0, 0, 0);
+    d.setHours(d.getHours() + 1);
+    setEditing(null);
+    setCreating(true);
+    setTitle("");
+    setWhen(toLocalInput(d.toISOString()));
+    setDuration("60");
+    setLocation("");
+    setDescription("");
+    setContactPhone("");
+    setContactName("");
+    setContactQuery("");
+    setOwnerPhone(DEFAULT_OWNER_PHONE);
+    setReminderMinutes("60");
+  };
+
   const handleSave = async () => {
-    if (!editing) return;
+    if (!editing && !creating) return;
     if (!title.trim()) {
       toast.error("Informe um título");
       return;
@@ -162,32 +183,40 @@ function AgendaPage() {
     }
     setSaving(true);
     try {
-      const res = await authFetch("/api/public/calendar/update-event", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: editing.id,
-          title: title.trim(),
-          startISO: start.toISOString(),
-          durationMinutes: Number(duration),
-          description: description.trim() || undefined,
-          location: location.trim() || undefined,
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo",
-          replaceReminders: true,
-          reminderMinutes: Number(reminderMinutes),
-          contactName: contactName.trim() || undefined,
-          contactPhone: contactPhone.replace(/\D/g, "") || undefined,
-          ownerPhone: ownerPhone.replace(/\D/g, "") || undefined,
-        }),
-      });
+      const res = await authFetch(
+        editing ? "/api/public/calendar/update-event" : "/api/public/calendar/create-event",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...(editing ? { eventId: editing.id, replaceReminders: true } : {}),
+            title: title.trim(),
+            startISO: start.toISOString(),
+            durationMinutes: Number(duration),
+            description: description.trim() || undefined,
+            location: location.trim() || undefined,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo",
+            reminderMinutes: Number(reminderMinutes),
+            contactName: contactName.trim() || undefined,
+            contactPhone: contactPhone.replace(/\D/g, "") || undefined,
+            ownerPhone: ownerPhone.replace(/\D/g, "") || undefined,
+          }),
+        },
+      );
       const json = await res.json().catch(() => ({}) as any);
       if (!res.ok || json?.ok === false) throw new Error(json?.error ?? res.statusText);
       toast.success(
-        json?.remindersUpdated
-          ? `Compromisso atualizado — ${json.remindersUpdated} lembrete(s) reajustado(s)`
-          : "Compromisso atualizado",
+        editing
+          ? json?.remindersUpdated
+            ? `Compromisso atualizado — ${json.remindersUpdated} lembrete(s) reajustado(s)`
+            : "Compromisso atualizado"
+          : json?.remindersCreated
+            ? `Compromisso criado — ${json.remindersCreated} lembrete(s) agendado(s)`
+            : "Compromisso criado",
       );
       setEditing(null);
+      setCreating(false);
+
       await load();
     } catch (e: any) {
       toast.error(`Falha ao salvar: ${e?.message ?? String(e)}`);
@@ -285,10 +314,21 @@ function AgendaPage() {
           <CalendarDays className="size-5" />
           Agenda
         </h1>
-        <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-          {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
+            Atualizar
+          </Button>
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="size-4" />
+            Novo compromisso
+          </Button>
+        </div>
+
       </div>
 
       {loading ? (
@@ -313,12 +353,22 @@ function AgendaPage() {
         </>
       )}
 
-      <Dialog open={Boolean(editing)} onOpenChange={(o) => !o && setEditing(null)}>
+      <Dialog
+        open={Boolean(editing) || creating}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEditing(null);
+            setCreating(false);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar compromisso</DialogTitle>
+            <DialogTitle>{editing ? "Editar compromisso" : "Novo compromisso"}</DialogTitle>
             <DialogDescription>
-              As alterações vão para o Google Agenda e reajustam os lembretes pendentes.
+              {editing
+                ? "As alterações vão para o Google Agenda e reajustam os lembretes pendentes."
+                : "Cria o evento no Google Agenda e agenda os lembretes no WhatsApp."}
             </DialogDescription>
           </DialogHeader>
 
@@ -471,12 +521,19 @@ function AgendaPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditing(null)} disabled={saving}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setEditing(null);
+                setCreating(false);
+              }}
+              disabled={saving}
+            >
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="size-4 animate-spin" />}
-              Salvar
+              {editing ? "Salvar" : "Agendar"}
             </Button>
           </DialogFooter>
         </DialogContent>
