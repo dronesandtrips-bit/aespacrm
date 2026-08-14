@@ -30,6 +30,7 @@ import {
   Loader2,
   MapPin,
   Pencil,
+  Plus,
   RefreshCw,
   Trash2,
   UserPlus,
@@ -352,12 +353,22 @@ function AgendaPage() {
         </>
       )}
 
-      <Dialog open={Boolean(editing)} onOpenChange={(o) => !o && setEditing(null)}>
+      <Dialog
+        open={Boolean(editing) || creating}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEditing(null);
+            setCreating(false);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar compromisso</DialogTitle>
+            <DialogTitle>{editing ? "Editar compromisso" : "Novo compromisso"}</DialogTitle>
             <DialogDescription>
-              As alterações vão para o Google Agenda e reajustam os lembretes pendentes.
+              {editing
+                ? "As alterações vão para o Google Agenda e reajustam os lembretes pendentes."
+                : "Cria o evento no Google Agenda e agenda os lembretes no WhatsApp."}
             </DialogDescription>
           </DialogHeader>
 
@@ -510,12 +521,19 @@ function AgendaPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setEditing(null)} disabled={saving}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setEditing(null);
+                setCreating(false);
+              }}
+              disabled={saving}
+            >
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="size-4 animate-spin" />}
-              Salvar
+              {editing ? "Salvar" : "Agendar"}
             </Button>
           </DialogFooter>
         </DialogContent>
