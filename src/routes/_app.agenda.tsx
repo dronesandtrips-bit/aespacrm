@@ -313,10 +313,21 @@ function AgendaPage() {
           <CalendarDays className="size-5" />
           Agenda
         </h1>
-        <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-          {loading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
+            Atualizar
+          </Button>
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="size-4" />
+            Novo compromisso
+          </Button>
+        </div>
+
       </div>
 
       {loading ? (
