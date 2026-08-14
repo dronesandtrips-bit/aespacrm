@@ -18,7 +18,25 @@ const PatchSchema = z.object({
   description: z.string().trim().max(4000).optional(),
   location: z.string().trim().max(300).optional(),
   timeZone: z.string().trim().min(1).max(64).optional(),
+  // Lembretes automáticos por WhatsApp (opcional, aditivo)
+  reminderMinutes: z.number().int().min(5).max(10080).optional(),
+  contactName: z.string().trim().max(120).optional(),
+  contactPhone: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^\+?\d*$/)
+    .optional(),
+  ownerPhone: z
+    .string()
+    .trim()
+    .max(20)
+    .regex(/^\+?\d*$/)
+    .optional(),
+  /** quando true, recria os lembretes com base nos campos acima */
+  replaceReminders: z.boolean().optional(),
 });
+
 
 export const Route = createFileRoute("/api/public/calendar/update-event")({
   server: {
