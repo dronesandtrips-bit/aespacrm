@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
+import { authFetch } from "@/lib/auth-fetch";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
