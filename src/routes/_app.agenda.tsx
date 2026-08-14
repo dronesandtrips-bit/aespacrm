@@ -78,6 +78,8 @@ function AgendaPage() {
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<CalEvent | null>(null);
+  const [creating, setCreating] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
