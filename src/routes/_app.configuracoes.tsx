@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth";
+import { authFetch } from "@/lib/auth-fetch";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -991,7 +992,10 @@ function IntegrationsTab() {
   };
 
   return (
+    <div className="space-y-5">
+    <EvolutionGlobalKeyCard />
     <Card className="p-5 space-y-5">
+
       <div className="flex items-center gap-3">
         <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
           <Plug className="size-5" />
@@ -1043,8 +1047,148 @@ function IntegrationsTab() {
         </Button>
       </div>
     </Card>
+    </div>
   );
 }
+
+// ---------------------------------------------------------------------
+// Global API Key da Evolution (cofre server-side)
+// ---------------------------------------------------------------------
+function EvolutionGlobalKeyCard() {
+  const NAME = "EVOLUTION_GLOBAL_API_KEY";
+  const [meta, setMeta] = useState<{ configured: boolean; masked: string | null; updatedAt: string | null } | null>(null);
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = async () => {
+    try {
+      const res = await authFetch(`/api/public/settings/secret?name=${NAME}`);
+      const json = await res.json();
+      if (json?.ok) setMeta({ configured: json.configured, masked: json.masked, updatedAt: json.updatedAt });
+    } catch {
+      /* silencioso */
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const save = async (force = false) => {
+    const v = value.trim();
+    if (v.length < 8) {
+      toast.error("Informe a chave completa");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await authFetch("/api/public/settings/secret", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: NAME, value: v, force }),
+      });
+      const json = await res.json();
+      if (!json?.ok) {
+        if (json?.testFailed && !force) {
+          toast.error(`${json.error}. Clique novamente para salvar mesmo assim.`, {
+            action: { label: "Salvar assim mesmo", onClick: () => void save(true) },
+          });
+        } else {
+          toast.error(json?.error ?? "Falha ao salvar");
+        }
+        return;
+      }
+      setValue("");
+      setMeta({ configured: json.configured, masked: json.masked, updatedAt: json.updatedAt });
+      toast.success("Global API Key salva com segurança");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao salvar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    try {
+      const res = await authFetch("/api/public/settings/secret", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: NAME, action: "delete" }),
+      });
+      const json = await res.json();
+      if (!json?.ok) throw new Error(json?.error ?? "Falha ao remover");
+      setMeta({ configured: false, masked: null, updatedAt: null });
+      toast.success("Chave removida do cofre");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao remover");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="p-5 space-y-5">
+      <div className="flex items-center gap-3">
+        <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
+          <Plug className="size-5" />
+        </div>
+        <div>
+          <h3 className="font-semibold">Evolution — Global API Key</h3>
+          <p className="text-xs text-muted-foreground">
+            Chave global do Manager (manager.aespa.com.br). Guardada no servidor; nunca exibida de volta.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 text-sm">
+        {meta?.configured ? (
+          <>
+            <Badge variant="secondary" className="gap-1">
+              <Check className="size-3" /> Configurada
+            </Badge>
+            <code className="font-mono text-xs text-muted-foreground">{meta.masked}</code>
+            {meta.updatedAt && (
+              <span className="text-xs text-muted-foreground">
+                · atualizada em {new Date(meta.updatedAt).toLocaleString("pt-BR")}
+              </span>
+            )}
+          </>
+        ) : (
+          <Badge variant="outline">Não configurada</Badge>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="evo-global-key">Nova chave</Label>
+        <Input
+          id="evo-global-key"
+          type="password"
+          autoComplete="new-password"
+          spellCheck={false}
+          placeholder="Cole aqui a Global API Key da Evolution"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Ao salvar, a chave é validada contra a Evolution antes de ser gravada.
+        </p>
+      </div>
+
+      <div className="flex gap-2">
+        <Button onClick={() => void save(false)} disabled={busy} className="gap-2">
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />} Salvar
+        </Button>
+        {meta?.configured && (
+          <Button variant="outline" onClick={() => void remove()} disabled={busy} className="gap-2">
+            <Trash2 className="size-4" /> Remover
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 
 // =====================================================================
 // Widgets de Captura
