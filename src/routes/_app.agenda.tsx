@@ -151,8 +151,26 @@ function AgendaPage() {
     setReminderMinutes(String(e.reminder?.reminderMinutes ?? 60));
   };
 
+  const openCreate = () => {
+    const d = new Date();
+    d.setMinutes(0, 0, 0);
+    d.setHours(d.getHours() + 1);
+    setEditing(null);
+    setCreating(true);
+    setTitle("");
+    setWhen(toLocalInput(d.toISOString()));
+    setDuration("60");
+    setLocation("");
+    setDescription("");
+    setContactPhone("");
+    setContactName("");
+    setContactQuery("");
+    setOwnerPhone(DEFAULT_OWNER_PHONE);
+    setReminderMinutes("60");
+  };
+
   const handleSave = async () => {
-    if (!editing) return;
+    if (!editing && !creating) return;
     if (!title.trim()) {
       toast.error("Informe um título");
       return;
@@ -164,7 +182,10 @@ function AgendaPage() {
     }
     setSaving(true);
     try {
-      const res = await authFetch("/api/public/calendar/update-event", {
+      const res = await authFetch(
+        editing ? "/api/public/calendar/update-event" : "/api/public/calendar/create-event",
+        {
+
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
