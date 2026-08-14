@@ -991,7 +991,10 @@ function IntegrationsTab() {
   };
 
   return (
+    <div className="space-y-5">
+    <EvolutionGlobalKeyCard />
     <Card className="p-5 space-y-5">
+
       <div className="flex items-center gap-3">
         <div className="size-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
           <Plug className="size-5" />
