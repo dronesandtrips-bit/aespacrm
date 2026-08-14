@@ -34,6 +34,7 @@ import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
 import { Route as WidgetFormIdRouteImport } from './routes/widget.form.$id'
 import { Route as ApiPublicLinkPreviewRouteImport } from './routes/api.public.link-preview'
 import { Route as ApiPublicWidgetSubmitRouteImport } from './routes/api.public.widget.submit'
+import { Route as ApiPublicSettingsSecretRouteImport } from './routes/api.public.settings.secret'
 import { Route as ApiPublicSequencesTestSendRouteImport } from './routes/api.public.sequences.test-send'
 import { Route as ApiPublicSequencesTestRunRouteImport } from './routes/api.public.sequences.test-run'
 import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.sequences.sent'
@@ -204,6 +205,11 @@ const ApiPublicLinkPreviewRoute = ApiPublicLinkPreviewRouteImport.update({
 const ApiPublicWidgetSubmitRoute = ApiPublicWidgetSubmitRouteImport.update({
   id: '/api/public/widget/submit',
   path: '/api/public/widget/submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSettingsSecretRoute = ApiPublicSettingsSecretRouteImport.update({
+  id: '/api/public/settings/secret',
+  path: '/api/public/settings/secret',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicSequencesTestSendRoute =
@@ -544,6 +550,7 @@ export interface FileRoutesByFullPath {
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
   '/api/public/sequences/test-run': typeof ApiPublicSequencesTestRunRoute
   '/api/public/sequences/test-send': typeof ApiPublicSequencesTestSendRoute
+  '/api/public/settings/secret': typeof ApiPublicSettingsSecretRoute
   '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
   '/api/public/widget/config/$id': typeof ApiPublicWidgetConfigIdRoute
   '/api/public/widget/embed/$id.js': typeof ApiPublicWidgetEmbedIdDotjsRoute
@@ -617,6 +624,7 @@ export interface FileRoutesByTo {
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
   '/api/public/sequences/test-run': typeof ApiPublicSequencesTestRunRoute
   '/api/public/sequences/test-send': typeof ApiPublicSequencesTestSendRoute
+  '/api/public/settings/secret': typeof ApiPublicSettingsSecretRoute
   '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
   '/api/public/widget/config/$id': typeof ApiPublicWidgetConfigIdRoute
   '/api/public/widget/embed/$id.js': typeof ApiPublicWidgetEmbedIdDotjsRoute
@@ -692,6 +700,7 @@ export interface FileRoutesById {
   '/api/public/sequences/sent': typeof ApiPublicSequencesSentRoute
   '/api/public/sequences/test-run': typeof ApiPublicSequencesTestRunRoute
   '/api/public/sequences/test-send': typeof ApiPublicSequencesTestSendRoute
+  '/api/public/settings/secret': typeof ApiPublicSettingsSecretRoute
   '/api/public/widget/submit': typeof ApiPublicWidgetSubmitRoute
   '/api/public/widget/config/$id': typeof ApiPublicWidgetConfigIdRoute
   '/api/public/widget/embed/$id.js': typeof ApiPublicWidgetEmbedIdDotjsRoute
@@ -767,6 +776,7 @@ export interface FileRouteTypes {
     | '/api/public/sequences/sent'
     | '/api/public/sequences/test-run'
     | '/api/public/sequences/test-send'
+    | '/api/public/settings/secret'
     | '/api/public/widget/submit'
     | '/api/public/widget/config/$id'
     | '/api/public/widget/embed/$id.js'
@@ -840,6 +850,7 @@ export interface FileRouteTypes {
     | '/api/public/sequences/sent'
     | '/api/public/sequences/test-run'
     | '/api/public/sequences/test-send'
+    | '/api/public/settings/secret'
     | '/api/public/widget/submit'
     | '/api/public/widget/config/$id'
     | '/api/public/widget/embed/$id.js'
@@ -914,6 +925,7 @@ export interface FileRouteTypes {
     | '/api/public/sequences/sent'
     | '/api/public/sequences/test-run'
     | '/api/public/sequences/test-send'
+    | '/api/public/settings/secret'
     | '/api/public/widget/submit'
     | '/api/public/widget/config/$id'
     | '/api/public/widget/embed/$id.js'
@@ -974,6 +986,7 @@ export interface RootRouteChildren {
   ApiPublicSequencesSentRoute: typeof ApiPublicSequencesSentRoute
   ApiPublicSequencesTestRunRoute: typeof ApiPublicSequencesTestRunRoute
   ApiPublicSequencesTestSendRoute: typeof ApiPublicSequencesTestSendRoute
+  ApiPublicSettingsSecretRoute: typeof ApiPublicSettingsSecretRoute
   ApiPublicWidgetSubmitRoute: typeof ApiPublicWidgetSubmitRoute
   ApiPublicWidgetConfigIdRoute: typeof ApiPublicWidgetConfigIdRoute
   ApiPublicWidgetEmbedIdDotjsRoute: typeof ApiPublicWidgetEmbedIdDotjsRoute
@@ -1154,6 +1167,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/widget/submit'
       fullPath: '/api/public/widget/submit'
       preLoaderRoute: typeof ApiPublicWidgetSubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/settings/secret': {
+      id: '/api/public/settings/secret'
+      path: '/api/public/settings/secret'
+      fullPath: '/api/public/settings/secret'
+      preLoaderRoute: typeof ApiPublicSettingsSecretRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/sequences/test-send': {
@@ -1583,6 +1603,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSequencesSentRoute: ApiPublicSequencesSentRoute,
   ApiPublicSequencesTestRunRoute: ApiPublicSequencesTestRunRoute,
   ApiPublicSequencesTestSendRoute: ApiPublicSequencesTestSendRoute,
+  ApiPublicSettingsSecretRoute: ApiPublicSettingsSecretRoute,
   ApiPublicWidgetSubmitRoute: ApiPublicWidgetSubmitRoute,
   ApiPublicWidgetConfigIdRoute: ApiPublicWidgetConfigIdRoute,
   ApiPublicWidgetEmbedIdDotjsRoute: ApiPublicWidgetEmbedIdDotjsRoute,
