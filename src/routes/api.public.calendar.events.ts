@@ -81,6 +81,7 @@ export const Route = createFileRoute("/api/public/calendar/events")({
             start: e.start?.dateTime ?? e.start?.date ?? null,
             end: e.end?.dateTime ?? e.end?.date ?? null,
             allDay: Boolean(e.start?.date && !e.start?.dateTime),
+            pending: String(e.summary ?? "").trim().startsWith("(a confirmar)"),
           }));
 
         // Anexa os lembretes pendentes (contato/antecedência) de cada evento.
@@ -91,7 +92,7 @@ export const Route = createFileRoute("/api/public/calendar/events")({
               .from("crm_appointment_reminders")
               .select("event_id, target, phone, contact_name, remind_at, start_at")
               .eq("user_id", userId)
-              .eq("status", "pending")
+              .in("status", ["pending", "paused"])
               .in(
                 "event_id",
                 events.map((e: any) => e.id),

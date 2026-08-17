@@ -74,6 +74,8 @@ import { Route as ApiPublicCalendarRemindersTickRouteImport } from './routes/api
 import { Route as ApiPublicCalendarEventsRouteImport } from './routes/api.public.calendar.events'
 import { Route as ApiPublicCalendarDeleteEventRouteImport } from './routes/api.public.calendar.delete-event'
 import { Route as ApiPublicCalendarCreateEventRouteImport } from './routes/api.public.calendar.create-event'
+import { Route as ApiPublicCalendarConfirmBookingRouteImport } from './routes/api.public.calendar.confirm-booking'
+import { Route as ApiPublicCalendarAutoBookRouteImport } from './routes/api.public.calendar.auto-book'
 import { Route as ApiPublicAvatarsRefreshRouteImport } from './routes/api.public.avatars.refresh'
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
 import { Route as ApiPublicAiInterestTermsRouteImport } from './routes/api.public.ai.interest-terms'
@@ -435,6 +437,18 @@ const ApiPublicCalendarCreateEventRoute =
     path: '/api/public/calendar/create-event',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCalendarConfirmBookingRoute =
+  ApiPublicCalendarConfirmBookingRouteImport.update({
+    id: '/api/public/calendar/confirm-booking',
+    path: '/api/public/calendar/confirm-booking',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCalendarAutoBookRoute =
+  ApiPublicCalendarAutoBookRouteImport.update({
+    id: '/api/public/calendar/auto-book',
+    path: '/api/public/calendar/auto-book',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicAvatarsRefreshRoute = ApiPublicAvatarsRefreshRouteImport.update({
   id: '/api/public/avatars/refresh',
   path: '/api/public/avatars/refresh',
@@ -511,6 +525,8 @@ export interface FileRoutesByFullPath {
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
+  '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
+  '/api/public/calendar/confirm-booking': typeof ApiPublicCalendarConfirmBookingRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
   '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
   '/api/public/calendar/events': typeof ApiPublicCalendarEventsRoute
@@ -585,6 +601,8 @@ export interface FileRoutesByTo {
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
+  '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
+  '/api/public/calendar/confirm-booking': typeof ApiPublicCalendarConfirmBookingRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
   '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
   '/api/public/calendar/events': typeof ApiPublicCalendarEventsRoute
@@ -661,6 +679,8 @@ export interface FileRoutesById {
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
+  '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
+  '/api/public/calendar/confirm-booking': typeof ApiPublicCalendarConfirmBookingRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
   '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
   '/api/public/calendar/events': typeof ApiPublicCalendarEventsRoute
@@ -737,6 +757,8 @@ export interface FileRouteTypes {
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
+    | '/api/public/calendar/auto-book'
+    | '/api/public/calendar/confirm-booking'
     | '/api/public/calendar/create-event'
     | '/api/public/calendar/delete-event'
     | '/api/public/calendar/events'
@@ -811,6 +833,8 @@ export interface FileRouteTypes {
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
+    | '/api/public/calendar/auto-book'
+    | '/api/public/calendar/confirm-booking'
     | '/api/public/calendar/create-event'
     | '/api/public/calendar/delete-event'
     | '/api/public/calendar/events'
@@ -886,6 +910,8 @@ export interface FileRouteTypes {
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
+    | '/api/public/calendar/auto-book'
+    | '/api/public/calendar/confirm-booking'
     | '/api/public/calendar/create-event'
     | '/api/public/calendar/delete-event'
     | '/api/public/calendar/events'
@@ -947,6 +973,8 @@ export interface RootRouteChildren {
   ApiPublicAiInterestTermsRoute: typeof ApiPublicAiInterestTermsRoute
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
   ApiPublicAvatarsRefreshRoute: typeof ApiPublicAvatarsRefreshRoute
+  ApiPublicCalendarAutoBookRoute: typeof ApiPublicCalendarAutoBookRoute
+  ApiPublicCalendarConfirmBookingRoute: typeof ApiPublicCalendarConfirmBookingRoute
   ApiPublicCalendarCreateEventRoute: typeof ApiPublicCalendarCreateEventRoute
   ApiPublicCalendarDeleteEventRoute: typeof ApiPublicCalendarDeleteEventRoute
   ApiPublicCalendarEventsRoute: typeof ApiPublicCalendarEventsRoute
@@ -1449,6 +1477,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCalendarCreateEventRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/calendar/confirm-booking': {
+      id: '/api/public/calendar/confirm-booking'
+      path: '/api/public/calendar/confirm-booking'
+      fullPath: '/api/public/calendar/confirm-booking'
+      preLoaderRoute: typeof ApiPublicCalendarConfirmBookingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/auto-book': {
+      id: '/api/public/calendar/auto-book'
+      path: '/api/public/calendar/auto-book'
+      fullPath: '/api/public/calendar/auto-book'
+      preLoaderRoute: typeof ApiPublicCalendarAutoBookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/avatars/refresh': {
       id: '/api/public/avatars/refresh'
       path: '/api/public/avatars/refresh'
@@ -1562,6 +1604,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAiInterestTermsRoute: ApiPublicAiInterestTermsRoute,
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
   ApiPublicAvatarsRefreshRoute: ApiPublicAvatarsRefreshRoute,
+  ApiPublicCalendarAutoBookRoute: ApiPublicCalendarAutoBookRoute,
+  ApiPublicCalendarConfirmBookingRoute: ApiPublicCalendarConfirmBookingRoute,
   ApiPublicCalendarCreateEventRoute: ApiPublicCalendarCreateEventRoute,
   ApiPublicCalendarDeleteEventRoute: ApiPublicCalendarDeleteEventRoute,
   ApiPublicCalendarEventsRoute: ApiPublicCalendarEventsRoute,

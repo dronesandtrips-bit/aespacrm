@@ -30,6 +30,8 @@ import {
   Loader2,
   MapPin,
   Pencil,
+  Bot,
+  CheckCircle2,
   Plus,
   RefreshCw,
   Trash2,
@@ -53,6 +55,7 @@ type CalEvent = {
   start: string | null;
   end: string | null;
   allDay: boolean;
+  pending?: boolean;
   reminder?: {
     contactPhone: string;
     contactName: string;
@@ -83,6 +86,8 @@ function AgendaPage() {
 
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [simulating, setSimulating] = useState(false);
 
   const [title, setTitle] = useState("");
   const [when, setWhen] = useState("");
@@ -245,6 +250,63 @@ function AgendaPage() {
     }
   };
 
+  const handleConfirm = async (e: CalEvent) => {
+    setConfirmingId(e.id);
+    try {
+      const res = await authFetch("/api/public/calendar/confirm-booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: e.id }),
+      });
+      const json = await res.json().catch(() => ({}) as any);
+      if (!res.ok || json?.ok === false) throw new Error(json?.error ?? res.statusText);
+      toast.success(
+        json?.remindersActivated
+          ? `Compromisso confirmado — ${json.remindersActivated} lembrete(s) ativado(s)`
+          : "Compromisso confirmado",
+      );
+      await load();
+    } catch (err: any) {
+      toast.error(`Falha ao confirmar: ${err?.message ?? String(err)}`);
+    } finally {
+      setConfirmingId(null);
+    }
+  };
+
+  const handleSimulate = async () => {
+    setSimulating(true);
+    try {
+      const start = new Date(Date.now() + 3 * 60 * 60 * 1000);
+      start.setMinutes(0, 0, 0);
+      const res = await authFetch("/api/public/calendar/auto-book", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: DEFAULT_OWNER_PHONE,
+          name: "Cliente Teste",
+          title: "Teste de agendamento do Robô",
+          startISO: start.toISOString(),
+          durationMinutes: 60,
+          location: "Rua Bento Gonçalves, 1000 - Caxias do Sul, RS",
+          reminderMinutes: 60,
+          ownerPhone: DEFAULT_OWNER_PHONE,
+        }),
+      });
+      const json = await res.json().catch(() => ({}) as any);
+      if (!res.ok || json?.ok === false) throw new Error(json?.error ?? res.statusText);
+      toast.success(
+        json?.ownerNotified
+          ? "Simulação criada — confira o WhatsApp e a lista abaixo"
+          : "Simulação criada (aviso no WhatsApp não saiu — veja a conexão)",
+      );
+      await load();
+    } catch (err: any) {
+      toast.error(`Falha na simulação: ${err?.message ?? String(err)}`);
+    } finally {
+      setSimulating(false);
+    }
+  };
+
   const grouped = useMemo(() => {
     const now = Date.now();
     const upcoming = events.filter((e) => e.start && new Date(e.start).getTime() >= now);
@@ -260,7 +322,14 @@ function AgendaPage() {
       className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="min-w-0">
-        <div className="truncate font-medium">{e.title}</div>
+        <div className="flex items-center gap-2">
+          {e.pending && (
+            <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+              A confirmar
+            </span>
+          )}
+          <span className="truncate font-medium">{e.title}</span>
+        </div>
         <div className="text-sm text-muted-foreground">
           {e.start
             ? new Date(e.start).toLocaleString("pt-BR", {
@@ -284,6 +353,16 @@ function AgendaPage() {
             onClick={() => window.open(e.htmlLink!, "_blank", "noopener,noreferrer")}
           >
             <ExternalLink className="size-4" />
+          </Button>
+        )}
+        {e.pending && (
+          <Button size="sm" disabled={confirmingId === e.id} onClick={() => handleConfirm(e)}>
+            {confirmingId === e.id ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="size-4" />
+            )}
+            Confirmar
           </Button>
         )}
         <Button size="sm" variant="outline" onClick={() => openEdit(e)}>
@@ -322,6 +401,15 @@ function AgendaPage() {
               <RefreshCw className="size-4" />
             )}
             Atualizar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleSimulate()}
+            disabled={simulating}
+          >
+            {simulating ? <Loader2 className="size-4 animate-spin" /> : <Bot className="size-4" />}
+            Testar robô
           </Button>
           <Button size="sm" onClick={openCreate}>
             <Plus className="size-4" />
