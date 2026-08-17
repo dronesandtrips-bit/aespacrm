@@ -523,6 +523,29 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                   await applyFollowUpTag(sb, ownerUserId, contactId);
                 }
               }
+
+              // Mensagem ENVIADA (Robô ou operador) em 1:1: se fechou um
+              // horário, cria o evento "(a confirmar)" no Google Agenda.
+              // Best-effort — nunca quebra o webhook.
+              if (fromMe && !isGroup && parsed.type === "text" && parsed.body) {
+                try {
+                  const { data: c } = await sb
+                    .from("crm_contacts")
+                    .select("name, phone_norm")
+                    .eq("id", contactId)
+                    .eq("user_id", ownerUserId)
+                    .maybeSingle();
+                  await maybeAutoBookFromBotMessage({
+                    sb,
+                    userId: ownerUserId,
+                    phone: c?.phone_norm ?? normalizePhone(remoteJid),
+                    name: c?.name ?? null,
+                    text: parsed.body,
+                  });
+                } catch (e: any) {
+                  console.error("[auto-book-detect]", e?.message ?? String(e));
+                }
+              }
             }
           } else if (event === "messages.update") {
             const arr = Array.isArray(payload?.data) ? payload.data : [payload?.data].filter(Boolean);
