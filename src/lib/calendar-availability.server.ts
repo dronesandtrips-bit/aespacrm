@@ -70,7 +70,15 @@ export type SlotOptions = {
   stepMinutes?: number;
   limit?: number;
   skipWeekends?: boolean;
+  /** Horas preferidas (local SP). Padrão: 9h e depois 14h. */
+  preferredHours?: number[];
+  /** false = devolve também horários fora das horas preferidas (como fallback). */
+  preferredOnly?: boolean;
 };
+
+/** Preferência do dono: manhã às 9h; se não der, 14h. */
+export const DEFAULT_PREFERRED_HOURS = [9, 14];
+
 
 const SP_OFFSET_MS = -3 * 3_600_000; // America/Sao_Paulo (UTC-3, sem horário de verão)
 
