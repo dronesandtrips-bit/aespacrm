@@ -100,6 +100,7 @@ function AgendaPage() {
   const [contactName, setContactName] = useState("");
   const [ownerPhone, setOwnerPhone] = useState(DEFAULT_OWNER_PHONE);
   const [reminderMinutes, setReminderMinutes] = useState("60");
+  const [notifyNow, setNotifyNow] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
