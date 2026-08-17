@@ -108,8 +108,12 @@ export async function findFreeSlots(opts: SlotOptions = {}) {
   const busy = await getBusyBlocks(new Date(cursor).toISOString(), new Date(timeMax).toISOString());
   const busyTs = busy.map((b) => [new Date(b.start).getTime(), new Date(b.end).getTime()] as const);
 
-  const slots: string[] = [];
-  for (let t = cursor; t + duration * 60_000 <= timeMax && slots.length < limit; t += step * 60_000) {
+  const preferred = opts.preferredHours ?? DEFAULT_PREFERRED_HOURS;
+  const preferredOnly = opts.preferredOnly ?? false;
+
+  const preferredSlots: string[] = [];
+  const otherSlots: string[] = [];
+  for (let t = cursor; t + duration * 60_000 <= timeMax; t += step * 60_000) {
     const p = spParts(t);
     if (skipWeekends && (p.dow === 0 || p.dow === 6)) continue;
     const startMin = p.hour * 60 + p.minute;
@@ -117,7 +121,24 @@ export async function findFreeSlots(opts: SlotOptions = {}) {
     if (startMin + duration > workEnd * 60) continue;
     const end = t + duration * 60_000;
     if (busyTs.some(([bs, be]) => overlaps(t, end, bs, be))) continue;
-    slots.push(new Date(t).toISOString());
+    const iso = new Date(t).toISOString();
+    if (p.minute === 0 && preferred.includes(p.hour)) preferredSlots.push(iso);
+    else if (!preferredOnly) otherSlots.push(iso);
+    if (preferredSlots.length >= limit) break;
   }
-  return { slots, busy };
+
+  // Ordem de preferência: 9h/14h primeiro (por data), depois os demais.
+  const rank = (iso: string) => {
+    const h = spParts(new Date(iso).getTime()).hour;
+    const i = preferred.indexOf(h);
+    return i === -1 ? preferred.length : i;
+  };
+  preferredSlots.sort((a, b) => {
+    const d = new Date(a).setUTCHours(0, 0, 0, 0) - new Date(b).setUTCHours(0, 0, 0, 0);
+    if (d !== 0) return d;
+    return rank(a) - rank(b);
+  });
+  const slots = [...preferredSlots, ...otherSlots].slice(0, limit);
+  return { slots, preferredSlots, busy };
 }
+
