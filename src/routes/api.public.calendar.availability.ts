@@ -48,6 +48,8 @@ export const Route = createFileRoute("/api/public/calendar/availability")({
             skipWeekends: url.searchParams.get("weekends") !== "1",
             // ?only=1 devolve apenas os horários preferidos (9h e 14h)
             preferredOnly: url.searchParams.get("only") === "1",
+            // antecedência mínima em dias (padrão 1 = nunca hoje)
+            minLeadDays: url.searchParams.has("lead") ? num("lead", 1) : undefined,
           });
           return jsonResponse({
             ok: true,
@@ -80,14 +82,17 @@ export const Route = createFileRoute("/api/public/calendar/availability")({
         }
         const duration = body.durationMinutes ?? 60;
         try {
-          const { checkConflict, findFreeSlots } = await import(
+          const { checkConflict, findFreeSlots, violatesMinLead } = await import(
             "@/lib/calendar-availability.server"
           );
-          const { free, conflicts } = await checkConflict(body.startISO, duration);
+          const tooSoon = violatesMinLead(body.startISO);
+          const c = await checkConflict(body.startISO, duration);
+          const conflicts = c.conflicts;
+          const free = c.free && !tooSoon;
           let suggestions: string[] = [];
           if (!free) {
             const r = await findFreeSlots({
-              fromISO: body.startISO,
+              fromISO: tooSoon ? undefined : body.startISO,
               days: 7,
               durationMinutes: duration,
               limit: 5,
@@ -97,6 +102,7 @@ export const Route = createFileRoute("/api/public/calendar/availability")({
           return jsonResponse({
             ok: true,
             free,
+            tooSoon,
             conflicts,
             suggestions,
             suggestionsLocal: suggestions.map((s) =>
