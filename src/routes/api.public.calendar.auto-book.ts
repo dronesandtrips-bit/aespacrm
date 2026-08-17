@@ -118,6 +118,38 @@ export const Route = createFileRoute("/api/public/calendar/auto-book")({
         const baseTitle = body.title?.trim() || `Atendimento — ${body.name?.trim() || phone}`;
         const summary = `${PENDING_PREFIX} ${baseTitle}`;
 
+        // ── Checagem de conflito na agenda do Google ──────────────────────
+        if (!body.allowConflict) {
+          try {
+            const { checkConflict, findFreeSlots } = await import(
+              "@/lib/calendar-availability.server"
+            );
+            const { free, conflicts } = await checkConflict(start.toISOString(), durationMinutes);
+            if (!free) {
+              const { slots } = await findFreeSlots({
+                fromISO: start.toISOString(),
+                days: 7,
+                durationMinutes,
+                limit: 5,
+              });
+              return jsonResponse(
+                {
+                  ok: false,
+                  error: "conflito de horário na agenda",
+                  conflict: true,
+                  conflicts,
+                  suggestions: slots,
+                  suggestionsLocal: slots.map((s) => formatWhen(s)),
+                },
+                409,
+              );
+            }
+          } catch (e: any) {
+            // Falha na consulta não deve travar o agendamento.
+            console.error(`[auto-book] checagem de conflito: ${e?.message ?? String(e)}`);
+          }
+        }
+
         const res = await fetch(
           `${GATEWAY_URL}/calendars/${encodeURIComponent(CALENDAR_ID)}/events`,
           {
