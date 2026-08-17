@@ -204,8 +204,37 @@ export const Route = createFileRoute("/api/public/calendar/update-event")({
         }
 
 
+        // Aviso imediato ao cliente sobre a alteração (best-effort)
+        let notified = false;
+        let notifyError: string | null = null;
+        if (parsed.notifyNow && parsed.contactPhone) {
+          const quando = start.toLocaleString("pt-BR", {
+            dateStyle: "short",
+            timeStyle: "short",
+            timeZone: "America/Sao_Paulo",
+          });
+          const text = [
+            `Olá${parsed.contactName ? ` ${parsed.contactName}` : ""}! Seu compromisso foi atualizado:`,
+            parsed.title,
+            `Novo horário: ${quando}`,
+            parsed.location ? `Local: ${parsed.location}` : "",
+            mapsLink ? `Mapa: ${mapsLink}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n");
+          try {
+            await sendWhatsApp(parsed.contactPhone, text);
+            notified = true;
+          } catch (e: any) {
+            notifyError = e?.message ?? String(e);
+            console.error(`[calendar] falha ao avisar alteração: ${notifyError}`);
+          }
+        }
+
         return Response.json({
           ok: true,
+          notified,
+          notifyError,
           remindersUpdated,
           id: data?.id ?? parsed.eventId,
           htmlLink: data?.htmlLink ?? null,
