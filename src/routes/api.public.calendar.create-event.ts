@@ -34,7 +34,24 @@ const EventSchema = z.object({
     .max(20)
     .regex(/^\+?\d+$/)
     .optional(),
+  // Envia AGORA a confirmação do compromisso para o cliente (WhatsApp)
+  notifyNow: z.boolean().optional(),
 });
+
+const INSTANCE = "zapcrm";
+
+async function sendWhatsApp(number: string, text: string): Promise<void> {
+  const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
+  const apiKey = process.env.EVOLUTION_API_KEY?.trim();
+  if (!apiUrl || !apiKey) throw new Error("EVOLUTION_API_URL/KEY ausentes");
+  const res = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
+    method: "POST",
+    headers: { apikey: apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ number: number.replace(/\D/g, ""), text }),
+  });
+  const body = await res.text();
+  if (!res.ok) throw new Error(`Evolution [${res.status}]: ${body.slice(0, 300)}`);
+}
 
 export const Route = createFileRoute("/api/public/calendar/create-event")({
   server: {
@@ -152,8 +169,37 @@ export const Route = createFileRoute("/api/public/calendar/create-event")({
           }
         }
 
+        // Aviso imediato ao cliente (opcional, best-effort)
+        let notified = false;
+        let notifyError: string | null = null;
+        if (parsed.notifyNow && parsed.contactPhone) {
+          const quando = start.toLocaleString("pt-BR", {
+            dateStyle: "short",
+            timeStyle: "short",
+            timeZone: "America/Sao_Paulo",
+          });
+          const text = [
+            `Olá${parsed.contactName ? ` ${parsed.contactName}` : ""}! Seu compromisso está agendado:`,
+            parsed.title,
+            `Quando: ${quando}`,
+            parsed.location ? `Local: ${parsed.location}` : "",
+            mapsLink ? `Mapa: ${mapsLink}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n");
+          try {
+            await sendWhatsApp(parsed.contactPhone, text);
+            notified = true;
+          } catch (e: any) {
+            notifyError = e?.message ?? String(e);
+            console.error(`[calendar] falha ao avisar cliente: ${notifyError}`);
+          }
+        }
+
         return Response.json({
           ok: true,
+          notified,
+          notifyError,
           remindersCreated,
           id: data?.id ?? null,
           htmlLink: data?.htmlLink ?? null,

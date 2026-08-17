@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -100,6 +101,7 @@ function AgendaPage() {
   const [contactName, setContactName] = useState("");
   const [ownerPhone, setOwnerPhone] = useState(DEFAULT_OWNER_PHONE);
   const [reminderMinutes, setReminderMinutes] = useState("60");
+  const [notifyNow, setNotifyNow] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -173,6 +175,7 @@ function AgendaPage() {
     setContactQuery("");
     setOwnerPhone(DEFAULT_OWNER_PHONE);
     setReminderMinutes("60");
+    setNotifyNow(true);
   };
 
   const handleSave = async () => {
@@ -205,6 +208,7 @@ function AgendaPage() {
             contactName: contactName.trim() || undefined,
             contactPhone: contactPhone.replace(/\D/g, "") || undefined,
             ownerPhone: ownerPhone.replace(/\D/g, "") || undefined,
+            ...(editing ? {} : { notifyNow }),
           }),
         },
       );
@@ -219,6 +223,10 @@ function AgendaPage() {
             ? `Compromisso criado — ${json.remindersCreated} lembrete(s) agendado(s)`
             : "Compromisso criado",
       );
+      if (!editing && notifyNow) {
+        if (json?.notified) toast.success("Cliente avisada no WhatsApp");
+        else if (json?.notifyError) toast.error(`Não avisei a cliente: ${json.notifyError}`);
+      }
       setEditing(null);
       setCreating(false);
 
@@ -595,6 +603,19 @@ function AgendaPage() {
                 />
               </div>
             </div>
+
+            {!editing && (
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="ed-notify">Avisar o cliente agora</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Envia a confirmação do compromisso no WhatsApp na hora (além do lembrete
+                    automático).
+                  </p>
+                </div>
+                <Switch id="ed-notify" checked={notifyNow} onCheckedChange={setNotifyNow} />
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="ed-desc">Descrição</Label>
