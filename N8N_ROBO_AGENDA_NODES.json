@@ -1,0 +1,62 @@
+{
+  "meta": {
+    "instanceId": "zapcrm-agenda-patch"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://crm.aespa.com.br/api/public/calendar/availability?days=10&duration=60&limit=6&only=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "COLE_AQUI_O_VALOR_DO_N8N_API_KEY"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [0, 0],
+      "id": "a1f0c2d4-1111-4aaa-9999-zapcrmavail01",
+      "name": "Consultar Horarios Livres",
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gera o bloco de agenda para injetar no system prompt da IA.\n// Ligue este nó logo depois de \"Consultar Horarios Livres\".\nlet r = null;\ntry { r = $(\"Consultar Horarios Livres\").first().json; } catch (e) { r = null; }\nconst list = (r && r.ok && Array.isArray(r.slotsLocal)) ? r.slotsLocal.slice(0, 6) : [];\n\nlet agendaBlock;\nif (!list.length) {\n  agendaBlock = \"\\n\\n[AGENDA INDISPONÍVEL: não confirme nenhum horário agora; diga que vai verificar a agenda e retorna em instantes.]\";\n} else {\n  agendaBlock = \"\\n\\n=== AGENDA — HORÁRIOS REALMENTE LIVRES ===\\n\"\n    + list.map((s, i) => (i + 1) + \") \" + s).join(\"\\n\")\n    + \"\\n\\nREGRAS DE AGENDAMENTO (obrigatórias):\\n\"\n    + \"- Ofereça no máximo 2 opções por vez, priorizando 9h da manhã; use 14h só se o cliente não puder de manhã.\\n\"\n    + \"- NUNCA ofereça horário fora desta lista.\\n\"\n    + \"- NUNCA agende para hoje: mínimo 1 dia de antecedência.\\n\"\n    + \"- Ao fechar, escreva exatamente neste formato: \\\"Confirmado para <dia> às <hora>h\\\".\\n\"\n    + \"=== FIM AGENDA ===\";\n}\n\n// Preserva tudo que veio do nó anterior e adiciona o campo agendaBlock.\nconst items = $input.all();\nreturn items.map((item) => ({ json: { ...item.json, agendaBlock } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "id": "b2f0c2d4-2222-4bbb-8888-zapcrmagenda2",
+      "name": "Montar Bloco Agenda"
+    }
+  ],
+  "connections": {
+    "Consultar Horarios Livres": {
+      "main": [
+        [
+          {
+            "node": "Montar Bloco Agenda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}
