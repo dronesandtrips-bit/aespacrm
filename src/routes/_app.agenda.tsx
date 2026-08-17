@@ -208,7 +208,7 @@ function AgendaPage() {
             contactName: contactName.trim() || undefined,
             contactPhone: contactPhone.replace(/\D/g, "") || undefined,
             ownerPhone: ownerPhone.replace(/\D/g, "") || undefined,
-            ...(editing ? {} : { notifyNow }),
+            notifyNow,
           }),
         },
       );
@@ -223,7 +223,7 @@ function AgendaPage() {
             ? `Compromisso criado — ${json.remindersCreated} lembrete(s) agendado(s)`
             : "Compromisso criado",
       );
-      if (!editing && notifyNow) {
+      if (notifyNow) {
         if (json?.notified) toast.success("Cliente avisada no WhatsApp");
         else if (json?.notifyError) toast.error(`Não avisei a cliente: ${json.notifyError}`);
       }
