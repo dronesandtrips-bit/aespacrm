@@ -221,6 +221,10 @@ function AgendaPage() {
             ? `Compromisso criado — ${json.remindersCreated} lembrete(s) agendado(s)`
             : "Compromisso criado",
       );
+      if (!editing && notifyNow) {
+        if (json?.notified) toast.success("Cliente avisada no WhatsApp");
+        else if (json?.notifyError) toast.error(`Não avisei a cliente: ${json.notifyError}`);
+      }
       setEditing(null);
       setCreating(false);
 
