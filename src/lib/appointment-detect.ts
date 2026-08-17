@@ -132,7 +132,7 @@ export function detectAppointment(
   // 1) dd/mm[/yyyy]
   const numeric = text.match(/\b(\d{1,2})\s*\/\s*(\d{1,2})(?:\s*\/\s*(\d{2,4}))?\b/);
   // 2) "dia 12 de março" ou "12 de março"
-  const written = text.match(/\b(\d{1,2})\s+de\s+([a-zçã]+)/);
+  const written = text.match(/\b(\d{1,2})\s+de\s+([a-z]+)/);
 
   if (numeric) {
     d = Number(numeric[1]);
