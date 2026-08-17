@@ -38,7 +38,7 @@ export const Route = createFileRoute("/api/public/calendar/availability")({
         };
         try {
           const { findFreeSlots } = await import("@/lib/calendar-availability.server");
-          const { slots, busy } = await findFreeSlots({
+          const { slots, preferredSlots, busy } = await findFreeSlots({
             fromISO: url.searchParams.get("from") ?? undefined,
             days: num("days", 7),
             durationMinutes: num("duration", 60),
@@ -46,11 +46,15 @@ export const Route = createFileRoute("/api/public/calendar/availability")({
             workStartHour: num("start", 9),
             workEndHour: num("end", 18),
             skipWeekends: url.searchParams.get("weekends") !== "1",
+            // ?only=1 devolve apenas os horários preferidos (9h e 14h)
+            preferredOnly: url.searchParams.get("only") === "1",
           });
           return jsonResponse({
             ok: true,
             slots,
+            preferredSlots,
             slotsLocal: slots.map((s) =>
+
               new Date(s).toLocaleString("pt-BR", {
                 dateStyle: "short",
                 timeStyle: "short",
