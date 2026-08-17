@@ -16,6 +16,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getSupabaseAdmin, jsonResponse } from "@/integrations/supabase/server";
 import { isStrictValidPhone, phoneMatchVariants } from "@/lib/phone-validation";
 import { cacheAvatarFromUrl } from "@/lib/avatar-cache.server";
+import { maybeAutoBookFromBotMessage } from "@/lib/auto-book-from-bot.server";
 
 
 const INSTANCE = "zapcrm";
@@ -520,6 +521,29 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                 // Auto-tag "Follow-up": contato NOVO + mensagem menciona "orçamento".
                 if (isNewContact && bodyMencionaOrcamento(parsed.body)) {
                   await applyFollowUpTag(sb, ownerUserId, contactId);
+                }
+              }
+
+              // Mensagem ENVIADA (Robô ou operador) em 1:1: se fechou um
+              // horário, cria o evento "(a confirmar)" no Google Agenda.
+              // Best-effort — nunca quebra o webhook.
+              if (fromMe && !isGroup && parsed.type === "text" && parsed.body) {
+                try {
+                  const { data: c } = await sb
+                    .from("crm_contacts")
+                    .select("name, phone_norm")
+                    .eq("id", contactId)
+                    .eq("user_id", ownerUserId)
+                    .maybeSingle();
+                  await maybeAutoBookFromBotMessage({
+                    sb,
+                    userId: ownerUserId,
+                    phone: c?.phone_norm ?? normalizePhone(remoteJid),
+                    name: c?.name ?? null,
+                    text: parsed.body,
+                  });
+                } catch (e: any) {
+                  console.error("[auto-book-detect]", e?.message ?? String(e));
                 }
               }
             }
