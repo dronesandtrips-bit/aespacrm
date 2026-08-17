@@ -74,17 +74,35 @@ export type SlotOptions = {
   preferredHours?: number[];
   /** false = devolve também horários fora das horas preferidas (como fallback). */
   preferredOnly?: boolean;
+  /** Antecedência mínima em dias-calendário (SP). Padrão: 1 = nunca no mesmo dia. */
+  minLeadDays?: number;
 };
 
 /** Preferência do dono: manhã às 9h; se não der, 14h. */
 export const DEFAULT_PREFERRED_HOURS = [9, 14];
 
+/** Nunca agendar no mesmo dia: mínimo 1 dia de antecedência. */
+export const MIN_LEAD_DAYS = 1;
 
 const SP_OFFSET_MS = -3 * 3_600_000; // America/Sao_Paulo (UTC-3, sem horário de verão)
 
 function spParts(ts: number) {
   const d = new Date(ts + SP_OFFSET_MS);
   return { hour: d.getUTCHours(), minute: d.getUTCMinutes(), dow: d.getUTCDay() };
+}
+
+/** Início do dia (00:00 SP) N dias-calendário à frente, em timestamp UTC. */
+export function spDayStart(ts: number, addDays = 0) {
+  const d = new Date(ts + SP_OFFSET_MS);
+  d.setUTCHours(0, 0, 0, 0);
+  return d.getTime() + addDays * 86_400_000 - SP_OFFSET_MS;
+}
+
+/** true quando o horário não respeita a antecedência mínima (ex.: mesmo dia). */
+export function violatesMinLead(startISO: string, minLeadDays = MIN_LEAD_DAYS) {
+  const t = new Date(startISO).getTime();
+  if (Number.isNaN(t)) return false;
+  return t < spDayStart(Date.now(), Math.max(0, minLeadDays));
 }
 
 /** Sugere horários livres respeitando o expediente e os compromissos existentes. */
@@ -96,13 +114,18 @@ export async function findFreeSlots(opts: SlotOptions = {}) {
   const workEnd = opts.workEndHour ?? 18;
   const limit = Math.min(Math.max(opts.limit ?? 8, 1), 50);
   const skipWeekends = opts.skipWeekends ?? true;
+  const minLeadDays = Math.max(0, opts.minLeadDays ?? MIN_LEAD_DAYS);
 
   const now = Date.now();
   let cursor = opts.fromISO ? new Date(opts.fromISO).getTime() : now + 60 * 60_000;
   if (Number.isNaN(cursor)) cursor = now + 60 * 60_000;
   if (cursor < now) cursor = now;
+  // Antecedência mínima: nunca sugerir no mesmo dia (padrão) — começa 00:00 SP do dia seguinte.
+  const earliest = spDayStart(now, minLeadDays);
+  if (cursor < earliest) cursor = earliest;
   // arredonda para o próximo múltiplo de `step`
   cursor = Math.ceil(cursor / (step * 60_000)) * step * 60_000;
+
 
   const timeMax = cursor + days * 86_400_000;
   const busy = await getBusyBlocks(new Date(cursor).toISOString(), new Date(timeMax).toISOString());
