@@ -45,6 +45,8 @@ const BodySchema = z.object({
     .regex(/^\+?\d+$/)
     .optional(),
   userId: z.string().uuid().optional(),
+  // true = cria mesmo havendo conflito na agenda (padrão: bloqueia)
+  allowConflict: z.boolean().optional(),
 });
 
 function formatWhen(iso: string) {
