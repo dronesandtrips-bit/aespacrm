@@ -27,6 +27,7 @@ import { Route as AppInboxRouteImport } from './routes/_app.inbox'
 import { Route as AppHistoricoIaRouteImport } from './routes/_app.historico-ia'
 import { Route as AppExplorarRouteImport } from './routes/_app.explorar'
 import { Route as AppDisparosRouteImport } from './routes/_app.disparos'
+import { Route as AppDetectorRouteImport } from './routes/_app.detector'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppContatosRouteImport } from './routes/_app.contatos'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
@@ -173,6 +174,11 @@ const AppExplorarRoute = AppExplorarRouteImport.update({
 const AppDisparosRoute = AppDisparosRouteImport.update({
   id: '/disparos',
   path: '/disparos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDetectorRoute = AppDetectorRouteImport.update({
+  id: '/detector',
+  path: '/detector',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDashboardRoute = AppDashboardRouteImport.update({
@@ -511,6 +517,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof AppConfiguracoesRoute
   '/contatos': typeof AppContatosRoute
   '/dashboard': typeof AppDashboardRoute
+  '/detector': typeof AppDetectorRoute
   '/disparos': typeof AppDisparosRoute
   '/explorar': typeof AppExplorarRoute
   '/historico-ia': typeof AppHistoricoIaRoute
@@ -588,6 +595,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof AppConfiguracoesRoute
   '/contatos': typeof AppContatosRoute
   '/dashboard': typeof AppDashboardRoute
+  '/detector': typeof AppDetectorRoute
   '/disparos': typeof AppDisparosRoute
   '/explorar': typeof AppExplorarRoute
   '/historico-ia': typeof AppHistoricoIaRoute
@@ -667,6 +675,7 @@ export interface FileRoutesById {
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/contatos': typeof AppContatosRoute
   '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/detector': typeof AppDetectorRoute
   '/_app/disparos': typeof AppDisparosRoute
   '/_app/explorar': typeof AppExplorarRoute
   '/_app/historico-ia': typeof AppHistoricoIaRoute
@@ -746,6 +755,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/contatos'
     | '/dashboard'
+    | '/detector'
     | '/disparos'
     | '/explorar'
     | '/historico-ia'
@@ -823,6 +833,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/contatos'
     | '/dashboard'
+    | '/detector'
     | '/disparos'
     | '/explorar'
     | '/historico-ia'
@@ -901,6 +912,7 @@ export interface FileRouteTypes {
     | '/_app/configuracoes'
     | '/_app/contatos'
     | '/_app/dashboard'
+    | '/_app/detector'
     | '/_app/disparos'
     | '/_app/explorar'
     | '/_app/historico-ia'
@@ -1160,6 +1172,13 @@ declare module '@tanstack/react-router' {
       path: '/disparos'
       fullPath: '/disparos'
       preLoaderRoute: typeof AppDisparosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/detector': {
+      id: '/_app/detector'
+      path: '/detector'
+      fullPath: '/detector'
+      preLoaderRoute: typeof AppDetectorRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/dashboard': {
@@ -1576,6 +1595,7 @@ interface AppRouteChildren {
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppContatosRoute: typeof AppContatosRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppDetectorRoute: typeof AppDetectorRoute
   AppDisparosRoute: typeof AppDisparosRoute
   AppExplorarRoute: typeof AppExplorarRoute
   AppHistoricoIaRoute: typeof AppHistoricoIaRoute
@@ -1594,6 +1614,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppContatosRoute: AppContatosRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppDetectorRoute: AppDetectorRoute,
   AppDisparosRoute: AppDisparosRoute,
   AppExplorarRoute: AppExplorarRoute,
   AppHistoricoIaRoute: AppHistoricoIaRoute,
