@@ -206,6 +206,7 @@ function AgendaPage() {
             contactName: contactName.trim() || undefined,
             contactPhone: contactPhone.replace(/\D/g, "") || undefined,
             ownerPhone: ownerPhone.replace(/\D/g, "") || undefined,
+            ...(editing ? {} : { notifyNow }),
           }),
         },
       );
