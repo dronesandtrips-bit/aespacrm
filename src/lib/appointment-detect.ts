@@ -61,7 +61,12 @@ const MONTHS: Record<string, number> = {
 const TZ_OFFSET_MIN = -180; // America/Sao_Paulo (sem horário de verão)
 
 function normalize(s: string): string {
-  return s.toLowerCase().replace(/\s+/g, " ").trim();
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** Constrói um ISO UTC a partir de data/hora locais de São Paulo. */
@@ -145,7 +150,7 @@ export function detectAppointment(
     d = today.d;
     m = today.m;
     matched = "hoje";
-  } else if (/\bamanh[ãa]\b/.test(text)) {
+  } else if (/\bamanha\b/.test(text)) {
     const base = new Date(saoPauloToISO(today.y, today.m, today.d, 12, 0));
     base.setUTCDate(base.getUTCDate() + 1);
     const p = nowInSaoPaulo(base);
