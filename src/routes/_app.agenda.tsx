@@ -175,6 +175,7 @@ function AgendaPage() {
     setContactQuery("");
     setOwnerPhone(DEFAULT_OWNER_PHONE);
     setReminderMinutes("60");
+    setNotifyNow(true);
   };
 
   const handleSave = async () => {
