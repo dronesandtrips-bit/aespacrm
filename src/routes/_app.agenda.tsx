@@ -604,6 +604,19 @@ function AgendaPage() {
               </div>
             </div>
 
+            {!editing && (
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="ed-notify">Avisar o cliente agora</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Envia a confirmação do compromisso no WhatsApp na hora (além do lembrete
+                    automático).
+                  </p>
+                </div>
+                <Switch id="ed-notify" checked={notifyNow} onCheckedChange={setNotifyNow} />
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label htmlFor="ed-desc">Descrição</Label>
               <Textarea
