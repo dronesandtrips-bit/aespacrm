@@ -169,8 +169,37 @@ export const Route = createFileRoute("/api/public/calendar/create-event")({
           }
         }
 
+        // Aviso imediato ao cliente (opcional, best-effort)
+        let notified = false;
+        let notifyError: string | null = null;
+        if (parsed.notifyNow && parsed.contactPhone) {
+          const quando = start.toLocaleString("pt-BR", {
+            dateStyle: "short",
+            timeStyle: "short",
+            timeZone: "America/Sao_Paulo",
+          });
+          const text = [
+            `Olá${parsed.contactName ? ` ${parsed.contactName}` : ""}! Seu compromisso está agendado:`,
+            parsed.title,
+            `Quando: ${quando}`,
+            parsed.location ? `Local: ${parsed.location}` : "",
+            mapsLink ? `Mapa: ${mapsLink}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n");
+          try {
+            await sendWhatsApp(parsed.contactPhone, text);
+            notified = true;
+          } catch (e: any) {
+            notifyError = e?.message ?? String(e);
+            console.error(`[calendar] falha ao avisar cliente: ${notifyError}`);
+          }
+        }
+
         return Response.json({
           ok: true,
+          notified,
+          notifyError,
           remindersCreated,
           id: data?.id ?? null,
           htmlLink: data?.htmlLink ?? null,
