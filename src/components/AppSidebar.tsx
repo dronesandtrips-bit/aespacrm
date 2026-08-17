@@ -17,6 +17,7 @@ import {
   FileText,
   Sparkles,
   CalendarDays,
+  Bot,
 } from "lucide-react";
 
 // Ícone oficial do WhatsApp (logo brand) — lucide não tem brand icons
