@@ -47,6 +47,9 @@ const BodySchema = z.object({
   userId: z.string().uuid().optional(),
   // true = cria mesmo havendo conflito na agenda (padrão: bloqueia)
   allowConflict: z.boolean().optional(),
+  // true = permite agendar no mesmo dia (padrão: exige 1 dia de antecedência)
+  allowSameDay: z.boolean().optional(),
+
 });
 
 function formatWhen(iso: string) {
@@ -92,6 +95,39 @@ export const Route = createFileRoute("/api/public/calendar/auto-book")({
         if (start.getTime() < Date.now() - 60_000) {
           return jsonResponse({ ok: false, error: "data/hora no passado" }, 400);
         }
+
+        // ── Antecedência mínima: nunca agendar no mesmo dia ───────────────
+        try {
+          const { violatesMinLead, findFreeSlots } = await import(
+            "@/lib/calendar-availability.server"
+          );
+          if (!body.allowSameDay && violatesMinLead(start.toISOString())) {
+            let slots: string[] = [];
+            try {
+              const r = await findFreeSlots({
+                days: 7,
+                durationMinutes: body.durationMinutes ?? 60,
+                limit: 5,
+              });
+              slots = r.slots;
+            } catch {
+              /* sugestões são opcionais */
+            }
+            return jsonResponse(
+              {
+                ok: false,
+                error: "agendamento exige no mínimo 1 dia de antecedência (não pode ser hoje)",
+                minLead: true,
+                suggestions: slots,
+                suggestionsLocal: slots.map((s) => formatWhen(s)),
+              },
+              422,
+            );
+          }
+        } catch (e: any) {
+          console.error(`[auto-book] checagem de antecedência: ${e?.message ?? String(e)}`);
+        }
+
 
         const sb = getSupabaseAdmin();
 
