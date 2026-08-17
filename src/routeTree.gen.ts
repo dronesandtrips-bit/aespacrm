@@ -72,6 +72,7 @@ import { Route as ApiPublicCleanupGroupsRouteImport } from './routes/api.public.
 import { Route as ApiPublicCalendarUpdateEventRouteImport } from './routes/api.public.calendar.update-event'
 import { Route as ApiPublicCalendarRemindersTickRouteImport } from './routes/api.public.calendar.reminders-tick'
 import { Route as ApiPublicCalendarEventsRouteImport } from './routes/api.public.calendar.events'
+import { Route as ApiPublicCalendarDetectTestRouteImport } from './routes/api.public.calendar.detect-test'
 import { Route as ApiPublicCalendarDeleteEventRouteImport } from './routes/api.public.calendar.delete-event'
 import { Route as ApiPublicCalendarCreateEventRouteImport } from './routes/api.public.calendar.create-event'
 import { Route as ApiPublicCalendarConfirmBookingRouteImport } from './routes/api.public.calendar.confirm-booking'
@@ -425,6 +426,12 @@ const ApiPublicCalendarEventsRoute = ApiPublicCalendarEventsRouteImport.update({
   path: '/api/public/calendar/events',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCalendarDetectTestRoute =
+  ApiPublicCalendarDetectTestRouteImport.update({
+    id: '/api/public/calendar/detect-test',
+    path: '/api/public/calendar/detect-test',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCalendarDeleteEventRoute =
   ApiPublicCalendarDeleteEventRouteImport.update({
     id: '/api/public/calendar/delete-event',
@@ -529,6 +536,7 @@ export interface FileRoutesByFullPath {
   '/api/public/calendar/confirm-booking': typeof ApiPublicCalendarConfirmBookingRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
   '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
+  '/api/public/calendar/detect-test': typeof ApiPublicCalendarDetectTestRoute
   '/api/public/calendar/events': typeof ApiPublicCalendarEventsRoute
   '/api/public/calendar/reminders-tick': typeof ApiPublicCalendarRemindersTickRoute
   '/api/public/calendar/update-event': typeof ApiPublicCalendarUpdateEventRoute
@@ -605,6 +613,7 @@ export interface FileRoutesByTo {
   '/api/public/calendar/confirm-booking': typeof ApiPublicCalendarConfirmBookingRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
   '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
+  '/api/public/calendar/detect-test': typeof ApiPublicCalendarDetectTestRoute
   '/api/public/calendar/events': typeof ApiPublicCalendarEventsRoute
   '/api/public/calendar/reminders-tick': typeof ApiPublicCalendarRemindersTickRoute
   '/api/public/calendar/update-event': typeof ApiPublicCalendarUpdateEventRoute
@@ -683,6 +692,7 @@ export interface FileRoutesById {
   '/api/public/calendar/confirm-booking': typeof ApiPublicCalendarConfirmBookingRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
   '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
+  '/api/public/calendar/detect-test': typeof ApiPublicCalendarDetectTestRoute
   '/api/public/calendar/events': typeof ApiPublicCalendarEventsRoute
   '/api/public/calendar/reminders-tick': typeof ApiPublicCalendarRemindersTickRoute
   '/api/public/calendar/update-event': typeof ApiPublicCalendarUpdateEventRoute
@@ -761,6 +771,7 @@ export interface FileRouteTypes {
     | '/api/public/calendar/confirm-booking'
     | '/api/public/calendar/create-event'
     | '/api/public/calendar/delete-event'
+    | '/api/public/calendar/detect-test'
     | '/api/public/calendar/events'
     | '/api/public/calendar/reminders-tick'
     | '/api/public/calendar/update-event'
@@ -837,6 +848,7 @@ export interface FileRouteTypes {
     | '/api/public/calendar/confirm-booking'
     | '/api/public/calendar/create-event'
     | '/api/public/calendar/delete-event'
+    | '/api/public/calendar/detect-test'
     | '/api/public/calendar/events'
     | '/api/public/calendar/reminders-tick'
     | '/api/public/calendar/update-event'
@@ -914,6 +926,7 @@ export interface FileRouteTypes {
     | '/api/public/calendar/confirm-booking'
     | '/api/public/calendar/create-event'
     | '/api/public/calendar/delete-event'
+    | '/api/public/calendar/detect-test'
     | '/api/public/calendar/events'
     | '/api/public/calendar/reminders-tick'
     | '/api/public/calendar/update-event'
@@ -977,6 +990,7 @@ export interface RootRouteChildren {
   ApiPublicCalendarConfirmBookingRoute: typeof ApiPublicCalendarConfirmBookingRoute
   ApiPublicCalendarCreateEventRoute: typeof ApiPublicCalendarCreateEventRoute
   ApiPublicCalendarDeleteEventRoute: typeof ApiPublicCalendarDeleteEventRoute
+  ApiPublicCalendarDetectTestRoute: typeof ApiPublicCalendarDetectTestRoute
   ApiPublicCalendarEventsRoute: typeof ApiPublicCalendarEventsRoute
   ApiPublicCalendarRemindersTickRoute: typeof ApiPublicCalendarRemindersTickRoute
   ApiPublicCalendarUpdateEventRoute: typeof ApiPublicCalendarUpdateEventRoute
@@ -1463,6 +1477,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCalendarEventsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/calendar/detect-test': {
+      id: '/api/public/calendar/detect-test'
+      path: '/api/public/calendar/detect-test'
+      fullPath: '/api/public/calendar/detect-test'
+      preLoaderRoute: typeof ApiPublicCalendarDetectTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/calendar/delete-event': {
       id: '/api/public/calendar/delete-event'
       path: '/api/public/calendar/delete-event'
@@ -1608,6 +1629,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCalendarConfirmBookingRoute: ApiPublicCalendarConfirmBookingRoute,
   ApiPublicCalendarCreateEventRoute: ApiPublicCalendarCreateEventRoute,
   ApiPublicCalendarDeleteEventRoute: ApiPublicCalendarDeleteEventRoute,
+  ApiPublicCalendarDetectTestRoute: ApiPublicCalendarDetectTestRoute,
   ApiPublicCalendarEventsRoute: ApiPublicCalendarEventsRoute,
   ApiPublicCalendarRemindersTickRoute: ApiPublicCalendarRemindersTickRoute,
   ApiPublicCalendarUpdateEventRoute: ApiPublicCalendarUpdateEventRoute,
