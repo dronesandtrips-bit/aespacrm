@@ -35,7 +35,25 @@ const PatchSchema = z.object({
     .optional(),
   /** quando true, recria os lembretes com base nos campos acima */
   replaceReminders: z.boolean().optional(),
+  /** avisa o cliente AGORA no WhatsApp sobre a alteração */
+  notifyNow: z.boolean().optional(),
 });
+
+const INSTANCE = "zapcrm";
+
+async function sendWhatsApp(number: string, text: string): Promise<void> {
+  const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
+  const apiKey = process.env.EVOLUTION_API_KEY?.trim();
+  if (!apiUrl || !apiKey) throw new Error("EVOLUTION_API_URL/KEY ausentes");
+  const res = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
+    method: "POST",
+    headers: { apikey: apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ number: number.replace(/\D/g, ""), text }),
+  });
+  const body = await res.text();
+  if (!res.ok) throw new Error(`Evolution [${res.status}]: ${body.slice(0, 300)}`);
+}
+
 
 
 export const Route = createFileRoute("/api/public/calendar/update-event")({
