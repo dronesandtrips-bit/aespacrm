@@ -1057,7 +1057,7 @@ function InboxPage() {
       const caption = draft.trim() || undefined;
       const quotedMessageId = replyTo?.messageId ?? undefined;
 
-      const res = await fetchWithAuthRetry("/api/public/evolution/send-media-and-log", {
+      const res = await fetchWithTimeout("/api/public/evolution/send-media-and-log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1153,7 +1153,7 @@ function InboxPage() {
     setSending(true);
     try {
       const quotedMessageId = replyTo?.messageId ?? undefined;
-      const res = await fetchWithAuthRetry("/api/public/evolution/send-and-log", {
+      const res = await fetchWithTimeout("/api/public/evolution/send-and-log", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2182,7 +2182,7 @@ function InboxPage() {
           contactPhone={active.phone}
           authFetch={fetchWithAuthRetry}
           onSendToContact={async (text) => {
-            const res = await fetchWithAuthRetry("/api/public/evolution/send-and-log", {
+            const res = await fetchWithTimeout("/api/public/evolution/send-and-log", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ contactId: active.id, text }),
