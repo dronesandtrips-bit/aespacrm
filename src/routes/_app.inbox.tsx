@@ -1188,6 +1188,8 @@ function InboxPage() {
     } catch (e: any) {
       toast.error(`Erro ao enviar: ${e.message ?? e}`);
     } finally {
+      window.clearTimeout(slowWarn);
+      toast.dismiss("send-slow");
       setSending(false);
     }
   };
