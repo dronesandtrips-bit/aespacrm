@@ -1069,7 +1069,7 @@ function InboxPage() {
           caption,
           ...(quotedMessageId ? { quotedMessageId } : {}),
         }),
-      });
+      }, 60_000);
       const raw = await res.text();
       let data: any = null;
       try { data = JSON.parse(raw); } catch {}
