@@ -81,6 +81,31 @@ async function fetchWithAuthRetry(input: RequestInfo | URL, init: RequestInit = 
   return fetch(input, { ...init, headers: retryHeaders });
 }
 
+/**
+ * Igual ao fetchWithAuthRetry, mas com timeout: evita o botão de enviar ficar
+ * girando "para sempre" quando a Evolution/rede demora a responder.
+ */
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 25_000,
+) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetchWithAuthRetry(input, { ...init, signal: ctrl.signal });
+  } catch (e: any) {
+    if (e?.name === "AbortError") {
+      throw new Error(
+        `tempo esgotado (${Math.round(timeoutMs / 1000)}s) — verifique sua conexão ou a conexão do WhatsApp`,
+      );
+    }
+    throw e;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -1032,7 +1057,7 @@ function InboxPage() {
       const caption = draft.trim() || undefined;
       const quotedMessageId = replyTo?.messageId ?? undefined;
 
-      const res = await fetchWithAuthRetry("/api/public/evolution/send-media-and-log", {
+      const res = await fetchWithTimeout("/api/public/evolution/send-media-and-log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1044,7 +1069,7 @@ function InboxPage() {
           caption,
           ...(quotedMessageId ? { quotedMessageId } : {}),
         }),
-      });
+      }, 60_000);
       const raw = await res.text();
       let data: any = null;
       try { data = JSON.parse(raw); } catch {}
@@ -1126,9 +1151,14 @@ function InboxPage() {
   const handleSend = async () => {
     if (!draft.trim() || !activeId) return;
     setSending(true);
+    const slowWarn = window.setTimeout(() => {
+      toast.loading("Envio está demorando… aguardando o WhatsApp responder", {
+        id: "send-slow",
+      });
+    }, 7000);
     try {
       const quotedMessageId = replyTo?.messageId ?? undefined;
-      const res = await fetchWithAuthRetry("/api/public/evolution/send-and-log", {
+      const res = await fetchWithTimeout("/api/public/evolution/send-and-log", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1158,6 +1188,8 @@ function InboxPage() {
     } catch (e: any) {
       toast.error(`Erro ao enviar: ${e.message ?? e}`);
     } finally {
+      window.clearTimeout(slowWarn);
+      toast.dismiss("send-slow");
       setSending(false);
     }
   };
@@ -2157,7 +2189,7 @@ function InboxPage() {
           contactPhone={active.phone}
           authFetch={fetchWithAuthRetry}
           onSendToContact={async (text) => {
-            const res = await fetchWithAuthRetry("/api/public/evolution/send-and-log", {
+            const res = await fetchWithTimeout("/api/public/evolution/send-and-log", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ contactId: active.id, text }),
