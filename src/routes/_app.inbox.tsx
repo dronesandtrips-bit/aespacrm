@@ -1151,6 +1151,11 @@ function InboxPage() {
   const handleSend = async () => {
     if (!draft.trim() || !activeId) return;
     setSending(true);
+    const slowWarn = window.setTimeout(() => {
+      toast.loading("Envio está demorando… aguardando o WhatsApp responder", {
+        id: "send-slow",
+      });
+    }, 7000);
     try {
       const quotedMessageId = replyTo?.messageId ?? undefined;
       const res = await fetchWithTimeout("/api/public/evolution/send-and-log", {
