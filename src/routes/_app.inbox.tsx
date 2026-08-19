@@ -81,6 +81,31 @@ async function fetchWithAuthRetry(input: RequestInfo | URL, init: RequestInit = 
   return fetch(input, { ...init, headers: retryHeaders });
 }
 
+/**
+ * Igual ao fetchWithAuthRetry, mas com timeout: evita o botão de enviar ficar
+ * girando "para sempre" quando a Evolution/rede demora a responder.
+ */
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 25_000,
+) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetchWithAuthRetry(input, { ...init, signal: ctrl.signal });
+  } catch (e: any) {
+    if (e?.name === "AbortError") {
+      throw new Error(
+        `tempo esgotado (${Math.round(timeoutMs / 1000)}s) — verifique sua conexão ou a conexão do WhatsApp`,
+      );
+    }
+    throw e;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 function InboxPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
