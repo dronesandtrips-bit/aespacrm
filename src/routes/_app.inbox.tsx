@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, pipelineDb, type Contact, type ChatMessage, type Category, type Sequence, type PipelineStage } from "@/lib/db";
 import { activateNotifications, isSoundEnabled, notifyIncomingMessage, setBrowserNotificationsEnabled, setSoundEnabled } from "@/lib/notification-sound";
 import { getSupabaseClient, getSupabaseClientSync } from "@/integrations/supabase/client";
+import { loadMedia, forgetMedia, getCachedMedia } from "@/lib/media-cache";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
