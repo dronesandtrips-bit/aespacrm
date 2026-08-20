@@ -13,7 +13,7 @@
 //
 // INTEGRIDADE: o endpoint do servidor continua o mesmo; só mudou o cliente.
 
-import { getSupabaseClient } from "@/lib/db";
+import { getSupabaseClient } from "@/integrations/supabase/client";
 
 const MAX_CONCURRENT = 3;
 const MAX_RETRIES = 2;
