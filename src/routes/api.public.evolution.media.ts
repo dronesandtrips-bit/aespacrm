@@ -38,7 +38,11 @@ async function handleMedia(request: Request) {
 
         let parsed;
         try {
-          parsed = Schema.parse(await request.json());
+          const raw =
+            request.method === "GET"
+              ? { messageId: new URL(request.url).searchParams.get("messageId") ?? "" }
+              : await request.json();
+          parsed = Schema.parse(raw);
         } catch (e: any) {
           return jsonResponse({ ok: false, error: "payload inválido", detail: e?.message }, 400);
         }
