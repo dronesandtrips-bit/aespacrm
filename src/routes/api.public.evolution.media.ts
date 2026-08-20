@@ -23,11 +23,7 @@ const Schema = z.object({
   messageId: z.string().trim().min(1).max(200),
 });
 
-export const Route = createFileRoute("/api/public/evolution/media")({
-  server: {
-    handlers: {
-      OPTIONS: async () => new Response(null, { headers: PUBLIC_CORS }),
-      POST: async ({ request }) => {
+async function handleMedia(request: Request) {
         const apiUrl = process.env.EVOLUTION_API_URL ? normalizeUrl(process.env.EVOLUTION_API_URL) : "";
         const apiKey = process.env.EVOLUTION_API_KEY?.trim();
         const supaUrl = process.env.AESPACRM_SUPA_URL ? normalizeUrl(process.env.AESPACRM_SUPA_URL) : "";
