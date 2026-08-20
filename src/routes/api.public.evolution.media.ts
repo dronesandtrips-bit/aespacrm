@@ -23,11 +23,7 @@ const Schema = z.object({
   messageId: z.string().trim().min(1).max(200),
 });
 
-export const Route = createFileRoute("/api/public/evolution/media")({
-  server: {
-    handlers: {
-      OPTIONS: async () => new Response(null, { headers: PUBLIC_CORS }),
-      POST: async ({ request }) => {
+async function handleMedia(request: Request) {
         const apiUrl = process.env.EVOLUTION_API_URL ? normalizeUrl(process.env.EVOLUTION_API_URL) : "";
         const apiKey = process.env.EVOLUTION_API_KEY?.trim();
         const supaUrl = process.env.AESPACRM_SUPA_URL ? normalizeUrl(process.env.AESPACRM_SUPA_URL) : "";
@@ -42,7 +38,11 @@ export const Route = createFileRoute("/api/public/evolution/media")({
 
         let parsed;
         try {
-          parsed = Schema.parse(await request.json());
+          const raw =
+            request.method === "GET"
+              ? { messageId: new URL(request.url).searchParams.get("messageId") ?? "" }
+              : await request.json();
+          parsed = Schema.parse(raw);
         } catch (e: any) {
           return jsonResponse({ ok: false, error: "payload inválido", detail: e?.message }, 400);
         }
@@ -118,11 +118,19 @@ export const Route = createFileRoute("/api/public/evolution/media")({
           status: 200,
           headers: {
             "Content-Type": mimetype,
-            "Cache-Control": "private, max-age=86400",
+            // imutável: a mídia de uma mensagem nunca muda
+            "Cache-Control": "private, max-age=604800, immutable",
             ...PUBLIC_CORS,
           },
         });
-      },
+}
+
+export const Route = createFileRoute("/api/public/evolution/media")({
+  server: {
+    handlers: {
+      OPTIONS: async () => new Response(null, { headers: PUBLIC_CORS }),
+      GET: async ({ request }) => handleMedia(request),
+      POST: async ({ request }) => handleMedia(request),
     },
   },
 });

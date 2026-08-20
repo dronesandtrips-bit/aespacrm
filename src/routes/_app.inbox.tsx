@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, pipelineDb, type Contact, type ChatMessage, type Category, type Sequence, type PipelineStage } from "@/lib/db";
 import { activateNotifications, isSoundEnabled, notifyIncomingMessage, setBrowserNotificationsEnabled, setSoundEnabled } from "@/lib/notification-sound";
 import { getSupabaseClient, getSupabaseClientSync } from "@/integrations/supabase/client";
+import { loadMedia, forgetMedia, getCachedMedia } from "@/lib/media-cache";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -2275,6 +2276,75 @@ function ContactTags({ contact, categories }: { contact: Contact; categories: Ca
   );
 }
 
+/** Só dispara o download quando o elemento chega perto da viewport. */
+function useNearViewport<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [near, setNear] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || near) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setNear(true);
+      return;
+    }
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setNear(true);
+          obs.disconnect();
+        }
+      },
+      { root: null, rootMargin: "600px 0px" },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [near]);
+
+  return { ref, near };
+}
+
+function useSecureMedia(messageId: string, enabled: boolean) {
+  const [src, setSrc] = useState<string | null>(() => getCachedMedia(messageId)?.url ?? null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const run = useCallback(
+    async (force = false) => {
+      if (force) forgetMedia(messageId);
+      const cached = getCachedMedia(messageId);
+      if (cached && !force) {
+        setSrc(cached.url);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const entry = await loadMedia(messageId);
+        setSrc(entry.url);
+      } catch (e: any) {
+        setError(e?.message ?? "erro");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [messageId],
+  );
+
+  useEffect(() => {
+    if (!enabled) return;
+    const cached = getCachedMedia(messageId);
+    if (cached) {
+      setSrc(cached.url);
+      return;
+    }
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messageId, enabled]);
+
+  return { src, error, loading, retry: () => run(true), load: () => run(false) };
+}
+
 function SecureImage({
   messageId,
   alt,
@@ -2286,131 +2356,61 @@ function SecureImage({
   className?: string;
   onOpen?: (messageId: string, src: string, alt: string) => void;
 }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { ref, near } = useNearViewport<HTMLDivElement>();
+  const { src, error, retry } = useSecureMedia(messageId, near);
 
-  const load = useCallback(async () => {
-    if (src || loading) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const c = await getSupabaseClient();
-      if (!c) throw new Error("sem sessão");
-      const sess = await c.auth.getSession();
-      const token = sess?.data?.session?.access_token;
-      if (!token) throw new Error("sem token");
-      const res = await fetch("/api/public/evolution/media", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      setSrc(URL.createObjectURL(blob));
-    } catch (e: any) {
-      setError(e?.message ?? "erro");
-    } finally {
-      setLoading(false);
-    }
-  }, [messageId, src, loading]);
-
-  useEffect(() => {
-    load();
-    return () => {
-      if (src) URL.revokeObjectURL(src);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messageId]);
-
-  if (src) {
-    return (
-      <button
-        type="button"
-        onClick={() => onOpen?.(messageId, src, alt)}
-        className="block cursor-zoom-in"
-      >
-        <img src={src} alt={alt} className={className} loading="lazy" />
-      </button>
-    );
-  }
-  if (error) {
-    return (
-      <button
-        type="button"
-        onClick={() => { setSrc(null); load(); }}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 hover:bg-black/20 text-xs"
-      >
-        <ImageIcon className="size-4" />
-        Falha ao carregar imagem — tentar novamente
-      </button>
-    );
-  }
   return (
-    <div className="flex items-center gap-2 px-3 py-6 rounded-lg bg-black/10 text-xs opacity-70 min-w-[180px]">
-      <ImageIcon className="size-4 animate-pulse" />
-      Carregando imagem…
+    <div ref={ref}>
+      {src ? (
+        <button
+          type="button"
+          onClick={() => onOpen?.(messageId, src, alt)}
+          className="block cursor-zoom-in"
+        >
+          <img src={src} alt={alt} className={className} decoding="async" />
+        </button>
+      ) : error ? (
+        <button
+          type="button"
+          onClick={retry}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 hover:bg-black/20 text-xs"
+        >
+          <ImageIcon className="size-4" />
+          Falha ao carregar imagem — tentar novamente
+        </button>
+      ) : (
+        <div className="flex items-center gap-2 px-3 py-6 rounded-lg bg-black/10 text-xs opacity-70 min-w-[180px]">
+          <ImageIcon className="size-4 animate-pulse" />
+          Carregando imagem…
+        </div>
+      )}
     </div>
   );
 }
 
 function SecureAudio({ messageId }: { messageId: string }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { ref, near } = useNearViewport<HTMLDivElement>();
+  const { src, error, retry } = useSecureMedia(messageId, near);
 
-  const load = useCallback(async () => {
-    if (src || loading) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const c = await getSupabaseClient();
-      if (!c) throw new Error("sem sessão");
-      const sess = await c.auth.getSession();
-      const token = sess?.data?.session?.access_token;
-      if (!token) throw new Error("sem token");
-      const res = await fetch("/api/public/evolution/media", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      setSrc(URL.createObjectURL(blob));
-    } catch (e: any) {
-      setError(e?.message ?? "erro");
-    } finally {
-      setLoading(false);
-    }
-  }, [messageId, src, loading]);
-
-  useEffect(() => {
-    load();
-    return () => {
-      if (src) URL.revokeObjectURL(src);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messageId]);
-
-  if (src) {
-    return <audio controls src={src} className="max-w-[260px]" preload="metadata" />;
-  }
-  if (error) {
-    return (
-      <button
-        type="button"
-        onClick={() => { setSrc(null); load(); }}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 hover:bg-black/20 text-xs"
-      >
-        <FileText className="size-4" />
-        Falha ao carregar áudio — tentar novamente
-      </button>
-    );
-  }
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 text-xs opacity-70 min-w-[180px]">
-      <FileText className="size-4 animate-pulse" />
-      Carregando áudio…
+    <div ref={ref}>
+      {src ? (
+        <audio controls src={src} className="max-w-[260px]" preload="metadata" />
+      ) : error ? (
+        <button
+          type="button"
+          onClick={retry}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 hover:bg-black/20 text-xs"
+        >
+          <FileText className="size-4" />
+          Falha ao carregar áudio — tentar novamente
+        </button>
+      ) : (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 text-xs opacity-70 min-w-[180px]">
+          <FileText className="size-4 animate-pulse" />
+          Carregando áudio…
+        </div>
+      )}
     </div>
   );
 }
@@ -2485,42 +2485,8 @@ function SecureDocument({
   fileName: string;
   mime: string | null;
 }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const load = useCallback(async () => {
-    if (src || loading) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const c = await getSupabaseClient();
-      if (!c) throw new Error("sem sessão");
-      const sess = await c.auth.getSession();
-      const token = sess?.data?.session?.access_token;
-      if (!token) throw new Error("sem token");
-      const res = await fetch("/api/public/evolution/media", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const typed = mime ? new Blob([blob], { type: mime }) : blob;
-      setSrc(URL.createObjectURL(typed));
-    } catch (e: any) {
-      setError(e?.message ?? "erro");
-    } finally {
-      setLoading(false);
-    }
-  }, [messageId, src, loading, mime]);
-
-  useEffect(() => {
-    return () => {
-      if (src) URL.revokeObjectURL(src);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src]);
+  // Documentos continuam sob demanda (clique) para não pesar a conversa.
+  const { src, error, loading, retry, load } = useSecureMedia(messageId, false);
 
   const ext = getFileExt(fileName, mime);
 
@@ -2533,7 +2499,7 @@ function SecureDocument({
   }
   if (error) {
     return (
-      <button type="button" onClick={() => { setSrc(null); load(); }} className="block w-full text-left">
+      <button type="button" onClick={retry} className="block w-full text-left">
         <DocCard fileName="Falha ao carregar — tentar novamente" ext={ext} />
       </button>
     );
