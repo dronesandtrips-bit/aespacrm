@@ -2485,42 +2485,8 @@ function SecureDocument({
   fileName: string;
   mime: string | null;
 }) {
-  const [src, setSrc] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const load = useCallback(async () => {
-    if (src || loading) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const c = await getSupabaseClient();
-      if (!c) throw new Error("sem sessão");
-      const sess = await c.auth.getSession();
-      const token = sess?.data?.session?.access_token;
-      if (!token) throw new Error("sem token");
-      const res = await fetch("/api/public/evolution/media", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const typed = mime ? new Blob([blob], { type: mime }) : blob;
-      setSrc(URL.createObjectURL(typed));
-    } catch (e: any) {
-      setError(e?.message ?? "erro");
-    } finally {
-      setLoading(false);
-    }
-  }, [messageId, src, loading, mime]);
-
-  useEffect(() => {
-    return () => {
-      if (src) URL.revokeObjectURL(src);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src]);
+  // Documentos continuam sob demanda (clique) para não pesar a conversa.
+  const { src, error, loading, retry, load } = useSecureMedia(messageId, false);
 
   const ext = getFileExt(fileName, mime);
 
@@ -2533,7 +2499,7 @@ function SecureDocument({
   }
   if (error) {
     return (
-      <button type="button" onClick={() => { setSrc(null); load(); }} className="block w-full text-left">
+      <button type="button" onClick={retry} className="block w-full text-left">
         <DocCard fileName="Falha ao carregar — tentar novamente" ext={ext} />
       </button>
     );
