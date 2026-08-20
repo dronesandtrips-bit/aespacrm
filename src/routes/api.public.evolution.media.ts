@@ -118,11 +118,19 @@ async function handleMedia(request: Request) {
           status: 200,
           headers: {
             "Content-Type": mimetype,
-            "Cache-Control": "private, max-age=86400",
+            // imutável: a mídia de uma mensagem nunca muda
+            "Cache-Control": "private, max-age=604800, immutable",
             ...PUBLIC_CORS,
           },
         });
-      },
+}
+
+export const Route = createFileRoute("/api/public/evolution/media")({
+  server: {
+    handlers: {
+      OPTIONS: async () => new Response(null, { headers: PUBLIC_CORS }),
+      GET: async ({ request }) => handleMedia(request),
+      POST: async ({ request }) => handleMedia(request),
     },
   },
 });
