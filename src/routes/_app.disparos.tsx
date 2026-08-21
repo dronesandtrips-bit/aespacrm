@@ -145,6 +145,104 @@ function DisparosPage() {
 
   const [detail, setDetail] = useState<BulkSend | null>(null);
 
+  // ---- Importar lista de números (disparo manual) ----
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [skipExisting, setSkipExisting] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  const existingPhoneIndex = useMemo(() => {
+    const map = new Map<string, Contact>();
+    for (const c of contacts) {
+      for (const v of phoneMatchVariants(c.phone)) map.set(v, c);
+    }
+    return map;
+  }, [contacts]);
+
+  const parsedImport = useMemo(() => parseImportList(importText), [importText]);
+
+  const importPreview = useMemo(() => {
+    let existing = 0;
+    let novos = 0;
+    for (const e of parsedImport.valid) {
+      if (phoneMatchVariants(e.phone).some((v) => existingPhoneIndex.has(v))) existing++;
+      else novos++;
+    }
+    return { existing, novos };
+  }, [parsedImport, existingPhoneIndex]);
+
+  const onPickImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      const txt = await f.text();
+      setImportText((prev) => (prev.trim() ? `${prev}\n${txt}` : txt));
+    } catch (err: any) {
+      toast.error(`Falha ao ler arquivo: ${err.message ?? err}`);
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const runImport = async () => {
+    if (parsedImport.valid.length === 0) {
+      return toast.error("Nenhum número válido encontrado na lista");
+    }
+    setImporting(true);
+    try {
+      const idsToSelect: string[] = [];
+      let created = 0;
+      let skipped = 0;
+      let failed = 0;
+
+      for (const entry of parsedImport.valid) {
+        const match = phoneMatchVariants(entry.phone)
+          .map((v) => existingPhoneIndex.get(v))
+          .find(Boolean);
+        if (match) {
+          if (skipExisting) {
+            skipped++;
+            continue;
+          }
+          idsToSelect.push(match.id);
+          continue;
+        }
+        try {
+          const c = await contactsDb.create({
+            name: entry.name || entry.phone,
+            phone: entry.phone,
+            notes: `Importado em ${new Date().toLocaleDateString("pt-BR")}`,
+          } as any);
+          idsToSelect.push(c.id);
+          created++;
+        } catch {
+          failed++;
+        }
+      }
+
+      await load();
+      setSelected((prev) => {
+        const n = new Set(prev);
+        idsToSelect.forEach((id) => n.add(id));
+        return n;
+      });
+
+      const parts = [`${idsToSelect.length} selecionados`, `${created} novos`];
+      if (skipped) parts.push(`${skipped} já na agenda (ignorados)`);
+      if (parsedImport.invalid.length) parts.push(`${parsedImport.invalid.length} inválidos`);
+      if (failed) parts.push(`${failed} com erro`);
+      toast.success(`Lista importada — ${parts.join(" · ")}`);
+      setImportOpen(false);
+      setImportText("");
+    } catch (e: any) {
+      toast.error(`Falha ao importar: ${e.message ?? e}`);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+
   const reuseDispatch = (b: BulkSend) => {
     setName(b.name);
     setMessage(b.message ?? "");
