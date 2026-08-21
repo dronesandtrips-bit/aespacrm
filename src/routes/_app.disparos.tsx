@@ -243,6 +243,7 @@ function DisparosPage() {
       let created = 0;
       let skipped = 0;
       let failed = 0;
+      let firstError = "";
 
       for (const entry of parsedImport.valid) {
         const match = phoneMatchVariants(entry.phone)
