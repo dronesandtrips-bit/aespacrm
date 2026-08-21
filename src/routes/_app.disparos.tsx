@@ -282,6 +282,14 @@ function DisparosPage() {
       if (skipped) parts.push(`${skipped} já na agenda (ignorados)`);
       if (parsedImport.invalid.length) parts.push(`${parsedImport.invalid.length} inválidos`);
       if (failed) parts.push(`${failed} com erro`);
+      if (idsToSelect.length === 0) {
+        toast.error(
+          failed
+            ? `Nada foi selecionado — ${failed} falha(s). ${firstError}`
+            : "Nada foi selecionado: todos os números da lista já estão na sua agenda e a opção \"Ignorar números que já estão na minha agenda\" está ligada. Desmarque essa opção para disparar para eles.",
+        );
+        return;
+      }
       toast.success(`Lista importada — ${parts.join(" · ")}`);
       setImportOpen(false);
       setImportText("");
