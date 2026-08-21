@@ -2515,6 +2515,56 @@ function SecureDocument({
   );
 }
 
+function SecureVideo({
+  messageId,
+  fileName,
+  mime,
+}: {
+  messageId: string;
+  fileName: string;
+  mime: string | null;
+}) {
+  const { src, error, loading, retry, load } = useSecureMedia(messageId, false);
+  const name = /\.\w{2,4}$/.test(fileName) ? fileName : `${fileName}.mp4`;
+  const ext = getFileExt(name, mime ?? "video/mp4");
+
+  if (src) {
+    return (
+      <div className="space-y-1">
+        <video
+          src={src}
+          controls
+          playsInline
+          className="rounded-lg max-w-full max-h-72 bg-black/5"
+        />
+        <a
+          href={src}
+          download={name}
+          className="inline-flex items-center gap-1 text-[11px] underline opacity-70 hover:opacity-100"
+        >
+          <Download className="size-3" /> Baixar vídeo
+        </a>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <button type="button" onClick={retry} className="block w-full text-left">
+        <DocCard fileName="Falha ao carregar vídeo — tentar novamente" ext={ext} />
+      </button>
+    );
+  }
+  return (
+    <button type="button" onClick={load} disabled={loading} className="block w-full text-left">
+      <DocCard
+        fileName={loading ? "Baixando vídeo..." : `${name} — toque para baixar`}
+        ext={ext}
+        trailing={loading ? <Loader2 className="size-4 animate-spin opacity-60" /> : <Download className="size-4 opacity-60" />}
+      />
+    </button>
+  );
+}
+
 function MessageContent({
   m,
   onOpenImage,
@@ -2547,13 +2597,21 @@ function MessageContent({
   }
 
   if (type === "video") {
-    // Política: vídeos NÃO são baixados/descriptografados.
+    // Vídeos são baixados apenas sob demanda (clique), para não pesar a conversa.
     return (
       <div className="space-y-1.5">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 text-xs opacity-80 min-w-[200px]">
-          <FileText className="size-4" />
-          Vídeo recebido (não baixado)
-        </div>
+        {m.messageId ? (
+          <SecureVideo
+            messageId={m.messageId}
+            fileName={caption || "video.mp4"}
+            mime={m.mediaMime ?? null}
+          />
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 text-xs opacity-80 min-w-[200px]">
+            <FileText className="size-4" />
+            Vídeo indisponível
+          </div>
+        )}
         {caption ? <p className="whitespace-pre-wrap break-words">{caption}</p> : null}
       </div>
     );
