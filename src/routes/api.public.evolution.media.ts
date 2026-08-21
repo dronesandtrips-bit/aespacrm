@@ -104,6 +104,8 @@ async function handleMedia(request: Request) {
             ? "image/webp"
             : msgRow.type === "document"
             ? "application/pdf"
+            : msgRow.type === "video"
+            ? "video/mp4"
             : "image/jpeg";
         const mimetype: string = evData?.mimetype ?? msgRow.media_mime ?? fallbackMime;
 
