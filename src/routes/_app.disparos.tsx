@@ -871,7 +871,8 @@ function DisparosPage() {
               <span>
                 Ignorar números que já estão na minha agenda
                 <span className="block text-xs text-muted-foreground">
-                  Disparo manual só para os contatos novos da lista.
+                  Desligado (padrão): dispara para TODOS da lista. Ligado: só para
+                  números novos — se todos já existirem, a seleção fica vazia.
                 </span>
               </span>
             </label>
