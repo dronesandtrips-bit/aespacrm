@@ -194,7 +194,9 @@ function DisparosPage() {
   // ---- Importar lista de números (disparo manual) ----
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
-  const [skipExisting, setSkipExisting] = useState(true);
+  // Padrão: NÃO ignorar quem já está na agenda — a lista importada é a lista
+  // de destino do disparo; ignorar por padrão zerava a seleção.
+  const [skipExisting, setSkipExisting] = useState(false);
   const [importing, setImporting] = useState(false);
   const importFileRef = useRef<HTMLInputElement>(null);
 
@@ -241,6 +243,7 @@ function DisparosPage() {
       let created = 0;
       let skipped = 0;
       let failed = 0;
+      let firstError = "";
 
       for (const entry of parsedImport.valid) {
         const match = phoneMatchVariants(entry.phone)
@@ -262,8 +265,9 @@ function DisparosPage() {
           } as any);
           idsToSelect.push(c.id);
           created++;
-        } catch {
+        } catch (err: any) {
           failed++;
+          if (!firstError) firstError = err?.message ?? String(err);
         }
       }
 
@@ -278,6 +282,14 @@ function DisparosPage() {
       if (skipped) parts.push(`${skipped} já na agenda (ignorados)`);
       if (parsedImport.invalid.length) parts.push(`${parsedImport.invalid.length} inválidos`);
       if (failed) parts.push(`${failed} com erro`);
+      if (idsToSelect.length === 0) {
+        toast.error(
+          failed
+            ? `Nada foi selecionado — ${failed} falha(s). ${firstError}`
+            : "Nada foi selecionado: todos os números da lista já estão na sua agenda e a opção \"Ignorar números que já estão na minha agenda\" está ligada. Desmarque essa opção para disparar para eles.",
+        );
+        return;
+      }
       toast.success(`Lista importada — ${parts.join(" · ")}`);
       setImportOpen(false);
       setImportText("");
@@ -859,7 +871,8 @@ function DisparosPage() {
               <span>
                 Ignorar números que já estão na minha agenda
                 <span className="block text-xs text-muted-foreground">
-                  Disparo manual só para os contatos novos da lista.
+                  Desligado (padrão): dispara para TODOS da lista. Ligado: só para
+                  números novos — se todos já existirem, a seleção fica vazia.
                 </span>
               </span>
             </label>
