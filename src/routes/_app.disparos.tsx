@@ -812,7 +812,88 @@ function DisparosPage() {
       </Card>
 
       {/* Dialog de detalhes do disparo */}
+      <Dialog open={importOpen} onOpenChange={(o) => !importing && setImportOpen(o)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="size-4" /> Importar lista de números
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Cole um número por linha (com ou sem DDI 55). Opcionalmente inclua o nome:
+              <br />
+              <span className="font-mono">5554999998888,Maria Silva</span>
+            </p>
+            <Textarea
+              rows={8}
+              className="font-mono text-sm"
+              placeholder={"5554999998888\n(54) 99999-8888, Maria Silva\n..."}
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+            />
+            <div className="flex items-center gap-2">
+              <input
+                ref={importFileRef}
+                type="file"
+                accept=".csv,.txt,text/csv,text/plain"
+                className="hidden"
+                onChange={onPickImportFile}
+              />
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => importFileRef.current?.click()}>
+                <Paperclip className="size-3.5" /> Carregar .csv / .txt
+              </Button>
+              {importText.trim() && (
+                <Button variant="ghost" size="sm" onClick={() => setImportText("")}>
+                  Limpar
+                </Button>
+              )}
+            </div>
+
+            <label className="flex items-start gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={skipExisting}
+                onCheckedChange={(v) => setSkipExisting(v === true)}
+                className="mt-0.5"
+              />
+              <span>
+                Ignorar números que já estão na minha agenda
+                <span className="block text-xs text-muted-foreground">
+                  Disparo manual só para os contatos novos da lista.
+                </span>
+              </span>
+            </label>
+
+            {importText.trim() && (
+              <div className="rounded-lg border p-3 text-sm space-y-1">
+                <p>
+                  <strong>{parsedImport.valid.length}</strong> números válidos ·{" "}
+                  <strong>{importPreview.novos}</strong> novos ·{" "}
+                  <strong>{importPreview.existing}</strong> já na agenda
+                  {skipExisting ? " (serão ignorados)" : " (serão selecionados)"}
+                </p>
+                {parsedImport.invalid.length > 0 && (
+                  <p className="text-xs text-destructive">
+                    {parsedImport.invalid.length} linha(s) inválida(s) serão descartadas.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>
+              Cancelar
+            </Button>
+            <Button onClick={runImport} disabled={importing || parsedImport.valid.length === 0} className="gap-2">
+              {importing ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+              Importar e selecionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+
         <DialogContent className="max-w-2xl">
           {detail && (() => {
             const ids = detail.contactIds ?? [];
