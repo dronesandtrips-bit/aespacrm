@@ -2547,13 +2547,21 @@ function MessageContent({
   }
 
   if (type === "video") {
-    // Política: vídeos NÃO são baixados/descriptografados.
+    // Vídeos são baixados apenas sob demanda (clique), para não pesar a conversa.
     return (
       <div className="space-y-1.5">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 text-xs opacity-80 min-w-[200px]">
-          <FileText className="size-4" />
-          Vídeo recebido (não baixado)
-        </div>
+        {m.messageId ? (
+          <SecureVideo
+            messageId={m.messageId}
+            fileName={caption || "video.mp4"}
+            mime={m.mediaMime ?? null}
+          />
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/10 text-xs opacity-80 min-w-[200px]">
+            <FileText className="size-4" />
+            Vídeo indisponível
+          </div>
+        )}
         {caption ? <p className="whitespace-pre-wrap break-words">{caption}</p> : null}
       </div>
     );
