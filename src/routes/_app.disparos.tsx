@@ -264,8 +264,9 @@ function DisparosPage() {
           } as any);
           idsToSelect.push(c.id);
           created++;
-        } catch {
+        } catch (err: any) {
           failed++;
+          if (!firstError) firstError = err?.message ?? String(err);
         }
       }
 
