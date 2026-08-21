@@ -26,6 +26,8 @@ import {
   CalendarDays,
   RotateCcw,
   Trash2,
+  Upload,
+
 } from "lucide-react";
 import {
   Dialog,
@@ -43,7 +45,51 @@ import {
   type Category,
 } from "@/lib/db";
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { isStrictValidPhone, phoneMatchVariants } from "@/lib/phone-validation";
 import { toast } from "sonner";
+
+/**
+ * Parser da lista importada (colada ou arquivo .csv/.txt).
+ * Aceita 1 número por linha, opcionalmente com nome:
+ *   5554999998888
+ *   5554999998888,Maria Silva
+ *   Maria Silva;(54) 99999-8888
+ * Números BR sem DDI recebem 55 automaticamente.
+ */
+function parseImportList(text: string): {
+  valid: Array<{ phone: string; name: string }>;
+  invalid: string[];
+} {
+  const valid: Array<{ phone: string; name: string }> = [];
+  const invalid: string[] = [];
+  const seen = new Set<string>();
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const cells = line.split(/[,;\t|]/).map((s) => s.trim()).filter(Boolean);
+    let phoneCell = cells.find((c) => (c.replace(/\D/g, "").length >= 8));
+    if (!phoneCell) {
+      invalid.push(line);
+      continue;
+    }
+    const nameCell = cells.find((c) => c !== phoneCell && /[a-zA-ZÀ-ÿ]/.test(c)) ?? "";
+
+    let digits = phoneCell.replace(/\D/g, "");
+    if (digits.startsWith("00")) digits = digits.slice(2);
+    if (digits.length === 10 || digits.length === 11) digits = `55${digits}`;
+
+    if (!isStrictValidPhone(digits)) {
+      invalid.push(line);
+      continue;
+    }
+    if (phoneMatchVariants(digits).some((v) => seen.has(v))) continue;
+    phoneMatchVariants(digits).forEach((v) => seen.add(v));
+    valid.push({ phone: digits, name: nameCell });
+  }
+  return { valid, invalid };
+}
+
 
 export const Route = createFileRoute("/_app/disparos")({
   component: DisparosPage,
@@ -144,6 +190,104 @@ function DisparosPage() {
   const insertVar = (v: string) => setMessage((m) => `${m}${v}`);
 
   const [detail, setDetail] = useState<BulkSend | null>(null);
+
+  // ---- Importar lista de números (disparo manual) ----
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [skipExisting, setSkipExisting] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  const existingPhoneIndex = useMemo(() => {
+    const map = new Map<string, Contact>();
+    for (const c of contacts) {
+      for (const v of phoneMatchVariants(c.phone)) map.set(v, c);
+    }
+    return map;
+  }, [contacts]);
+
+  const parsedImport = useMemo(() => parseImportList(importText), [importText]);
+
+  const importPreview = useMemo(() => {
+    let existing = 0;
+    let novos = 0;
+    for (const e of parsedImport.valid) {
+      if (phoneMatchVariants(e.phone).some((v) => existingPhoneIndex.has(v))) existing++;
+      else novos++;
+    }
+    return { existing, novos };
+  }, [parsedImport, existingPhoneIndex]);
+
+  const onPickImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      const txt = await f.text();
+      setImportText((prev) => (prev.trim() ? `${prev}\n${txt}` : txt));
+    } catch (err: any) {
+      toast.error(`Falha ao ler arquivo: ${err.message ?? err}`);
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const runImport = async () => {
+    if (parsedImport.valid.length === 0) {
+      return toast.error("Nenhum número válido encontrado na lista");
+    }
+    setImporting(true);
+    try {
+      const idsToSelect: string[] = [];
+      let created = 0;
+      let skipped = 0;
+      let failed = 0;
+
+      for (const entry of parsedImport.valid) {
+        const match = phoneMatchVariants(entry.phone)
+          .map((v) => existingPhoneIndex.get(v))
+          .find(Boolean);
+        if (match) {
+          if (skipExisting) {
+            skipped++;
+            continue;
+          }
+          idsToSelect.push(match.id);
+          continue;
+        }
+        try {
+          const c = await contactsDb.create({
+            name: entry.name || entry.phone,
+            phone: entry.phone,
+            notes: `Importado em ${new Date().toLocaleDateString("pt-BR")}`,
+          } as any);
+          idsToSelect.push(c.id);
+          created++;
+        } catch {
+          failed++;
+        }
+      }
+
+      await load();
+      setSelected((prev) => {
+        const n = new Set(prev);
+        idsToSelect.forEach((id) => n.add(id));
+        return n;
+      });
+
+      const parts = [`${idsToSelect.length} selecionados`, `${created} novos`];
+      if (skipped) parts.push(`${skipped} já na agenda (ignorados)`);
+      if (parsedImport.invalid.length) parts.push(`${parsedImport.invalid.length} inválidos`);
+      if (failed) parts.push(`${failed} com erro`);
+      toast.success(`Lista importada — ${parts.join(" · ")}`);
+      setImportOpen(false);
+      setImportText("");
+    } catch (e: any) {
+      toast.error(`Falha ao importar: ${e.message ?? e}`);
+    } finally {
+      setImporting(false);
+    }
+  };
+
 
   const reuseDispatch = (b: BulkSend) => {
     setName(b.name);
@@ -478,9 +622,15 @@ function DisparosPage() {
                 {selected.size} de {contacts.length} selecionados
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={toggleAll} disabled={contacts.length === 0}>
-              {selected.size === contacts.length && contacts.length > 0 ? "Limpar" : "Selecionar todos"}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setImportOpen(true)}>
+                <Upload className="size-3.5" /> Importar lista
+              </Button>
+              <Button variant="outline" size="sm" onClick={toggleAll} disabled={contacts.length === 0}>
+                {selected.size === contacts.length && contacts.length > 0 ? "Limpar" : "Selecionar todos"}
+              </Button>
+            </div>
+
           </div>
 
           <div className="flex flex-wrap gap-2 mb-3">
@@ -662,7 +812,88 @@ function DisparosPage() {
       </Card>
 
       {/* Dialog de detalhes do disparo */}
+      <Dialog open={importOpen} onOpenChange={(o) => !importing && setImportOpen(o)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="size-4" /> Importar lista de números
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Cole um número por linha (com ou sem DDI 55). Opcionalmente inclua o nome:
+              <br />
+              <span className="font-mono">5554999998888,Maria Silva</span>
+            </p>
+            <Textarea
+              rows={8}
+              className="font-mono text-sm"
+              placeholder={"5554999998888\n(54) 99999-8888, Maria Silva\n..."}
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+            />
+            <div className="flex items-center gap-2">
+              <input
+                ref={importFileRef}
+                type="file"
+                accept=".csv,.txt,text/csv,text/plain"
+                className="hidden"
+                onChange={onPickImportFile}
+              />
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => importFileRef.current?.click()}>
+                <Paperclip className="size-3.5" /> Carregar .csv / .txt
+              </Button>
+              {importText.trim() && (
+                <Button variant="ghost" size="sm" onClick={() => setImportText("")}>
+                  Limpar
+                </Button>
+              )}
+            </div>
+
+            <label className="flex items-start gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={skipExisting}
+                onCheckedChange={(v) => setSkipExisting(v === true)}
+                className="mt-0.5"
+              />
+              <span>
+                Ignorar números que já estão na minha agenda
+                <span className="block text-xs text-muted-foreground">
+                  Disparo manual só para os contatos novos da lista.
+                </span>
+              </span>
+            </label>
+
+            {importText.trim() && (
+              <div className="rounded-lg border p-3 text-sm space-y-1">
+                <p>
+                  <strong>{parsedImport.valid.length}</strong> números válidos ·{" "}
+                  <strong>{importPreview.novos}</strong> novos ·{" "}
+                  <strong>{importPreview.existing}</strong> já na agenda
+                  {skipExisting ? " (serão ignorados)" : " (serão selecionados)"}
+                </p>
+                {parsedImport.invalid.length > 0 && (
+                  <p className="text-xs text-destructive">
+                    {parsedImport.invalid.length} linha(s) inválida(s) serão descartadas.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>
+              Cancelar
+            </Button>
+            <Button onClick={runImport} disabled={importing || parsedImport.valid.length === 0} className="gap-2">
+              {importing ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+              Importar e selecionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+
         <DialogContent className="max-w-2xl">
           {detail && (() => {
             const ids = detail.contactIds ?? [];
