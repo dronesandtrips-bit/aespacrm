@@ -66,12 +66,13 @@ async function handleMedia(request: Request) {
         if (msgErr || !msgRow) {
           return jsonResponse({ ok: false, error: "mensagem não encontrada" }, 404);
         }
-        // Política: imagens, stickers, áudios e documentos. Vídeo NÃO é baixado.
+        // Política: imagens, stickers, áudios, documentos e vídeos (vídeo só sob demanda no clique).
         if (
           msgRow.type !== "image" &&
           msgRow.type !== "sticker" &&
           msgRow.type !== "audio" &&
-          msgRow.type !== "document"
+          msgRow.type !== "document" &&
+          msgRow.type !== "video"
         ) {
           return jsonResponse({ ok: false, error: "tipo de mídia não permitido" }, 403);
         }
