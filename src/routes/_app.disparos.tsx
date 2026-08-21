@@ -194,7 +194,9 @@ function DisparosPage() {
   // ---- Importar lista de números (disparo manual) ----
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
-  const [skipExisting, setSkipExisting] = useState(true);
+  // Padrão: NÃO ignorar quem já está na agenda — a lista importada é a lista
+  // de destino do disparo; ignorar por padrão zerava a seleção.
+  const [skipExisting, setSkipExisting] = useState(false);
   const [importing, setImporting] = useState(false);
   const importFileRef = useRef<HTMLInputElement>(null);
 
