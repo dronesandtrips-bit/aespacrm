@@ -43,7 +43,51 @@ import {
   type Category,
 } from "@/lib/db";
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { isStrictValidPhone, phoneMatchVariants } from "@/lib/phone-validation";
 import { toast } from "sonner";
+
+/**
+ * Parser da lista importada (colada ou arquivo .csv/.txt).
+ * Aceita 1 número por linha, opcionalmente com nome:
+ *   5554999998888
+ *   5554999998888,Maria Silva
+ *   Maria Silva;(54) 99999-8888
+ * Números BR sem DDI recebem 55 automaticamente.
+ */
+function parseImportList(text: string): {
+  valid: Array<{ phone: string; name: string }>;
+  invalid: string[];
+} {
+  const valid: Array<{ phone: string; name: string }> = [];
+  const invalid: string[] = [];
+  const seen = new Set<string>();
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const cells = line.split(/[,;\t|]/).map((s) => s.trim()).filter(Boolean);
+    let phoneCell = cells.find((c) => (c.replace(/\D/g, "").length >= 8));
+    if (!phoneCell) {
+      invalid.push(line);
+      continue;
+    }
+    const nameCell = cells.find((c) => c !== phoneCell && /[a-zA-ZÀ-ÿ]/.test(c)) ?? "";
+
+    let digits = phoneCell.replace(/\D/g, "");
+    if (digits.startsWith("00")) digits = digits.slice(2);
+    if (digits.length === 10 || digits.length === 11) digits = `55${digits}`;
+
+    if (!isStrictValidPhone(digits)) {
+      invalid.push(line);
+      continue;
+    }
+    if (phoneMatchVariants(digits).some((v) => seen.has(v))) continue;
+    phoneMatchVariants(digits).forEach((v) => seen.add(v));
+    valid.push({ phone: digits, name: nameCell });
+  }
+  return { valid, invalid };
+}
+
 
 export const Route = createFileRoute("/_app/disparos")({
   component: DisparosPage,
