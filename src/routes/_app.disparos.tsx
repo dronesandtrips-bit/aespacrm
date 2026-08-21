@@ -620,9 +620,15 @@ function DisparosPage() {
                 {selected.size} de {contacts.length} selecionados
               </p>
             </div>
-            <Button variant="outline" size="sm" onClick={toggleAll} disabled={contacts.length === 0}>
-              {selected.size === contacts.length && contacts.length > 0 ? "Limpar" : "Selecionar todos"}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setImportOpen(true)}>
+                <Upload className="size-3.5" /> Importar lista
+              </Button>
+              <Button variant="outline" size="sm" onClick={toggleAll} disabled={contacts.length === 0}>
+                {selected.size === contacts.length && contacts.length > 0 ? "Limpar" : "Selecionar todos"}
+              </Button>
+            </div>
+
           </div>
 
           <div className="flex flex-wrap gap-2 mb-3">
