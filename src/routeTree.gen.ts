@@ -80,6 +80,7 @@ import { Route as ApiPublicCalendarConfirmBookingRouteImport } from './routes/ap
 import { Route as ApiPublicCalendarAvailabilityRouteImport } from './routes/api.public.calendar.availability'
 import { Route as ApiPublicCalendarAutoBookRouteImport } from './routes/api.public.calendar.auto-book'
 import { Route as ApiPublicAvatarsRefreshRouteImport } from './routes/api.public.avatars.refresh'
+import { Route as ApiPublicAiSystemPromptRouteImport } from './routes/api.public.ai.system-prompt'
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
 import { Route as ApiPublicAiInterestTermsRouteImport } from './routes/api.public.ai.interest-terms'
 import { Route as ApiPublicAiExistingCategoriesRouteImport } from './routes/api.public.ai.existing-categories'
@@ -474,6 +475,11 @@ const ApiPublicAvatarsRefreshRoute = ApiPublicAvatarsRefreshRouteImport.update({
   path: '/api/public/avatars/refresh',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAiSystemPromptRoute = ApiPublicAiSystemPromptRouteImport.update({
+  id: '/api/public/ai/system-prompt',
+  path: '/api/public/ai/system-prompt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAiLovableProxyRoute = ApiPublicAiLovableProxyRouteImport.update({
   id: '/api/public/ai/lovable-proxy',
   path: '/api/public/ai/lovable-proxy',
@@ -545,6 +551,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/ai/system-prompt': typeof ApiPublicAiSystemPromptRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
@@ -624,6 +631,7 @@ export interface FileRoutesByTo {
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/ai/system-prompt': typeof ApiPublicAiSystemPromptRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
@@ -705,6 +713,7 @@ export interface FileRoutesById {
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/ai/system-prompt': typeof ApiPublicAiSystemPromptRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
@@ -786,6 +795,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/ai/system-prompt'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
@@ -865,6 +875,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/ai/system-prompt'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
@@ -945,6 +956,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/ai/system-prompt'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
@@ -1010,6 +1022,7 @@ export interface RootRouteChildren {
   ApiPublicAiExistingCategoriesRoute: typeof ApiPublicAiExistingCategoriesRoute
   ApiPublicAiInterestTermsRoute: typeof ApiPublicAiInterestTermsRoute
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
+  ApiPublicAiSystemPromptRoute: typeof ApiPublicAiSystemPromptRoute
   ApiPublicAvatarsRefreshRoute: typeof ApiPublicAvatarsRefreshRoute
   ApiPublicCalendarAutoBookRoute: typeof ApiPublicCalendarAutoBookRoute
   ApiPublicCalendarAvailabilityRoute: typeof ApiPublicCalendarAvailabilityRoute
@@ -1559,6 +1572,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAvatarsRefreshRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ai/system-prompt': {
+      id: '/api/public/ai/system-prompt'
+      path: '/api/public/ai/system-prompt'
+      fullPath: '/api/public/ai/system-prompt'
+      preLoaderRoute: typeof ApiPublicAiSystemPromptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ai/lovable-proxy': {
       id: '/api/public/ai/lovable-proxy'
       path: '/api/public/ai/lovable-proxy'
@@ -1666,6 +1686,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAiExistingCategoriesRoute: ApiPublicAiExistingCategoriesRoute,
   ApiPublicAiInterestTermsRoute: ApiPublicAiInterestTermsRoute,
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
+  ApiPublicAiSystemPromptRoute: ApiPublicAiSystemPromptRoute,
   ApiPublicAvatarsRefreshRoute: ApiPublicAvatarsRefreshRoute,
   ApiPublicCalendarAutoBookRoute: ApiPublicCalendarAutoBookRoute,
   ApiPublicCalendarAvailabilityRoute: ApiPublicCalendarAvailabilityRoute,
