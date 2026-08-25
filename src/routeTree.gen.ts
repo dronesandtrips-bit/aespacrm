@@ -20,6 +20,7 @@ import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
 import { Route as AppTemplatesRouteImport } from './routes/_app.templates'
 import { Route as AppSequenciasDashboardRouteImport } from './routes/_app.sequencias-dashboard'
 import { Route as AppSequenciasRouteImport } from './routes/_app.sequencias'
+import { Route as AppRoboPromptRouteImport } from './routes/_app.robo-prompt'
 import { Route as AppRedactRouteImport } from './routes/_app.redact'
 import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
 import { Route as AppLogsRouteImport } from './routes/_app.logs'
@@ -80,6 +81,7 @@ import { Route as ApiPublicCalendarConfirmBookingRouteImport } from './routes/ap
 import { Route as ApiPublicCalendarAvailabilityRouteImport } from './routes/api.public.calendar.availability'
 import { Route as ApiPublicCalendarAutoBookRouteImport } from './routes/api.public.calendar.auto-book'
 import { Route as ApiPublicAvatarsRefreshRouteImport } from './routes/api.public.avatars.refresh'
+import { Route as ApiPublicAiSystemPromptRouteImport } from './routes/api.public.ai.system-prompt'
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
 import { Route as ApiPublicAiInterestTermsRouteImport } from './routes/api.public.ai.interest-terms'
 import { Route as ApiPublicAiExistingCategoriesRouteImport } from './routes/api.public.ai.existing-categories'
@@ -140,6 +142,11 @@ const AppSequenciasDashboardRoute = AppSequenciasDashboardRouteImport.update({
 const AppSequenciasRoute = AppSequenciasRouteImport.update({
   id: '/sequencias',
   path: '/sequencias',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRoboPromptRoute = AppRoboPromptRouteImport.update({
+  id: '/robo-prompt',
+  path: '/robo-prompt',
   getParentRoute: () => AppRoute,
 } as any)
 const AppRedactRoute = AppRedactRouteImport.update({
@@ -474,6 +481,11 @@ const ApiPublicAvatarsRefreshRoute = ApiPublicAvatarsRefreshRouteImport.update({
   path: '/api/public/avatars/refresh',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAiSystemPromptRoute = ApiPublicAiSystemPromptRouteImport.update({
+  id: '/api/public/ai/system-prompt',
+  path: '/api/public/ai/system-prompt',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAiLovableProxyRoute = ApiPublicAiLovableProxyRouteImport.update({
   id: '/api/public/ai/lovable-proxy',
   path: '/api/public/ai/lovable-proxy',
@@ -532,6 +544,7 @@ export interface FileRoutesByFullPath {
   '/logs': typeof AppLogsRoute
   '/pipeline': typeof AppPipelineRoute
   '/redact': typeof AppRedactRoute
+  '/robo-prompt': typeof AppRoboPromptRoute
   '/sequencias': typeof AppSequenciasRoute
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/templates': typeof AppTemplatesRoute
@@ -545,6 +558,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/ai/system-prompt': typeof ApiPublicAiSystemPromptRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
@@ -611,6 +625,7 @@ export interface FileRoutesByTo {
   '/logs': typeof AppLogsRoute
   '/pipeline': typeof AppPipelineRoute
   '/redact': typeof AppRedactRoute
+  '/robo-prompt': typeof AppRoboPromptRoute
   '/sequencias': typeof AppSequenciasRoute
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/templates': typeof AppTemplatesRoute
@@ -624,6 +639,7 @@ export interface FileRoutesByTo {
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/ai/system-prompt': typeof ApiPublicAiSystemPromptRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
@@ -692,6 +708,7 @@ export interface FileRoutesById {
   '/_app/logs': typeof AppLogsRoute
   '/_app/pipeline': typeof AppPipelineRoute
   '/_app/redact': typeof AppRedactRoute
+  '/_app/robo-prompt': typeof AppRoboPromptRoute
   '/_app/sequencias': typeof AppSequenciasRoute
   '/_app/sequencias-dashboard': typeof AppSequenciasDashboardRoute
   '/_app/templates': typeof AppTemplatesRoute
@@ -705,6 +722,7 @@ export interface FileRoutesById {
   '/api/public/ai/existing-categories': typeof ApiPublicAiExistingCategoriesRoute
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
+  '/api/public/ai/system-prompt': typeof ApiPublicAiSystemPromptRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
@@ -773,6 +791,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/pipeline'
     | '/redact'
+    | '/robo-prompt'
     | '/sequencias'
     | '/sequencias-dashboard'
     | '/templates'
@@ -786,6 +805,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/ai/system-prompt'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
@@ -852,6 +872,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/pipeline'
     | '/redact'
+    | '/robo-prompt'
     | '/sequencias'
     | '/sequencias-dashboard'
     | '/templates'
@@ -865,6 +886,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/ai/system-prompt'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
@@ -932,6 +954,7 @@ export interface FileRouteTypes {
     | '/_app/logs'
     | '/_app/pipeline'
     | '/_app/redact'
+    | '/_app/robo-prompt'
     | '/_app/sequencias'
     | '/_app/sequencias-dashboard'
     | '/_app/templates'
@@ -945,6 +968,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/existing-categories'
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
+    | '/api/public/ai/system-prompt'
     | '/api/public/avatars/refresh'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
@@ -1010,6 +1034,7 @@ export interface RootRouteChildren {
   ApiPublicAiExistingCategoriesRoute: typeof ApiPublicAiExistingCategoriesRoute
   ApiPublicAiInterestTermsRoute: typeof ApiPublicAiInterestTermsRoute
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
+  ApiPublicAiSystemPromptRoute: typeof ApiPublicAiSystemPromptRoute
   ApiPublicAvatarsRefreshRoute: typeof ApiPublicAvatarsRefreshRoute
   ApiPublicCalendarAutoBookRoute: typeof ApiPublicCalendarAutoBookRoute
   ApiPublicCalendarAvailabilityRoute: typeof ApiPublicCalendarAvailabilityRoute
@@ -1137,6 +1162,13 @@ declare module '@tanstack/react-router' {
       path: '/sequencias'
       fullPath: '/sequencias'
       preLoaderRoute: typeof AppSequenciasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/robo-prompt': {
+      id: '/_app/robo-prompt'
+      path: '/robo-prompt'
+      fullPath: '/robo-prompt'
+      preLoaderRoute: typeof AppRoboPromptRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/redact': {
@@ -1559,6 +1591,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAvatarsRefreshRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ai/system-prompt': {
+      id: '/api/public/ai/system-prompt'
+      path: '/api/public/ai/system-prompt'
+      fullPath: '/api/public/ai/system-prompt'
+      preLoaderRoute: typeof ApiPublicAiSystemPromptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/ai/lovable-proxy': {
       id: '/api/public/ai/lovable-proxy'
       path: '/api/public/ai/lovable-proxy'
@@ -1624,6 +1663,7 @@ interface AppRouteChildren {
   AppLogsRoute: typeof AppLogsRoute
   AppPipelineRoute: typeof AppPipelineRoute
   AppRedactRoute: typeof AppRedactRoute
+  AppRoboPromptRoute: typeof AppRoboPromptRoute
   AppSequenciasRoute: typeof AppSequenciasRoute
   AppSequenciasDashboardRoute: typeof AppSequenciasDashboardRoute
   AppTemplatesRoute: typeof AppTemplatesRoute
@@ -1643,6 +1683,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLogsRoute: AppLogsRoute,
   AppPipelineRoute: AppPipelineRoute,
   AppRedactRoute: AppRedactRoute,
+  AppRoboPromptRoute: AppRoboPromptRoute,
   AppSequenciasRoute: AppSequenciasRoute,
   AppSequenciasDashboardRoute: AppSequenciasDashboardRoute,
   AppTemplatesRoute: AppTemplatesRoute,
@@ -1666,6 +1707,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAiExistingCategoriesRoute: ApiPublicAiExistingCategoriesRoute,
   ApiPublicAiInterestTermsRoute: ApiPublicAiInterestTermsRoute,
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
+  ApiPublicAiSystemPromptRoute: ApiPublicAiSystemPromptRoute,
   ApiPublicAvatarsRefreshRoute: ApiPublicAvatarsRefreshRoute,
   ApiPublicCalendarAutoBookRoute: ApiPublicCalendarAutoBookRoute,
   ApiPublicCalendarAvailabilityRoute: ApiPublicCalendarAvailabilityRoute,
