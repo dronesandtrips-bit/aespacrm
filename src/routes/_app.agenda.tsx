@@ -39,7 +39,9 @@ import {
   UserPlus,
 } from "lucide-react";
 import { authFetch } from "@/lib/auth-fetch";
+import { AgendaWeekView } from "@/components/AgendaWeekView";
 import { contactsDb, type Contact } from "@/lib/db";
+
 
 const DEFAULT_OWNER_PHONE = "5554991495959";
 
