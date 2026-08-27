@@ -37,15 +37,15 @@ function buildText(r: any) {
       .filter(Boolean)
       .join("\n");
   }
-  return [
+  const lines = [
     `Olá${r.contact_name ? ` ${r.contact_name}` : ""}! Passando para lembrar do nosso compromisso:`,
     `${r.title}`,
     `Quando: ${quando}`,
     r.location ? `Local: ${r.location}` : "",
     r.maps_link ? `Mapa: ${r.maps_link}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ].filter(Boolean);
+  lines.push("", "Responda *SIM* para confirmar sua presença ou *NÃO* para cancelar.");
+  return lines.join("\n");
 }
 
 export const Route = createFileRoute("/api/public/calendar/reminders-tick")({
@@ -87,10 +87,14 @@ export const Route = createFileRoute("/api/public/calendar/reminders-tick")({
             });
             const body = await res.text();
             if (!res.ok) throw new Error(`Evolution [${res.status}]: ${body.slice(0, 300)}`);
-            await sb
-              .from("crm_appointment_reminders")
-              .update({ status: "sent", sent_at: new Date().toISOString(), error: null })
-              .eq("id", r.id);
+            const sentAt = new Date().toISOString();
+            const patch: Record<string, unknown> = { status: "sent", sent_at: sentAt, error: null };
+            if (r.target === "client") {
+              // Passa a aguardar a resposta SIM/NÃO do cliente.
+              patch.attendance_status = "awaiting";
+              patch.confirmation_sent_at = sentAt;
+            }
+            await sb.from("crm_appointment_reminders").update(patch).eq("id", r.id);
             results.push({ id: r.id, ok: true });
           } catch (e: any) {
             const msg = e?.message ?? String(e);

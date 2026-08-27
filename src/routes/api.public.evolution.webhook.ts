@@ -17,6 +17,7 @@ import { getSupabaseAdmin, jsonResponse } from "@/integrations/supabase/server";
 import { isStrictValidPhone, phoneMatchVariants } from "@/lib/phone-validation";
 import { cacheAvatarFromUrl } from "@/lib/avatar-cache.server";
 import { maybeAutoBookFromBotMessage } from "@/lib/auto-book-from-bot.server";
+import { maybeConfirmAttendance } from "@/lib/attendance-confirm.server";
 
 
 const INSTANCE = "zapcrm";
@@ -521,6 +522,20 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
                 // Auto-tag "Follow-up": contato NOVO + mensagem menciona "orçamento".
                 if (isNewContact && bodyMencionaOrcamento(parsed.body)) {
                   await applyFollowUpTag(sb, ownerUserId, contactId);
+                }
+
+                // Confirmação automática de presença (resposta SIM/NÃO do cliente).
+                if (parsed.type === "text" && parsed.body) {
+                  try {
+                    await maybeConfirmAttendance({
+                      sb,
+                      userId: ownerUserId,
+                      phone: normalizePhone(remoteJid),
+                      text: parsed.body,
+                    });
+                  } catch (e: any) {
+                    console.error("[attendance]", e?.message ?? String(e));
+                  }
                 }
               }
 
