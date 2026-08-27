@@ -105,7 +105,7 @@ function AgendaPage() {
   const [contactPhone, setContactPhone] = useState("");
   const [contactName, setContactName] = useState("");
   const [ownerPhone, setOwnerPhone] = useState(DEFAULT_OWNER_PHONE);
-  const [reminderMinutes, setReminderMinutes] = useState("60");
+  const [reminderMinutes, setReminderMinutes] = useState("1440");
   const [notifyNow, setNotifyNow] = useState(true);
 
   const load = useCallback(async () => {
@@ -672,7 +672,9 @@ function AgendaPage() {
                     <SelectItem value="30">30 minutos</SelectItem>
                     <SelectItem value="60">1 hora</SelectItem>
                     <SelectItem value="120">2 horas</SelectItem>
-                    <SelectItem value="1440">1 dia</SelectItem>
+                    <SelectItem value="180">3 horas</SelectItem>
+                    <SelectItem value="1440">1 dia (padrão)</SelectItem>
+                    <SelectItem value="2880">2 dias</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
