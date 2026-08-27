@@ -39,7 +39,9 @@ import {
   UserPlus,
 } from "lucide-react";
 import { authFetch } from "@/lib/auth-fetch";
+import { AgendaWeekView } from "@/components/AgendaWeekView";
 import { contactsDb, type Contact } from "@/lib/db";
+
 
 const DEFAULT_OWNER_PHONE = "5554991495959";
 
@@ -84,6 +86,9 @@ function AgendaPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<CalEvent | null>(null);
   const [creating, setCreating] = useState(false);
+  const [view, setView] = useState<"lista" | "semana">("semana");
+  const [movingId, setMovingId] = useState<string | null>(null);
+
 
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -159,10 +164,12 @@ function AgendaPage() {
     setReminderMinutes(String(e.reminder?.reminderMinutes ?? 60));
   };
 
-  const openCreate = () => {
-    const d = new Date();
-    d.setMinutes(0, 0, 0);
-    d.setHours(d.getHours() + 1);
+  const openCreate = (at?: Date) => {
+    const d = at ? new Date(at) : new Date();
+    if (!at) {
+      d.setMinutes(0, 0, 0);
+      d.setHours(d.getHours() + 1);
+    }
     setEditing(null);
     setCreating(true);
     setTitle("");
@@ -177,6 +184,54 @@ function AgendaPage() {
     setReminderMinutes("60");
     setNotifyNow(true);
   };
+
+  // Arrastar um bloco na visão semanal reagenda o compromisso.
+  const handleMove = async (ev: CalEvent, newStart: Date) => {
+    const mins =
+      ev.start && ev.end
+        ? Math.max(5, Math.round((new Date(ev.end).getTime() - new Date(ev.start).getTime()) / 60000))
+        : 60;
+    setMovingId(ev.id);
+    const prev = events;
+    setEvents((list) =>
+      list.map((x) =>
+        x.id === ev.id
+          ? {
+              ...x,
+              start: newStart.toISOString(),
+              end: new Date(newStart.getTime() + mins * 60_000).toISOString(),
+            }
+          : x,
+      ),
+    );
+    try {
+      const res = await authFetch("/api/public/calendar/update-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: ev.id,
+          title: ev.title,
+          startISO: newStart.toISOString(),
+          durationMinutes: mins,
+          description: ev.description || undefined,
+          location: ev.location || undefined,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo",
+        }),
+      });
+      const json = await res.json().catch(() => ({}) as any);
+      if (!res.ok || json?.ok === false) throw new Error(json?.error ?? res.statusText);
+      toast.success(
+        `Reagendado para ${newStart.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`,
+      );
+      await load();
+    } catch (e: any) {
+      setEvents(prev);
+      toast.error(`Falha ao reagendar: ${e?.message ?? String(e)}`);
+    } finally {
+      setMovingId(null);
+    }
+  };
+
 
   const handleSave = async () => {
     if (!editing && !creating) return;
@@ -402,6 +457,19 @@ function AgendaPage() {
           Agenda
         </h1>
         <div className="flex items-center gap-2">
+          <div className="flex overflow-hidden rounded-md border border-border">
+            {(["semana", "lista"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1.5 text-xs font-medium capitalize ${
+                  view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             {loading ? (
               <Loader2 className="size-4 animate-spin" />
@@ -419,7 +487,7 @@ function AgendaPage() {
             {simulating ? <Loader2 className="size-4 animate-spin" /> : <Bot className="size-4" />}
             Testar robô
           </Button>
-          <Button size="sm" onClick={openCreate}>
+          <Button size="sm" onClick={() => openCreate()}>
             <Plus className="size-4" />
             Novo compromisso
           </Button>
@@ -429,6 +497,20 @@ function AgendaPage() {
 
       {loading ? (
         <Card className="p-6 text-sm text-muted-foreground">Carregando compromissos…</Card>
+      ) : view === "semana" ? (
+        <AgendaWeekView
+          events={events}
+          movingId={movingId}
+          onCreateAt={(d) => openCreate(d)}
+          onOpen={(ev) => {
+            const full = events.find((x) => x.id === ev.id);
+            if (full) openEdit(full);
+          }}
+          onMove={(ev, d) => {
+            const full = events.find((x) => x.id === ev.id);
+            if (full) void handleMove(full, d);
+          }}
+        />
       ) : (
         <>
           <Card className="space-y-2 p-4">
@@ -448,6 +530,7 @@ function AgendaPage() {
           )}
         </>
       )}
+
 
       <Dialog
         open={Boolean(editing) || creating}
