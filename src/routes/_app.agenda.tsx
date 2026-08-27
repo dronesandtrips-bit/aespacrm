@@ -159,10 +159,12 @@ function AgendaPage() {
     setReminderMinutes(String(e.reminder?.reminderMinutes ?? 60));
   };
 
-  const openCreate = () => {
-    const d = new Date();
-    d.setMinutes(0, 0, 0);
-    d.setHours(d.getHours() + 1);
+  const openCreate = (at?: Date) => {
+    const d = at ? new Date(at) : new Date();
+    if (!at) {
+      d.setMinutes(0, 0, 0);
+      d.setHours(d.getHours() + 1);
+    }
     setEditing(null);
     setCreating(true);
     setTitle("");
@@ -177,6 +179,54 @@ function AgendaPage() {
     setReminderMinutes("60");
     setNotifyNow(true);
   };
+
+  // Arrastar um bloco na visão semanal reagenda o compromisso.
+  const handleMove = async (ev: CalEvent, newStart: Date) => {
+    const mins =
+      ev.start && ev.end
+        ? Math.max(5, Math.round((new Date(ev.end).getTime() - new Date(ev.start).getTime()) / 60000))
+        : 60;
+    setMovingId(ev.id);
+    const prev = events;
+    setEvents((list) =>
+      list.map((x) =>
+        x.id === ev.id
+          ? {
+              ...x,
+              start: newStart.toISOString(),
+              end: new Date(newStart.getTime() + mins * 60_000).toISOString(),
+            }
+          : x,
+      ),
+    );
+    try {
+      const res = await authFetch("/api/public/calendar/update-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: ev.id,
+          title: ev.title,
+          startISO: newStart.toISOString(),
+          durationMinutes: mins,
+          description: ev.description || undefined,
+          location: ev.location || undefined,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Sao_Paulo",
+        }),
+      });
+      const json = await res.json().catch(() => ({}) as any);
+      if (!res.ok || json?.ok === false) throw new Error(json?.error ?? res.statusText);
+      toast.success(
+        `Reagendado para ${newStart.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}`,
+      );
+      await load();
+    } catch (e: any) {
+      setEvents(prev);
+      toast.error(`Falha ao reagendar: ${e?.message ?? String(e)}`);
+    } finally {
+      setMovingId(null);
+    }
+  };
+
 
   const handleSave = async () => {
     if (!editing && !creating) return;
