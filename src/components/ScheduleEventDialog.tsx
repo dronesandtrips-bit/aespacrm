@@ -67,7 +67,7 @@ export function ScheduleEventDialog({
   const [duration, setDuration] = useState("60");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
-  const [reminderMinutes, setReminderMinutes] = useState("60");
+  const [reminderMinutes, setReminderMinutes] = useState("1440");
   const [remindClient, setRemindClient] = useState(true);
   const [ownerPhone, setOwnerPhone] = useState("");
   const [saving, setSaving] = useState(false);
@@ -298,7 +298,9 @@ export function ScheduleEventDialog({
                     <SelectItem value="30">30 minutos antes</SelectItem>
                     <SelectItem value="60">1 hora antes</SelectItem>
                     <SelectItem value="120">2 horas antes</SelectItem>
-                    <SelectItem value="1440">1 dia antes</SelectItem>
+                    <SelectItem value="180">3 horas antes</SelectItem>
+                    <SelectItem value="1440">1 dia antes (padrão)</SelectItem>
+                    <SelectItem value="2880">2 dias antes</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
