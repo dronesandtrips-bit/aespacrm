@@ -455,6 +455,19 @@ function AgendaPage() {
           Agenda
         </h1>
         <div className="flex items-center gap-2">
+          <div className="flex overflow-hidden rounded-md border border-border">
+            {(["semana", "lista"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1.5 text-xs font-medium capitalize ${
+                  view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             {loading ? (
               <Loader2 className="size-4 animate-spin" />
@@ -472,7 +485,7 @@ function AgendaPage() {
             {simulating ? <Loader2 className="size-4 animate-spin" /> : <Bot className="size-4" />}
             Testar robô
           </Button>
-          <Button size="sm" onClick={openCreate}>
+          <Button size="sm" onClick={() => openCreate()}>
             <Plus className="size-4" />
             Novo compromisso
           </Button>
@@ -482,6 +495,20 @@ function AgendaPage() {
 
       {loading ? (
         <Card className="p-6 text-sm text-muted-foreground">Carregando compromissos…</Card>
+      ) : view === "semana" ? (
+        <AgendaWeekView
+          events={events}
+          movingId={movingId}
+          onCreateAt={(d) => openCreate(d)}
+          onOpen={(ev) => {
+            const full = events.find((x) => x.id === ev.id);
+            if (full) openEdit(full);
+          }}
+          onMove={(ev, d) => {
+            const full = events.find((x) => x.id === ev.id);
+            if (full) void handleMove(full, d);
+          }}
+        />
       ) : (
         <>
           <Card className="space-y-2 p-4">
@@ -501,6 +528,7 @@ function AgendaPage() {
           )}
         </>
       )}
+
 
       <Dialog
         open={Boolean(editing) || creating}
