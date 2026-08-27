@@ -46,7 +46,7 @@ function buildText(r: any) {
     "",
     "Responda *SIM* para confirmar sua presença ou *NÃO* para cancelar.",
   ]
-    .filter((l) => l !== undefined && l !== null && l !== false)
+    .filter((l) => l !== "" || true)
     .join("\n");
 }
 
