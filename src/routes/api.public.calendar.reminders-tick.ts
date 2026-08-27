@@ -43,8 +43,10 @@ function buildText(r: any) {
     `Quando: ${quando}`,
     r.location ? `Local: ${r.location}` : "",
     r.maps_link ? `Mapa: ${r.maps_link}` : "",
+    "",
+    "Responda *SIM* para confirmar sua presença ou *NÃO* para cancelar.",
   ]
-    .filter(Boolean)
+    .filter((l) => l !== undefined && l !== null && l !== false)
     .join("\n");
 }
 
