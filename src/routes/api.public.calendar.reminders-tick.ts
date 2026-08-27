@@ -37,17 +37,15 @@ function buildText(r: any) {
       .filter(Boolean)
       .join("\n");
   }
-  return [
+  const lines = [
     `Olá${r.contact_name ? ` ${r.contact_name}` : ""}! Passando para lembrar do nosso compromisso:`,
     `${r.title}`,
     `Quando: ${quando}`,
     r.location ? `Local: ${r.location}` : "",
     r.maps_link ? `Mapa: ${r.maps_link}` : "",
-    "",
-    "Responda *SIM* para confirmar sua presença ou *NÃO* para cancelar.",
-  ]
-    .filter((l) => l !== "" || true)
-    .join("\n");
+  ].filter(Boolean);
+  lines.push("", "Responda *SIM* para confirmar sua presença ou *NÃO* para cancelar.");
+  return lines.join("\n");
 }
 
 export const Route = createFileRoute("/api/public/calendar/reminders-tick")({
