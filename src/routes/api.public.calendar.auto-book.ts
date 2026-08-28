@@ -9,6 +9,7 @@
 // Aditivo: não altera nenhum fluxo existente.
 
 import { createFileRoute } from "@tanstack/react-router";
+import { buildShortMapsUrl } from "@/lib/maps-link";
 import { z } from "zod";
 import {
   checkApiKey,
@@ -222,9 +223,7 @@ export const Route = createFileRoute("/api/public/calendar/auto-book")({
           /* sem JSON */
         }
 
-        const mapsLink = body.location
-          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(body.location)}`
-          : null;
+        const mapsLink = buildShortMapsUrl(body.location);
         const ownerPhone = (body.ownerPhone ?? DEFAULT_OWNER_PHONE).replace(/\D/g, "");
         const reminderMinutes = body.reminderMinutes ?? 60;
         const remindAt = new Date(start.getTime() - reminderMinutes * 60_000);
@@ -275,7 +274,7 @@ export const Route = createFileRoute("/api/public/calendar/auto-book")({
             const r = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
               method: "POST",
               headers: { apikey: apiKey, "Content-Type": "application/json" },
-              body: JSON.stringify({ number: ownerPhone, text: msg }),
+              body: JSON.stringify({ number: ownerPhone, text: msg , linkPreview: false }),
             });
             ownerNotified = r.ok;
             if (!r.ok) console.error(`[auto-book] aviso ao dono falhou [${r.status}]`);

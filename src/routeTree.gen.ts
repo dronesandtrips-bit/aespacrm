@@ -15,6 +15,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UTokenRouteImport } from './routes/u.$token'
+import { Route as MQRouteImport } from './routes/m.$q'
 import { Route as DCodeRouteImport } from './routes/d.$code'
 import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
 import { Route as AppTemplatesRouteImport } from './routes/_app.templates'
@@ -115,6 +116,11 @@ const IndexRoute = IndexRouteImport.update({
 const UTokenRoute = UTokenRouteImport.update({
   id: '/u/$token',
   path: '/u/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MQRoute = MQRouteImport.update({
+  id: '/m/$q',
+  path: '/m/$q',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DCodeRoute = DCodeRouteImport.update({
@@ -537,6 +543,7 @@ export interface FileRoutesByFullPath {
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/d/$code': typeof DCodeRoute
+  '/m/$q': typeof MQRoute
   '/u/$token': typeof UTokenRoute
   '/api/public/link-preview': typeof ApiPublicLinkPreviewRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
@@ -616,6 +623,7 @@ export interface FileRoutesByTo {
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/d/$code': typeof DCodeRoute
+  '/m/$q': typeof MQRoute
   '/u/$token': typeof UTokenRoute
   '/api/public/link-preview': typeof ApiPublicLinkPreviewRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
@@ -697,6 +705,7 @@ export interface FileRoutesById {
   '/_app/templates': typeof AppTemplatesRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/d/$code': typeof DCodeRoute
+  '/m/$q': typeof MQRoute
   '/u/$token': typeof UTokenRoute
   '/api/public/link-preview': typeof ApiPublicLinkPreviewRoute
   '/widget/form/$id': typeof WidgetFormIdRoute
@@ -778,6 +787,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/whatsapp'
     | '/d/$code'
+    | '/m/$q'
     | '/u/$token'
     | '/api/public/link-preview'
     | '/widget/form/$id'
@@ -857,6 +867,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/whatsapp'
     | '/d/$code'
+    | '/m/$q'
     | '/u/$token'
     | '/api/public/link-preview'
     | '/widget/form/$id'
@@ -937,6 +948,7 @@ export interface FileRouteTypes {
     | '/_app/templates'
     | '/_app/whatsapp'
     | '/d/$code'
+    | '/m/$q'
     | '/u/$token'
     | '/api/public/link-preview'
     | '/widget/form/$id'
@@ -1002,6 +1014,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   DCodeRoute: typeof DCodeRoute
+  MQRoute: typeof MQRoute
   UTokenRoute: typeof UTokenRoute
   ApiPublicLinkPreviewRoute: typeof ApiPublicLinkPreviewRoute
   WidgetFormIdRoute: typeof WidgetFormIdRoute
@@ -1102,6 +1115,13 @@ declare module '@tanstack/react-router' {
       path: '/u/$token'
       fullPath: '/u/$token'
       preLoaderRoute: typeof UTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/m/$q': {
+      id: '/m/$q'
+      path: '/m/$q'
+      fullPath: '/m/$q'
+      preLoaderRoute: typeof MQRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/d/$code': {
@@ -1658,6 +1678,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   DCodeRoute: DCodeRoute,
+  MQRoute: MQRoute,
   UTokenRoute: UTokenRoute,
   ApiPublicLinkPreviewRoute: ApiPublicLinkPreviewRoute,
   WidgetFormIdRoute: WidgetFormIdRoute,
