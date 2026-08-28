@@ -83,7 +83,7 @@ export const Route = createFileRoute("/api/public/calendar/reminders-tick")({
             const res = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
               method: "POST",
               headers: { apikey: apiKey, "Content-Type": "application/json" },
-              body: JSON.stringify({ number, text: buildText(r) }),
+              body: JSON.stringify({ number, text: buildText(r) , linkPreview: false }),
             });
             const body = await res.text();
             if (!res.ok) throw new Error(`Evolution [${res.status}]: ${body.slice(0, 300)}`);

@@ -4,6 +4,7 @@
 // Auth: Bearer JWT do usuário logado OU x-api-key (n8n).
 
 import { createFileRoute } from "@tanstack/react-router";
+import { buildShortMapsUrl } from "@/lib/maps-link";
 import { z } from "zod";
 import { checkApiKey, requireUserJwt, getSupabaseAdmin } from "@/integrations/supabase/server";
 
@@ -48,7 +49,7 @@ async function sendWhatsApp(number: string, text: string): Promise<void> {
   const res = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
     method: "POST",
     headers: { apikey: apiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ number: number.replace(/\D/g, ""), text }),
+    body: JSON.stringify({ number: number.replace(/\D/g, ""), text , linkPreview: false }),
   });
   const body = await res.text();
   if (!res.ok) throw new Error(`Evolution [${res.status}]: ${body.slice(0, 300)}`);
@@ -128,9 +129,7 @@ export const Route = createFileRoute("/api/public/calendar/update-event")({
           /* ignore */
         }
 
-        const mapsLink = parsed.location
-          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parsed.location)}`
-          : null;
+        const mapsLink = buildShortMapsUrl(parsed.location);
 
         // Reajusta (ou recria) lembretes pendentes deste evento (best-effort).
         let remindersUpdated = 0;
