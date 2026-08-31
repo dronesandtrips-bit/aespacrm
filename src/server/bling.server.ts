@@ -204,19 +204,49 @@ export function normalizeBrPhone(raw: string | null | undefined): string {
 
 /**
  * Extrai um telefone/WhatsApp BR de um texto livre (Introdução, Observações etc.).
- * Aceita formatos: (54) 99149-5959, 54 9 9149-5959, 54991495959, +55 54 9149-5959...
+ * Aceita formatos: (54) 99149-5959, 54 9 9149-5959, 54991495959, +55 54 9149-5959,
+ * 54.99149.5959, 54 99149 5959, "Fone: 5499149-5959" etc.
  */
 export function extractBrPhoneFromText(text: string | null | undefined): string {
-  const src = String(text ?? "");
+  // normaliza separadores exóticos (nbsp, traços unicode, bullets)
+  const src = String(text ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/[\u00a0\u2007\u202f]/g, " ")
+    .replace(/[\u2010-\u2015]/g, "-");
   if (!src) return "";
-  const matches =
-    src.match(/(?:\+?55[\s.\-/]?)?\(?\d{2}\)?[\s.\-/]?9?\s?\d{4}[\s.\-/]?\d{4}/g) ?? [];
-  for (const m of matches) {
-    const p = normalizeBrPhone(m);
-    if (p) return p;
+  const SEP = "[\\s.\\-/_]*";
+  const patterns = [
+    // com DDI opcional + DDD + 8/9 dígitos
+    new RegExp(`(?:\\+?55${SEP})?\\(?\\d{2}\\)?${SEP}9?${SEP}\\d{4}${SEP}\\d{4}`, "g"),
+    // bloco contínuo de exatamente 10 ou 11 dígitos (evita casar datas/IDs)
+    /(?<!\d)\d{10,11}(?!\d)/g,
+  ];
+  for (const re of patterns) {
+    const matches = src.match(re) ?? [];
+    for (const m of matches) {
+      const p = normalizeBrPhone(m);
+      if (p) return p;
+    }
   }
   return "";
 }
+
+/** Tenta achar um nome de cliente em texto livre (ex.: "Cliente: Fulano"). */
+export function extractNameFromText(text: string | null | undefined): string {
+  const src = String(text ?? "");
+  const m = src.match(
+    /(?:cliente|contato|nome|resp(?:ons[áa]vel)?)\s*[:\-]\s*([\p{L}][\p{L}\s.'&-]{2,60})/iu,
+  );
+  return m ? m[1].replace(/\s+/g, " ").trim() : "";
+}
+
+/** Payload cru de uma proposta — usado pelo diagnóstico da tela do Bling. */
+export async function getProposalRaw(userId: string, id: string): Promise<any> {
+  const token = await getAccessToken(userId);
+  return blingGet(token, `/propostas-comerciais/${id}`);
+}
+
 
 export type BlingProposal = {
   id: string;
@@ -328,13 +358,21 @@ export async function listProposals(
         const nomeDet =
           d?.contato?.nome ?? d?.cliente?.nome ?? d?.nomeContato ?? d?.nome ?? null;
         if ((!p.nome || p.nome === "Sem nome") && nomeDet) p.nome = String(nomeDet);
+        if (!p.nome || p.nome === "Sem nome") {
+          const nomeTxt = extractNameFromText(
+            [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacao]
+              .filter(Boolean)
+              .join("\n"),
+          );
+          if (nomeTxt) p.nome = nomeTxt;
+        }
 
         if (!p.phone) {
           // 1) campos estruturados de telefone em qualquer nível do payload
           const phoneKeys = ["celular", "telefone", "fone", "whatsapp"];
           const collected: string[] = [];
           const walk = (node: any, depth = 0) => {
-            if (!node || depth > 6) return;
+            if (!node || depth > 12) return;
             if (Array.isArray(node)) return node.forEach((n) => walk(n, depth + 1));
             if (typeof node !== "object") return;
             for (const [k, v] of Object.entries(node)) {
@@ -362,7 +400,7 @@ export async function listProposals(
           //    descrições de itens, campos personalizados etc.)
           const texts: string[] = [];
           const walkText = (node: any, depth = 0) => {
-            if (!node || depth > 6) return;
+            if (!node || depth > 12) return;
             if (typeof node === "string") return void texts.push(node);
             if (Array.isArray(node)) return node.forEach((n) => walkText(n, depth + 1));
             if (typeof node === "object") Object.values(node).forEach((v) => walkText(v, depth + 1));

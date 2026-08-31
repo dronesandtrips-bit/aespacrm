@@ -18,7 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, RefreshCw, ShoppingBag, Send, Download, Clock } from "lucide-react";
+import { Loader2, RefreshCw, ShoppingBag, Send, Download, Clock, Search } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { authFetch } from "@/lib/auth-fetch";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { contactsDb, categoriesDb, bulkSendsDb, type Contact } from "@/lib/db";
@@ -126,8 +133,29 @@ function BlingPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
   const [interval, setIntervalSec] = useState(60);
+  const [rawItem, setRawItem] = useState<BlingProposalItem | null>(null);
+  const [rawText, setRawText] = useState<string>("");
+  const [rawLoading, setRawLoading] = useState(false);
   const phonesRef = useRef(phones);
   phonesRef.current = phones;
+
+  // Diagnóstico: mostra o payload cru da proposta no Bling para entender
+  // por que nome/telefone não foram encontrados.
+  const inspecionar = useCallback(async (it: BlingProposalItem) => {
+    setRawItem(it);
+    setRawText("");
+    setRawLoading(true);
+    try {
+      const res = await authFetch(`/api/public/bling/proposal-raw?id=${encodeURIComponent(it.id)}`);
+      const json = await res.json();
+      if (!json?.ok) throw new Error(json?.error ?? "falha ao consultar a proposta");
+      setRawText(JSON.stringify(json.raw, null, 2));
+    } catch (e: any) {
+      setRawText(`Erro: ${e?.message ?? e}`);
+    } finally {
+      setRawLoading(false);
+    }
+  }, []);
 
   const load = useCallback(
     async (silent = false) => {
@@ -539,6 +567,15 @@ function BlingPage() {
                             : "novo"
                           : "sem número"}
                     </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 shrink-0"
+                      title="Ver dados brutos desta proposta no Bling (diagnóstico)"
+                      onClick={() => inspecionar(it)}
+                    >
+                      <Search className="size-3.5" />
+                    </Button>
                   </div>
                 );
               })
@@ -656,6 +693,28 @@ function BlingPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={Boolean(rawItem)} onOpenChange={(o) => !o && setRawItem(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Diagnóstico da proposta {rawItem?.numero ?? rawItem?.id}</DialogTitle>
+            <DialogDescription>
+              Dados exatamente como o Bling devolve. Se o nome/telefone não aparecerem aqui, eles
+              não estão salvos na proposta (preencha na Introdução/Observações ou no cadastro do
+              contato).
+            </DialogDescription>
+          </DialogHeader>
+          {rawLoading ? (
+            <div className="py-10 text-center">
+              <Loader2 className="mx-auto size-6 animate-spin opacity-60" />
+            </div>
+          ) : (
+            <pre className="max-h-[60vh] overflow-auto rounded-md bg-muted p-3 text-xs">
+              {rawText}
+            </pre>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
