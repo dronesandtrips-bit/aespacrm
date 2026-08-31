@@ -133,8 +133,29 @@ function BlingPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
   const [interval, setIntervalSec] = useState(60);
+  const [rawItem, setRawItem] = useState<BlingProposalItem | null>(null);
+  const [rawText, setRawText] = useState<string>("");
+  const [rawLoading, setRawLoading] = useState(false);
   const phonesRef = useRef(phones);
   phonesRef.current = phones;
+
+  // Diagnóstico: mostra o payload cru da proposta no Bling para entender
+  // por que nome/telefone não foram encontrados.
+  const inspecionar = useCallback(async (it: BlingProposalItem) => {
+    setRawItem(it);
+    setRawText("");
+    setRawLoading(true);
+    try {
+      const res = await authFetch(`/api/public/bling/proposal-raw?id=${encodeURIComponent(it.id)}`);
+      const json = await res.json();
+      if (!json?.ok) throw new Error(json?.error ?? "falha ao consultar a proposta");
+      setRawText(JSON.stringify(json.raw, null, 2));
+    } catch (e: any) {
+      setRawText(`Erro: ${e?.message ?? e}`);
+    } finally {
+      setRawLoading(false);
+    }
+  }, []);
 
   const load = useCallback(
     async (silent = false) => {
