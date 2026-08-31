@@ -367,8 +367,13 @@ export async function listProposals(
             if (Array.isArray(node)) return node.forEach((n) => walkText(n, depth + 1));
             if (typeof node === "object") Object.values(node).forEach((v) => walkText(v, depth + 1));
           };
+          // prioriza os campos de texto "editoriais" da proposta
+          const prio = [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacao]
+            .filter(Boolean)
+            .join("\n");
           walkText(d);
-          const phone = extractBrPhoneFromText(texts.join("\n"));
+          const phone =
+            extractBrPhoneFromText(prio) || extractBrPhoneFromText(texts.join("\n"));
           if (phone) {
             p.phone = phone;
             p.phoneRaw = phone;
