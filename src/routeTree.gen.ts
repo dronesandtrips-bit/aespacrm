@@ -82,6 +82,7 @@ import { Route as ApiPublicCalendarConfirmBookingRouteImport } from './routes/ap
 import { Route as ApiPublicCalendarAvailabilityRouteImport } from './routes/api.public.calendar.availability'
 import { Route as ApiPublicCalendarAutoBookRouteImport } from './routes/api.public.calendar.auto-book'
 import { Route as ApiPublicBlingProposalsRouteImport } from './routes/api.public.bling.proposals'
+import { Route as ApiPublicBlingProposalRawRouteImport } from './routes/api.public.bling.proposal-raw'
 import { Route as ApiPublicBlingContactsRouteImport } from './routes/api.public.bling.contacts'
 import { Route as ApiPublicBlingConfigRouteImport } from './routes/api.public.bling.config'
 import { Route as ApiPublicBlingCallbackRouteImport } from './routes/api.public.bling.callback'
@@ -490,6 +491,12 @@ const ApiPublicBlingProposalsRoute = ApiPublicBlingProposalsRouteImport.update({
   path: '/api/public/bling/proposals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBlingProposalRawRoute =
+  ApiPublicBlingProposalRawRouteImport.update({
+    id: '/api/public/bling/proposal-raw',
+    path: '/api/public/bling/proposal-raw',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicBlingContactsRoute = ApiPublicBlingContactsRouteImport.update({
   id: '/api/public/bling/contacts',
   path: '/api/public/bling/contacts',
@@ -587,6 +594,7 @@ export interface FileRoutesByFullPath {
   '/api/public/bling/callback': typeof ApiPublicBlingCallbackRoute
   '/api/public/bling/config': typeof ApiPublicBlingConfigRoute
   '/api/public/bling/contacts': typeof ApiPublicBlingContactsRoute
+  '/api/public/bling/proposal-raw': typeof ApiPublicBlingProposalRawRoute
   '/api/public/bling/proposals': typeof ApiPublicBlingProposalsRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
@@ -672,6 +680,7 @@ export interface FileRoutesByTo {
   '/api/public/bling/callback': typeof ApiPublicBlingCallbackRoute
   '/api/public/bling/config': typeof ApiPublicBlingConfigRoute
   '/api/public/bling/contacts': typeof ApiPublicBlingContactsRoute
+  '/api/public/bling/proposal-raw': typeof ApiPublicBlingProposalRawRoute
   '/api/public/bling/proposals': typeof ApiPublicBlingProposalsRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
@@ -759,6 +768,7 @@ export interface FileRoutesById {
   '/api/public/bling/callback': typeof ApiPublicBlingCallbackRoute
   '/api/public/bling/config': typeof ApiPublicBlingConfigRoute
   '/api/public/bling/contacts': typeof ApiPublicBlingContactsRoute
+  '/api/public/bling/proposal-raw': typeof ApiPublicBlingProposalRawRoute
   '/api/public/bling/proposals': typeof ApiPublicBlingProposalsRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
@@ -846,6 +856,7 @@ export interface FileRouteTypes {
     | '/api/public/bling/callback'
     | '/api/public/bling/config'
     | '/api/public/bling/contacts'
+    | '/api/public/bling/proposal-raw'
     | '/api/public/bling/proposals'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
@@ -931,6 +942,7 @@ export interface FileRouteTypes {
     | '/api/public/bling/callback'
     | '/api/public/bling/config'
     | '/api/public/bling/contacts'
+    | '/api/public/bling/proposal-raw'
     | '/api/public/bling/proposals'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
@@ -1017,6 +1029,7 @@ export interface FileRouteTypes {
     | '/api/public/bling/callback'
     | '/api/public/bling/config'
     | '/api/public/bling/contacts'
+    | '/api/public/bling/proposal-raw'
     | '/api/public/bling/proposals'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
@@ -1087,6 +1100,7 @@ export interface RootRouteChildren {
   ApiPublicBlingCallbackRoute: typeof ApiPublicBlingCallbackRoute
   ApiPublicBlingConfigRoute: typeof ApiPublicBlingConfigRoute
   ApiPublicBlingContactsRoute: typeof ApiPublicBlingContactsRoute
+  ApiPublicBlingProposalRawRoute: typeof ApiPublicBlingProposalRawRoute
   ApiPublicBlingProposalsRoute: typeof ApiPublicBlingProposalsRoute
   ApiPublicCalendarAutoBookRoute: typeof ApiPublicCalendarAutoBookRoute
   ApiPublicCalendarAvailabilityRoute: typeof ApiPublicCalendarAvailabilityRoute
@@ -1650,6 +1664,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBlingProposalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/bling/proposal-raw': {
+      id: '/api/public/bling/proposal-raw'
+      path: '/api/public/bling/proposal-raw'
+      fullPath: '/api/public/bling/proposal-raw'
+      preLoaderRoute: typeof ApiPublicBlingProposalRawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bling/contacts': {
       id: '/api/public/bling/contacts'
       path: '/api/public/bling/contacts'
@@ -1792,6 +1813,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBlingCallbackRoute: ApiPublicBlingCallbackRoute,
   ApiPublicBlingConfigRoute: ApiPublicBlingConfigRoute,
   ApiPublicBlingContactsRoute: ApiPublicBlingContactsRoute,
+  ApiPublicBlingProposalRawRoute: ApiPublicBlingProposalRawRoute,
   ApiPublicBlingProposalsRoute: ApiPublicBlingProposalsRoute,
   ApiPublicCalendarAutoBookRoute: ApiPublicCalendarAutoBookRoute,
   ApiPublicCalendarAvailabilityRoute: ApiPublicCalendarAvailabilityRoute,

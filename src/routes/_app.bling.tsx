@@ -18,7 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, RefreshCw, ShoppingBag, Send, Download, Clock } from "lucide-react";
+import { Loader2, RefreshCw, ShoppingBag, Send, Download, Clock, Search } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { authFetch } from "@/lib/auth-fetch";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { contactsDb, categoriesDb, bulkSendsDb, type Contact } from "@/lib/db";
@@ -539,6 +546,15 @@ function BlingPage() {
                             : "novo"
                           : "sem número"}
                     </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 shrink-0"
+                      title="Ver dados brutos desta proposta no Bling (diagnóstico)"
+                      onClick={() => inspecionar(it)}
+                    >
+                      <Search className="size-3.5" />
+                    </Button>
                   </div>
                 );
               })
