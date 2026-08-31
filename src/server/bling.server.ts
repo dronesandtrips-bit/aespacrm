@@ -311,9 +311,10 @@ export async function listProposals(
     }
   }
 
-  // Fallback: propostas sem telefone no cadastro do contato — tenta extrair
-  // um número dos campos de texto da proposta (Introdução / Observações).
-  const semFone = out.filter((p) => !p.phone && p.id);
+  // Fallback: propostas sem telefone (ou sem nome) no cadastro do contato —
+  // abre a proposta e varre TODOS os campos de texto do payload em busca de
+  // um WhatsApp e de um nome de cliente.
+  const semFone = out.filter((p) => p.id && (!p.phone || !p.nome || p.nome === "Sem nome"));
   const detQueue = [...semFone];
   const detWorkers = Array.from({ length: Math.min(4, detQueue.length) }, async () => {
     while (detQueue.length) {
@@ -322,19 +323,57 @@ export async function listProposals(
       try {
         const res: any = await blingGet(token, `/propostas-comerciais/${p.id}`);
         const d = res?.data ?? {};
-        const texto = [
-          d?.introducao,
-          d?.observacoes,
-          d?.observacoesInternas,
-          d?.observacao,
-        ]
-          .filter(Boolean)
-          .join("\n");
-        const phone = extractBrPhoneFromText(texto);
-        if (phone) {
-          p.phone = phone;
-          p.phoneRaw = phone;
-          p.phoneFonte = "texto";
+
+        // Nome: contato da proposta (mesmo sem cadastro completo)
+        const nomeDet =
+          d?.contato?.nome ?? d?.cliente?.nome ?? d?.nomeContato ?? d?.nome ?? null;
+        if ((!p.nome || p.nome === "Sem nome") && nomeDet) p.nome = String(nomeDet);
+
+        if (!p.phone) {
+          // 1) campos estruturados de telefone em qualquer nível do payload
+          const phoneKeys = ["celular", "telefone", "fone", "whatsapp"];
+          const collected: string[] = [];
+          const walk = (node: any, depth = 0) => {
+            if (!node || depth > 6) return;
+            if (Array.isArray(node)) return node.forEach((n) => walk(n, depth + 1));
+            if (typeof node !== "object") return;
+            for (const [k, v] of Object.entries(node)) {
+              if (typeof v === "string" && phoneKeys.some((pk) => k.toLowerCase().includes(pk))) {
+                collected.push(v);
+              } else if (v && typeof v === "object") {
+                walk(v, depth + 1);
+              }
+            }
+          };
+          walk(d);
+          for (const c of collected) {
+            const norm = normalizeBrPhone(c);
+            if (norm) {
+              p.phone = norm;
+              p.phoneRaw = c;
+              p.phoneFonte = "cadastro";
+              break;
+            }
+          }
+        }
+
+        if (!p.phone) {
+          // 2) varredura de texto livre em todo o payload (Introdução, Observações,
+          //    descrições de itens, campos personalizados etc.)
+          const texts: string[] = [];
+          const walkText = (node: any, depth = 0) => {
+            if (!node || depth > 6) return;
+            if (typeof node === "string") return void texts.push(node);
+            if (Array.isArray(node)) return node.forEach((n) => walkText(n, depth + 1));
+            if (typeof node === "object") Object.values(node).forEach((v) => walkText(v, depth + 1));
+          };
+          walkText(d);
+          const phone = extractBrPhoneFromText(texts.join("\n"));
+          if (phone) {
+            p.phone = phone;
+            p.phoneRaw = phone;
+            p.phoneFonte = "texto";
+          }
         }
       } catch {
         // ignora — proposta segue sem telefone
