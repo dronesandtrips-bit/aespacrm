@@ -32,6 +32,7 @@ import { Route as AppDetectorRouteImport } from './routes/_app.detector'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppContatosRouteImport } from './routes/_app.contatos'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
+import { Route as AppBlingRouteImport } from './routes/_app.bling'
 import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
 import { Route as WidgetFormIdRouteImport } from './routes/widget.form.$id'
 import { Route as ApiPublicLinkPreviewRouteImport } from './routes/api.public.link-preview'
@@ -204,6 +205,11 @@ const AppContatosRoute = AppContatosRouteImport.update({
 const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBlingRoute = AppBlingRouteImport.update({
+  id: '/bling',
+  path: '/bling',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAgendaRoute = AppAgendaRouteImport.update({
@@ -545,6 +551,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/agenda': typeof AppAgendaRoute
+  '/bling': typeof AppBlingRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/contatos': typeof AppContatosRoute
   '/dashboard': typeof AppDashboardRoute
@@ -628,6 +635,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/agenda': typeof AppAgendaRoute
+  '/bling': typeof AppBlingRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/contatos': typeof AppContatosRoute
   '/dashboard': typeof AppDashboardRoute
@@ -713,6 +721,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_app/agenda': typeof AppAgendaRoute
+  '/_app/bling': typeof AppBlingRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/contatos': typeof AppContatosRoute
   '/_app/dashboard': typeof AppDashboardRoute
@@ -798,6 +807,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/agenda'
+    | '/bling'
     | '/configuracoes'
     | '/contatos'
     | '/dashboard'
@@ -881,6 +891,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/agenda'
+    | '/bling'
     | '/configuracoes'
     | '/contatos'
     | '/dashboard'
@@ -965,6 +976,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/_app/agenda'
+    | '/_app/bling'
     | '/_app/configuracoes'
     | '/_app/contatos'
     | '/_app/dashboard'
@@ -1273,6 +1285,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bling': {
+      id: '/_app/bling'
+      path: '/bling'
+      fullPath: '/bling'
+      preLoaderRoute: typeof AppBlingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/agenda': {
@@ -1693,6 +1712,7 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAgendaRoute: typeof AppAgendaRoute
+  AppBlingRoute: typeof AppBlingRoute
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppContatosRoute: typeof AppContatosRoute
   AppDashboardRoute: typeof AppDashboardRoute
@@ -1712,6 +1732,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAgendaRoute: AppAgendaRoute,
+  AppBlingRoute: AppBlingRoute,
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppContatosRoute: AppContatosRoute,
   AppDashboardRoute: AppDashboardRoute,
