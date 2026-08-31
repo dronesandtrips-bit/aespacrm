@@ -549,6 +549,70 @@ function BlingPage() {
 
       <Card>
         <CardHeader className="pb-2">
+          <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+            Contatos cadastrados no Bling
+            <Badge variant="secondary">{blingContacts.length}</Badge>
+            {blingNovos.length > 0 && (
+              <Badge variant="outline">{blingNovos.length} ainda não estão no CRM</Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto gap-1.5"
+              onClick={() => loadBlingContacts()}
+              disabled={loadingContacts}
+            >
+              {loadingContacts ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="size-3.5" />
+              )}
+              Atualizar
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Importa os clientes reais do Bling para o CRM (categoria BLING), sem duplicar quem já
+            existe. Os números do cadastro também são usados para completar automaticamente as
+            propostas que estão sem WhatsApp.
+          </p>
+          <div className="max-h-56 space-y-1 overflow-auto rounded-lg border p-2">
+            {blingContacts.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                {loadingContacts ? "Carregando contatos…" : "Nenhum contato encontrado no Bling."}
+              </p>
+            ) : (
+              blingContacts.slice(0, 200).map((bc) => {
+                const existente = bc.phone ? findContact(bc.phone) : null;
+                return (
+                  <div key={bc.id} className="flex items-center gap-3 rounded-md px-2 py-1 text-sm">
+                    <span className="min-w-0 flex-1 truncate">{bc.nome}</span>
+                    <span className="w-40 truncate text-right font-mono text-xs text-muted-foreground">
+                      {bc.phone || "sem número"}
+                    </span>
+                    <Badge variant={existente ? "secondary" : bc.phone ? "outline" : "destructive"}>
+                      {existente ? "no CRM" : bc.phone ? "novo" : "sem número"}
+                    </Badge>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            onClick={importAllBlingContacts}
+            disabled={busy || !blingContacts.length}
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            Importar contatos do Bling ({blingNovos.length} novos)
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
           <CardTitle className="text-base">Lembrete de orçamento por WhatsApp</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
