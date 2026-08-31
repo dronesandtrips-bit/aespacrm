@@ -389,3 +389,88 @@ export async function listProposals(
 
   return out;
 }
+
+// ===================== Contatos (clientes/fornecedores) =====================
+
+export type BlingContact = {
+  id: string;
+  nome: string;
+  phone: string; // normalizado (pode vir vazio)
+  phoneRaw: string | null;
+  email: string | null;
+  documento: string | null; // CPF/CNPJ só dígitos
+  tipo: string | null;
+};
+
+/** Só dígitos do CPF/CNPJ (usado para casar contato ↔ proposta sem duplicar). */
+export function onlyDigits(v: string | null | undefined): string {
+  return String(v ?? "").replace(/\D/g, "");
+}
+
+/** Normaliza nome para comparação (sem acento, minúsculo, espaços colapsados). */
+export function normalizeName(v: string | null | undefined): string {
+  return String(v ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Lista contatos (clientes/fornecedores) cadastrados no Bling. */
+export async function listContacts(
+  userId: string,
+  opts: { limite?: number } = {},
+): Promise<BlingContact[]> {
+  const token = await getAccessToken(userId);
+  const limite = Math.min(Math.max(opts.limite ?? 300, 1), 1000);
+  const out: BlingContact[] = [];
+
+  for (let pagina = 1; pagina <= 10 && out.length < limite; pagina++) {
+    const qs = new URLSearchParams({ pagina: String(pagina), limite: "100" });
+    const page: any = await blingGet(token, `/contatos?${qs.toString()}`);
+    const items: any[] = page?.data ?? [];
+    if (!items.length) break;
+    for (const d of items) {
+      const raw = d?.celular || d?.telefone || null;
+      out.push({
+        id: String(d?.id ?? ""),
+        nome: String(d?.nome ?? "Sem nome"),
+        phone: normalizeBrPhone(raw),
+        phoneRaw: raw ? String(raw) : null,
+        email: d?.email ? String(d.email) : null,
+        documento: onlyDigits(d?.numeroDocumento ?? d?.cpfCnpj ?? d?.documento) || null,
+        tipo: d?.tipo ? String(d.tipo) : null,
+      });
+      if (out.length >= limite) break;
+    }
+    if (items.length < 100) break;
+  }
+
+  // Alguns registros vêm sem telefone na listagem — busca no detalhe (concorrência 4).
+  const semFone = out.filter((c) => c.id && !c.phone);
+  const queue = [...semFone];
+  const workers = Array.from({ length: Math.min(4, queue.length) }, async () => {
+    while (queue.length) {
+      const c = queue.shift();
+      if (!c) break;
+      try {
+        const res: any = await blingGet(token, `/contatos/${c.id}`);
+        const d = res?.data ?? {};
+        const raw = d?.celular || d?.telefone || null;
+        const norm = normalizeBrPhone(raw);
+        if (norm) {
+          c.phone = norm;
+          c.phoneRaw = String(raw);
+        }
+        if (!c.email && d?.email) c.email = String(d.email);
+        if (!c.documento) c.documento = onlyDigits(d?.numeroDocumento ?? d?.cpfCnpj) || null;
+      } catch {
+        // ignora — contato segue sem telefone
+      }
+    }
+  });
+  await Promise.all(workers);
+
+  return out;
+}
