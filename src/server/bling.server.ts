@@ -72,10 +72,18 @@ async function requestTokens(
     },
     body: new URLSearchParams(body).toString(),
   });
-  const json: any = await res.json().catch(() => ({}));
+  const raw = await res.text();
+  let json: any = {};
+  try {
+    json = JSON.parse(raw);
+  } catch {}
   if (!res.ok || !json?.access_token) {
-    const detail = json?.error?.description ?? json?.error ?? `HTTP ${res.status}`;
-    throw new Error(`Bling OAuth falhou: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`);
+    const err = json?.error ?? json?.errors?.[0];
+    const detail =
+      err?.description ?? err?.message ?? err?.type ?? (typeof err === "string" ? err : null) ?? raw.slice(0, 200) ?? `HTTP ${res.status}`;
+    throw new Error(
+      `Bling OAuth ${res.status}: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`,
+    );
   }
   return {
     access_token: String(json.access_token),
