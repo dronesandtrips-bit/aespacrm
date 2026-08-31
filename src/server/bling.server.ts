@@ -210,6 +210,8 @@ export function normalizeBrPhone(raw: string | null | undefined): string {
 export function extractBrPhoneFromText(text: string | null | undefined): string {
   // normaliza separadores exóticos (nbsp, traços unicode, bullets)
   const src = String(text ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
     .replace(/[\u00a0\u2007\u202f]/g, " ")
     .replace(/[\u2010-\u2015]/g, "-");
   if (!src) return "";
@@ -217,8 +219,8 @@ export function extractBrPhoneFromText(text: string | null | undefined): string 
   const patterns = [
     // com DDI opcional + DDD + 8/9 dígitos
     new RegExp(`(?:\\+?55${SEP})?\\(?\\d{2}\\)?${SEP}9?${SEP}\\d{4}${SEP}\\d{4}`, "g"),
-    // bloco contínuo de 10 a 13 dígitos
-    /\d{10,13}/g,
+    // bloco contínuo de exatamente 10 ou 11 dígitos (evita casar datas/IDs)
+    /(?<!\d)\d{10,11}(?!\d)/g,
   ];
   for (const re of patterns) {
     const matches = src.match(re) ?? [];
@@ -356,13 +358,21 @@ export async function listProposals(
         const nomeDet =
           d?.contato?.nome ?? d?.cliente?.nome ?? d?.nomeContato ?? d?.nome ?? null;
         if ((!p.nome || p.nome === "Sem nome") && nomeDet) p.nome = String(nomeDet);
+        if (!p.nome || p.nome === "Sem nome") {
+          const nomeTxt = extractNameFromText(
+            [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacao]
+              .filter(Boolean)
+              .join("\n"),
+          );
+          if (nomeTxt) p.nome = nomeTxt;
+        }
 
         if (!p.phone) {
           // 1) campos estruturados de telefone em qualquer nível do payload
           const phoneKeys = ["celular", "telefone", "fone", "whatsapp"];
           const collected: string[] = [];
           const walk = (node: any, depth = 0) => {
-            if (!node || depth > 6) return;
+            if (!node || depth > 12) return;
             if (Array.isArray(node)) return node.forEach((n) => walk(n, depth + 1));
             if (typeof node !== "object") return;
             for (const [k, v] of Object.entries(node)) {
@@ -390,7 +400,7 @@ export async function listProposals(
           //    descrições de itens, campos personalizados etc.)
           const texts: string[] = [];
           const walkText = (node: any, depth = 0) => {
-            if (!node || depth > 6) return;
+            if (!node || depth > 12) return;
             if (typeof node === "string") return void texts.push(node);
             if (Array.isArray(node)) return node.forEach((n) => walkText(n, depth + 1));
             if (typeof node === "object") Object.values(node).forEach((v) => walkText(v, depth + 1));
