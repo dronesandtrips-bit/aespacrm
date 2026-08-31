@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from "@/integrations/supabase/server";
 
 export const BLING_API = "https://api.bling.com.br/Api/v3";
 export const BLING_AUTH_URL = "https://www.bling.com.br/Api/v3/oauth/authorize";
-export const BLING_TOKEN_URL = "https://api.bling.com.br/Api/v3/oauth/token";
+export const BLING_TOKEN_URL = "https://www.bling.com.br/Api/v3/oauth/token";
 
 export const BLING_SECRET_NAMES = [
   "BLING_CLIENT_ID",
@@ -64,36 +64,59 @@ async function requestTokens(
 ): Promise<BlingTokens> {
   const basic = btoa(`${clientId}:${clientSecret}`);
   const payload = new URLSearchParams(body).toString();
+  const proxyUrl = (process.env.BLING_TOKEN_PROXY_URL ?? "").trim();
 
   let res: Response | null = null;
   let raw = "";
-  // O Bling fica atrás da Cloudflare: requisições sem User-Agent "de browser"
-  // costumam levar 429 / error code 1015. Enviamos headers completos e
-  // aplicamos retry com backoff quando ainda assim for limitado.
-  for (let attempt = 0; attempt < 3; attempt++) {
-    res = await fetch(BLING_TOKEN_URL, {
+  let status = 0;
+
+  if (proxyUrl) {
+    // O endpoint de tokens do Bling bloqueia o IP de saída do runtime do CRM
+    // com Cloudflare 1015. A troca é feita pela VPS dedicada do ZapCRM.
+    res = await fetch(proxyUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Basic ${basic}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
-        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 ZapCRM/1.0",
-      },
-      body: payload,
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        authorization: `Basic ${basic}`,
+        grant_type: body.grant_type ?? "",
+        code: body.code ?? "",
+        redirect_uri: body.redirect_uri ?? "",
+        refresh_token: body.refresh_token ?? "",
+      }),
     });
     raw = await res.text();
-    if (res.status !== 429 && res.status !== 503) break;
-    if (attempt < 2) await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+    status = res.status;
+  } else {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await fetch(BLING_TOKEN_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${basic}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+          "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 ZapCRM/1.0",
+        },
+        body: payload,
+      });
+      raw = await res.text();
+      status = res.status;
+      if (status !== 429 && status !== 503) break;
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+    }
   }
 
   let json: any = {};
   try {
     json = JSON.parse(raw);
   } catch {}
-  if (!res || !res.ok || !json?.access_token) {
-    const status = res?.status ?? 0;
+  // O HTTP Request do n8n retorna a resposta completa em { body, statusCode }.
+  if (proxyUrl && json?.body) {
+    status = Number(json.statusCode ?? status);
+    json = json.body;
+  }
+  if (!res || !res.ok || status >= 400 || !json?.access_token) {
     if (status === 429) {
       throw new Error(
         "Bling recusou temporariamente a conexão (limite de requisições / proteção Cloudflare). Aguarde ~1 minuto e clique em Conectar novamente.",
