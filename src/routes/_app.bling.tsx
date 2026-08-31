@@ -178,6 +178,25 @@ function BlingPage() {
     return () => window.clearInterval(id);
   }, [load]);
 
+  // Contatos cadastrados no Bling (clientes/fornecedores)
+  const loadBlingContacts = useCallback(async (silent = false) => {
+    setLoadingContacts(true);
+    try {
+      const res = await authFetch("/api/public/bling/contacts?limite=500");
+      const json = await res.json();
+      if (!json?.ok) throw new Error(json?.error ?? "falha ao consultar contatos do Bling");
+      setBlingContacts(json.items ?? []);
+    } catch (e: any) {
+      if (!silent) toast.error(e?.message ?? "Erro ao consultar contatos do Bling");
+    } finally {
+      setLoadingContacts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBlingContacts(true);
+  }, [loadBlingContacts]);
+
   const contactIndex = useMemo(() => {
     const m = new Map<string, Contact>();
     for (const c of contacts) for (const v of phoneMatchVariants(c.phone)) m.set(v, c);
@@ -189,7 +208,102 @@ function BlingPage() {
       .map((v) => contactIndex.get(v))
       .find(Boolean) ?? null;
 
+  /** Índice de contatos do Bling por nome normalizado (para vincular propostas). */
+  const blingByName = useMemo(() => {
+    const m = new Map<string, BlingContactItem>();
+    for (const c of blingContacts) {
+      const k = normalizeName(c.nome);
+      if (k && c.phone && !m.has(k)) m.set(k, c);
+    }
+    return m;
+  }, [blingContacts]);
+
+  // Preenche telefones faltantes das propostas usando o cadastro de contatos do Bling
+  useEffect(() => {
+    if (!blingByName.size || !items.length) return;
+    setPhones((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const it of items) {
+        if (normalizePhone(next[it.id] ?? "")) continue;
+        const match = blingByName.get(normalizeName(it.nome));
+        if (match?.phone) {
+          next[it.id] = match.phone;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [blingByName, items]);
+
   const selecionados = items.filter((it) => checked[it.id]);
+
+  const blingNovos = useMemo(
+    () => blingContacts.filter((c) => c.phone && !findContact(c.phone)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [blingContacts, contactIndex],
+  );
+
+  /** Importa TODOS os contatos do Bling que ainda não existem no CRM. */
+  const importAllBlingContacts = async () => {
+    if (!blingContacts.length) {
+      toast.error("Nenhum contato carregado do Bling");
+      return;
+    }
+    setBusy(true);
+    try {
+      const catId = await ensureBlingCategory();
+      const seen = new Set<string>();
+      let novos = 0;
+      let marcados = 0;
+      let semFone = 0;
+
+      for (const bc of blingContacts) {
+        if (!bc.phone) {
+          semFone++;
+          continue;
+        }
+        if (seen.has(bc.phone)) continue;
+        seen.add(bc.phone);
+        const existente = findContact(bc.phone);
+        try {
+          if (existente) {
+            if (catId) {
+              const tags = new Set([
+                ...(existente.categoryIds ?? []),
+                ...(existente.categoryId ? [existente.categoryId] : []),
+              ]);
+              if (!tags.has(catId)) {
+                tags.add(catId);
+                await contactsDb.setCategories(existente.id, Array.from(tags));
+                marcados++;
+              }
+            }
+          } else {
+            await contactsDb.create({
+              name: bc.nome || bc.phone,
+              phone: bc.phone,
+              email: bc.email ?? null,
+              notes: `Bling — contato ${bc.id}${bc.documento ? ` · doc ${bc.documento}` : ""}`,
+              categoryIds: catId ? [catId] : [],
+            } as any);
+            novos++;
+          }
+        } catch (e: any) {
+          console.warn("[bling] import contato:", e?.message ?? e);
+        }
+      }
+      setContacts(await contactsDb.list().catch(() => contacts));
+      const parts = [`${novos} novos`];
+      if (marcados) parts.push(`${marcados} marcados como BLING`);
+      if (semFone) parts.push(`${semFone} sem telefone`);
+      toast.success(`Contatos do Bling importados — ${parts.join(" · ")}`);
+    } catch (e: any) {
+      toast.error(`Falha ao importar contatos: ${e?.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   /** Importa (cria/atualiza) contatos das propostas selecionadas. Retorna ids. */
   const importSelected = async (): Promise<string[]> => {
