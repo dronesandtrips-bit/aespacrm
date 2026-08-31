@@ -15,6 +15,11 @@ export const Route = createFileRoute("/api/public/bling/callback")({
         const url = new URL(request.url);
         const code = url.searchParams.get("code") ?? "";
         const state = url.searchParams.get("state") ?? "";
+        const oauthError = url.searchParams.get("error") ?? "";
+        if (oauthError) {
+          const d = url.searchParams.get("error_description") ?? oauthError;
+          return redirect(`/configuracoes?bling=erro&msg=${encodeURIComponent(d.slice(0, 120))}`);
+        }
         if (!code || !state) return redirect("/configuracoes?bling=erro&msg=code_ausente");
 
         try {
@@ -25,7 +30,17 @@ export const Route = createFileRoute("/api/public/bling/callback")({
             .eq("name", "BLING_OAUTH_STATE")
             .eq("value", state)
             .maybeSingle();
-          const userId = data?.user_id ? String(data.user_id) : "";
+          let userId = data?.user_id ? String(data.user_id) : "";
+          if (!userId) {
+            // Fallback: state expirado/perdido — se só existe um usuário com
+            // credenciais Bling configuradas, usa ele.
+            const { data: owners } = await admin
+              .from("crm_app_secrets")
+              .select("user_id")
+              .eq("name", "BLING_CLIENT_ID")
+              .limit(2);
+            if (owners?.length === 1) userId = String(owners[0].user_id);
+          }
           if (!userId) return redirect("/configuracoes?bling=erro&msg=state_invalido");
 
           await exchangeCode(userId, code, blingRedirectUri(request));

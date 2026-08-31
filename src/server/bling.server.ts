@@ -45,11 +45,16 @@ export async function deleteSecret(userId: string, name: string) {
 }
 
 /** URL pública do CRM (usada como redirect_uri do OAuth do Bling). */
+export const BLING_PUBLIC_ORIGIN = "https://crm.aespa.com.br";
+
 export function blingRedirectUri(request: Request): string {
   const configured = (process.env.BLING_REDIRECT_URI ?? "").trim();
   if (configured) return configured;
   const origin = new URL(request.url).origin;
-  return `${origin}/api/public/bling/callback`;
+  // Domínios de preview/localhost não estão cadastrados no app do Bling —
+  // usa sempre a URL pública para o redirect_uri bater com o cadastro.
+  const isPublic = origin === BLING_PUBLIC_ORIGIN;
+  return `${isPublic ? origin : BLING_PUBLIC_ORIGIN}/api/public/bling/callback`;
 }
 
 async function requestTokens(
@@ -67,10 +72,18 @@ async function requestTokens(
     },
     body: new URLSearchParams(body).toString(),
   });
-  const json: any = await res.json().catch(() => ({}));
+  const raw = await res.text();
+  let json: any = {};
+  try {
+    json = JSON.parse(raw);
+  } catch {}
   if (!res.ok || !json?.access_token) {
-    const detail = json?.error?.description ?? json?.error ?? `HTTP ${res.status}`;
-    throw new Error(`Bling OAuth falhou: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`);
+    const err = json?.error ?? json?.errors?.[0];
+    const detail =
+      err?.description ?? err?.message ?? err?.type ?? (typeof err === "string" ? err : null) ?? raw.slice(0, 200) ?? `HTTP ${res.status}`;
+    throw new Error(
+      `Bling OAuth ${res.status}: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`,
+    );
   }
   return {
     access_token: String(json.access_token),
