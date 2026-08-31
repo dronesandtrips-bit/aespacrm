@@ -93,8 +93,29 @@ async function ensureBlingCategory(): Promise<string | null> {
   }
 }
 
+type BlingContactItem = {
+  id: string;
+  nome: string;
+  phone: string;
+  phoneRaw: string | null;
+  email: string | null;
+  documento: string | null;
+  tipo: string | null;
+};
+
+function normalizeName(v: string | null | undefined) {
+  return String(v ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function BlingPage() {
   const [items, setItems] = useState<BlingProposalItem[]>([]);
+  const [blingContacts, setBlingContacts] = useState<BlingContactItem[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [phones, setPhones] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState<Record<string, boolean>>({});
