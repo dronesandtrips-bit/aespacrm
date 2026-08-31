@@ -305,9 +305,43 @@ export async function listProposals(
     if (d) {
       p.phone = d.phone;
       p.phoneRaw = d.raw;
+      p.phoneFonte = d.phone ? "cadastro" : null;
       p.email = d.email;
       if (d.nome) p.nome = d.nome;
     }
   }
+
+  // Fallback: propostas sem telefone no cadastro do contato — tenta extrair
+  // um número dos campos de texto da proposta (Introdução / Observações).
+  const semFone = out.filter((p) => !p.phone && p.id);
+  const detQueue = [...semFone];
+  const detWorkers = Array.from({ length: Math.min(4, detQueue.length) }, async () => {
+    while (detQueue.length) {
+      const p = detQueue.shift();
+      if (!p) break;
+      try {
+        const res: any = await blingGet(token, `/propostas-comerciais/${p.id}`);
+        const d = res?.data ?? {};
+        const texto = [
+          d?.introducao,
+          d?.observacoes,
+          d?.observacoesInternas,
+          d?.observacao,
+        ]
+          .filter(Boolean)
+          .join("\n");
+        const phone = extractBrPhoneFromText(texto);
+        if (phone) {
+          p.phone = phone;
+          p.phoneRaw = phone;
+          p.phoneFonte = "texto";
+        }
+      } catch {
+        // ignora — proposta segue sem telefone
+      }
+    }
+  });
+  await Promise.all(detWorkers);
+
   return out;
 }
