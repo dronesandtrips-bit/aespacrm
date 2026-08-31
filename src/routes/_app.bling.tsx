@@ -693,6 +693,28 @@ function BlingPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={Boolean(rawItem)} onOpenChange={(o) => !o && setRawItem(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Diagnóstico da proposta {rawItem?.numero ?? rawItem?.id}</DialogTitle>
+            <DialogDescription>
+              Dados exatamente como o Bling devolve. Se o nome/telefone não aparecerem aqui, eles
+              não estão salvos na proposta (preencha na Introdução/Observações ou no cadastro do
+              contato).
+            </DialogDescription>
+          </DialogHeader>
+          {rawLoading ? (
+            <div className="py-10 text-center">
+              <Loader2 className="mx-auto size-6 animate-spin opacity-60" />
+            </div>
+          ) : (
+            <pre className="max-h-[60vh] overflow-auto rounded-md bg-muted p-3 text-xs">
+              {rawText}
+            </pre>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
