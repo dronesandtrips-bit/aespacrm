@@ -45,11 +45,16 @@ export async function deleteSecret(userId: string, name: string) {
 }
 
 /** URL pública do CRM (usada como redirect_uri do OAuth do Bling). */
+export const BLING_PUBLIC_ORIGIN = "https://crm.aespa.com.br";
+
 export function blingRedirectUri(request: Request): string {
   const configured = (process.env.BLING_REDIRECT_URI ?? "").trim();
   if (configured) return configured;
   const origin = new URL(request.url).origin;
-  return `${origin}/api/public/bling/callback`;
+  // Domínios de preview/localhost não estão cadastrados no app do Bling —
+  // usa sempre a URL pública para o redirect_uri bater com o cadastro.
+  const isPublic = origin === BLING_PUBLIC_ORIGIN;
+  return `${isPublic ? origin : BLING_PUBLIC_ORIGIN}/api/public/bling/callback`;
 }
 
 async function requestTokens(
