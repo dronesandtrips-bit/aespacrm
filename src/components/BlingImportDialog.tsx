@@ -34,6 +34,7 @@ export type BlingProposalItem = {
   nome: string;
   phone: string;
   phoneRaw: string | null;
+  phoneFonte?: "cadastro" | "texto" | null;
   email: string | null;
 };
 
