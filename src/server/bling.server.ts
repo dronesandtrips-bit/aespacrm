@@ -202,6 +202,22 @@ export function normalizeBrPhone(raw: string | null | undefined): string {
   return d;
 }
 
+/**
+ * Extrai um telefone/WhatsApp BR de um texto livre (Introdução, Observações etc.).
+ * Aceita formatos: (54) 99149-5959, 54 9 9149-5959, 54991495959, +55 54 9149-5959...
+ */
+export function extractBrPhoneFromText(text: string | null | undefined): string {
+  const src = String(text ?? "");
+  if (!src) return "";
+  const matches =
+    src.match(/(?:\+?55[\s.\-/]?)?\(?\d{2}\)?[\s.\-/]?9?\s?\d{4}[\s.\-/]?\d{4}/g) ?? [];
+  for (const m of matches) {
+    const p = normalizeBrPhone(m);
+    if (p) return p;
+  }
+  return "";
+}
+
 export type BlingProposal = {
   id: string;
   numero: string | null;
@@ -212,6 +228,7 @@ export type BlingProposal = {
   nome: string;
   phone: string; // normalizado (pode vir vazio)
   phoneRaw: string | null;
+  phoneFonte: "cadastro" | "texto" | null; // de onde veio o telefone
   email: string | null;
 };
 
