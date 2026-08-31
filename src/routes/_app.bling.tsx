@@ -93,8 +93,29 @@ async function ensureBlingCategory(): Promise<string | null> {
   }
 }
 
+type BlingContactItem = {
+  id: string;
+  nome: string;
+  phone: string;
+  phoneRaw: string | null;
+  email: string | null;
+  documento: string | null;
+  tipo: string | null;
+};
+
+function normalizeName(v: string | null | undefined) {
+  return String(v ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function BlingPage() {
   const [items, setItems] = useState<BlingProposalItem[]>([]);
+  const [blingContacts, setBlingContacts] = useState<BlingContactItem[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [phones, setPhones] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState<Record<string, boolean>>({});
@@ -157,6 +178,25 @@ function BlingPage() {
     return () => window.clearInterval(id);
   }, [load]);
 
+  // Contatos cadastrados no Bling (clientes/fornecedores)
+  const loadBlingContacts = useCallback(async (silent = false) => {
+    setLoadingContacts(true);
+    try {
+      const res = await authFetch("/api/public/bling/contacts?limite=500");
+      const json = await res.json();
+      if (!json?.ok) throw new Error(json?.error ?? "falha ao consultar contatos do Bling");
+      setBlingContacts(json.items ?? []);
+    } catch (e: any) {
+      if (!silent) toast.error(e?.message ?? "Erro ao consultar contatos do Bling");
+    } finally {
+      setLoadingContacts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBlingContacts(true);
+  }, [loadBlingContacts]);
+
   const contactIndex = useMemo(() => {
     const m = new Map<string, Contact>();
     for (const c of contacts) for (const v of phoneMatchVariants(c.phone)) m.set(v, c);
@@ -168,7 +208,102 @@ function BlingPage() {
       .map((v) => contactIndex.get(v))
       .find(Boolean) ?? null;
 
+  /** Índice de contatos do Bling por nome normalizado (para vincular propostas). */
+  const blingByName = useMemo(() => {
+    const m = new Map<string, BlingContactItem>();
+    for (const c of blingContacts) {
+      const k = normalizeName(c.nome);
+      if (k && c.phone && !m.has(k)) m.set(k, c);
+    }
+    return m;
+  }, [blingContacts]);
+
+  // Preenche telefones faltantes das propostas usando o cadastro de contatos do Bling
+  useEffect(() => {
+    if (!blingByName.size || !items.length) return;
+    setPhones((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const it of items) {
+        if (normalizePhone(next[it.id] ?? "")) continue;
+        const match = blingByName.get(normalizeName(it.nome));
+        if (match?.phone) {
+          next[it.id] = match.phone;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [blingByName, items]);
+
   const selecionados = items.filter((it) => checked[it.id]);
+
+  const blingNovos = useMemo(
+    () => blingContacts.filter((c) => c.phone && !findContact(c.phone)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [blingContacts, contactIndex],
+  );
+
+  /** Importa TODOS os contatos do Bling que ainda não existem no CRM. */
+  const importAllBlingContacts = async () => {
+    if (!blingContacts.length) {
+      toast.error("Nenhum contato carregado do Bling");
+      return;
+    }
+    setBusy(true);
+    try {
+      const catId = await ensureBlingCategory();
+      const seen = new Set<string>();
+      let novos = 0;
+      let marcados = 0;
+      let semFone = 0;
+
+      for (const bc of blingContacts) {
+        if (!bc.phone) {
+          semFone++;
+          continue;
+        }
+        if (seen.has(bc.phone)) continue;
+        seen.add(bc.phone);
+        const existente = findContact(bc.phone);
+        try {
+          if (existente) {
+            if (catId) {
+              const tags = new Set([
+                ...(existente.categoryIds ?? []),
+                ...(existente.categoryId ? [existente.categoryId] : []),
+              ]);
+              if (!tags.has(catId)) {
+                tags.add(catId);
+                await contactsDb.setCategories(existente.id, Array.from(tags));
+                marcados++;
+              }
+            }
+          } else {
+            await contactsDb.create({
+              name: bc.nome || bc.phone,
+              phone: bc.phone,
+              email: bc.email ?? null,
+              notes: `Bling — contato ${bc.id}${bc.documento ? ` · doc ${bc.documento}` : ""}`,
+              categoryIds: catId ? [catId] : [],
+            } as any);
+            novos++;
+          }
+        } catch (e: any) {
+          console.warn("[bling] import contato:", e?.message ?? e);
+        }
+      }
+      setContacts(await contactsDb.list().catch(() => contacts));
+      const parts = [`${novos} novos`];
+      if (marcados) parts.push(`${marcados} marcados como BLING`);
+      if (semFone) parts.push(`${semFone} sem telefone`);
+      toast.success(`Contatos do Bling importados — ${parts.join(" · ")}`);
+    } catch (e: any) {
+      toast.error(`Falha ao importar contatos: ${e?.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   /** Importa (cria/atualiza) contatos das propostas selecionadas. Retorna ids. */
   const importSelected = async (): Promise<string[]> => {
@@ -409,6 +544,70 @@ function BlingPage() {
               })
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+            Contatos cadastrados no Bling
+            <Badge variant="secondary">{blingContacts.length}</Badge>
+            {blingNovos.length > 0 && (
+              <Badge variant="outline">{blingNovos.length} ainda não estão no CRM</Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto gap-1.5"
+              onClick={() => loadBlingContacts()}
+              disabled={loadingContacts}
+            >
+              {loadingContacts ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="size-3.5" />
+              )}
+              Atualizar
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Importa os clientes reais do Bling para o CRM (categoria BLING), sem duplicar quem já
+            existe. Os números do cadastro também são usados para completar automaticamente as
+            propostas que estão sem WhatsApp.
+          </p>
+          <div className="max-h-56 space-y-1 overflow-auto rounded-lg border p-2">
+            {blingContacts.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                {loadingContacts ? "Carregando contatos…" : "Nenhum contato encontrado no Bling."}
+              </p>
+            ) : (
+              blingContacts.slice(0, 200).map((bc) => {
+                const existente = bc.phone ? findContact(bc.phone) : null;
+                return (
+                  <div key={bc.id} className="flex items-center gap-3 rounded-md px-2 py-1 text-sm">
+                    <span className="min-w-0 flex-1 truncate">{bc.nome}</span>
+                    <span className="w-40 truncate text-right font-mono text-xs text-muted-foreground">
+                      {bc.phone || "sem número"}
+                    </span>
+                    <Badge variant={existente ? "secondary" : bc.phone ? "outline" : "destructive"}>
+                      {existente ? "no CRM" : bc.phone ? "novo" : "sem número"}
+                    </Badge>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            onClick={importAllBlingContacts}
+            disabled={busy || !blingContacts.length}
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            Importar contatos do Bling ({blingNovos.length} novos)
+          </Button>
         </CardContent>
       </Card>
 
