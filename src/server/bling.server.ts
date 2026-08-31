@@ -63,26 +63,47 @@ async function requestTokens(
   body: Record<string, string>,
 ): Promise<BlingTokens> {
   const basic = btoa(`${clientId}:${clientSecret}`);
-  const res = await fetch(BLING_TOKEN_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${basic}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-      Accept: "application/json",
-    },
-    body: new URLSearchParams(body).toString(),
-  });
-  const raw = await res.text();
+  const payload = new URLSearchParams(body).toString();
+
+  let res: Response | null = null;
+  let raw = "";
+  // O Bling fica atrás da Cloudflare: requisições sem User-Agent "de browser"
+  // costumam levar 429 / error code 1015. Enviamos headers completos e
+  // aplicamos retry com backoff quando ainda assim for limitado.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    res = await fetch(BLING_TOKEN_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${basic}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 ZapCRM/1.0",
+      },
+      body: payload,
+    });
+    raw = await res.text();
+    if (res.status !== 429 && res.status !== 503) break;
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+  }
+
   let json: any = {};
   try {
     json = JSON.parse(raw);
   } catch {}
-  if (!res.ok || !json?.access_token) {
+  if (!res || !res.ok || !json?.access_token) {
+    const status = res?.status ?? 0;
+    if (status === 429) {
+      throw new Error(
+        "Bling recusou temporariamente a conexão (limite de requisições / proteção Cloudflare). Aguarde ~1 minuto e clique em Conectar novamente.",
+      );
+    }
     const err = json?.error ?? json?.errors?.[0];
     const detail =
-      err?.description ?? err?.message ?? err?.type ?? (typeof err === "string" ? err : null) ?? raw.slice(0, 200) ?? `HTTP ${res.status}`;
+      err?.description ?? err?.message ?? err?.type ?? (typeof err === "string" ? err : null) ?? raw.slice(0, 200) ?? `HTTP ${status}`;
     throw new Error(
-      `Bling OAuth ${res.status}: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`,
+      `Bling OAuth ${status}: ${typeof detail === "string" ? detail : JSON.stringify(detail)}`,
     );
   }
   return {
@@ -91,6 +112,7 @@ async function requestTokens(
     expires_at: Date.now() + Number(json.expires_in ?? 3600) * 1000,
   };
 }
+
 
 export async function exchangeCode(userId: string, code: string, redirectUri: string) {
   const clientId = await getSecret(userId, "BLING_CLIENT_ID");
@@ -131,7 +153,13 @@ export async function getAccessToken(userId: string): Promise<string> {
 
 async function blingGet(token: string, path: string) {
   const res = await fetch(`${BLING_API}${path}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 ZapCRM/1.0",
+    },
   });
   const json: any = await res.json().catch(() => ({}));
   if (!res.ok) {
