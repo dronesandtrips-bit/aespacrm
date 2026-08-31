@@ -153,7 +153,13 @@ export async function getAccessToken(userId: string): Promise<string> {
 
 async function blingGet(token: string, path: string) {
   const res = await fetch(`${BLING_API}${path}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 ZapCRM/1.0",
+    },
   });
   const json: any = await res.json().catch(() => ({}));
   if (!res.ok) {
