@@ -27,6 +27,7 @@ import {
   RotateCcw,
   Trash2,
   Upload,
+  ShoppingBag,
 
 } from "lucide-react";
 import {
@@ -47,6 +48,7 @@ import {
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { isStrictValidPhone, phoneMatchVariants } from "@/lib/phone-validation";
 import { toast } from "sonner";
+import { BlingImportDialog } from "@/components/BlingImportDialog";
 
 /**
  * Parser da lista importada (colada ou arquivo .csv/.txt).
@@ -193,6 +195,7 @@ function DisparosPage() {
 
   // ---- Importar lista de números (disparo manual) ----
   const [importOpen, setImportOpen] = useState(false);
+  const [blingOpen, setBlingOpen] = useState(false);
   const [importText, setImportText] = useState("");
   // Padrão: NÃO ignorar quem já está na agenda — a lista importada é a lista
   // de destino do disparo; ignorar por padrão zerava a seleção.
@@ -638,6 +641,9 @@ function DisparosPage() {
               <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setImportOpen(true)}>
                 <Upload className="size-3.5" /> Importar lista
               </Button>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setBlingOpen(true)}>
+                <ShoppingBag className="size-3.5" /> Importar do Bling
+              </Button>
               <Button variant="outline" size="sm" onClick={toggleAll} disabled={contacts.length === 0}>
                 {selected.size === contacts.length && contacts.length > 0 ? "Limpar" : "Selecionar todos"}
               </Button>
@@ -822,6 +828,20 @@ function DisparosPage() {
           })}
         </div>
       </Card>
+
+      <BlingImportDialog
+        open={blingOpen}
+        onOpenChange={setBlingOpen}
+        contacts={contacts}
+        onImported={async (ids) => {
+          await load();
+          setSelected((prev) => {
+            const n = new Set(prev);
+            ids.forEach((id) => n.add(id));
+            return n;
+          });
+        }}
+      />
 
       {/* Dialog de detalhes do disparo */}
       <Dialog open={importOpen} onOpenChange={(o) => !importing && setImportOpen(o)}>
