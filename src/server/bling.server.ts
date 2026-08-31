@@ -267,6 +267,7 @@ export async function listProposals(
         nome: String(contato?.nome ?? it?.contato?.nome ?? "Sem nome"),
         phone: "",
         phoneRaw: null,
+        phoneFonte: null,
         email: null,
       });
       if (out.length >= limite) break;
