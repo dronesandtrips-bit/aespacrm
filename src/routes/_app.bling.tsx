@@ -55,6 +55,7 @@ type BlingProposalItem = {
   nome: string;
   phone: string;
   phoneRaw: string | null;
+  phoneFonte?: "cadastro" | "texto" | null;
   email: string | null;
 };
 
@@ -386,11 +387,22 @@ function BlingPage() {
                     <Input
                       className="w-48 font-mono text-xs"
                       placeholder="WhatsApp (55DDD…)"
+                      title={
+                        it.phoneFonte === "texto"
+                          ? "Número extraído do texto da proposta (Introdução/Observações)"
+                          : undefined
+                      }
                       value={phones[it.id] ?? ""}
                       onChange={(e) => setPhones((p) => ({ ...p, [it.id]: e.target.value }))}
                     />
                     <Badge variant={existente ? "secondary" : phone ? "outline" : "destructive"}>
-                      {existente ? "no CRM" : phone ? "novo" : "sem número"}
+                      {existente
+                        ? "no CRM"
+                        : phone
+                          ? it.phoneFonte === "texto"
+                            ? "novo (via texto)"
+                            : "novo"
+                          : "sem número"}
                     </Badge>
                   </div>
                 );
