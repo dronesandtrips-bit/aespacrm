@@ -204,19 +204,47 @@ export function normalizeBrPhone(raw: string | null | undefined): string {
 
 /**
  * Extrai um telefone/WhatsApp BR de um texto livre (Introdução, Observações etc.).
- * Aceita formatos: (54) 99149-5959, 54 9 9149-5959, 54991495959, +55 54 9149-5959...
+ * Aceita formatos: (54) 99149-5959, 54 9 9149-5959, 54991495959, +55 54 9149-5959,
+ * 54.99149.5959, 54 99149 5959, "Fone: 5499149-5959" etc.
  */
 export function extractBrPhoneFromText(text: string | null | undefined): string {
-  const src = String(text ?? "");
+  // normaliza separadores exóticos (nbsp, traços unicode, bullets)
+  const src = String(text ?? "")
+    .replace(/[\u00a0\u2007\u202f]/g, " ")
+    .replace(/[\u2010-\u2015]/g, "-");
   if (!src) return "";
-  const matches =
-    src.match(/(?:\+?55[\s.\-/]?)?\(?\d{2}\)?[\s.\-/]?9?\s?\d{4}[\s.\-/]?\d{4}/g) ?? [];
-  for (const m of matches) {
-    const p = normalizeBrPhone(m);
-    if (p) return p;
+  const SEP = "[\\s.\\-/_]*";
+  const patterns = [
+    // com DDI opcional + DDD + 8/9 dígitos
+    new RegExp(`(?:\\+?55${SEP})?\\(?\\d{2}\\)?${SEP}9?${SEP}\\d{4}${SEP}\\d{4}`, "g"),
+    // bloco contínuo de 10 a 13 dígitos
+    /\d{10,13}/g,
+  ];
+  for (const re of patterns) {
+    const matches = src.match(re) ?? [];
+    for (const m of matches) {
+      const p = normalizeBrPhone(m);
+      if (p) return p;
+    }
   }
   return "";
 }
+
+/** Tenta achar um nome de cliente em texto livre (ex.: "Cliente: Fulano"). */
+export function extractNameFromText(text: string | null | undefined): string {
+  const src = String(text ?? "");
+  const m = src.match(
+    /(?:cliente|contato|nome|resp(?:ons[áa]vel)?)\s*[:\-]\s*([\p{L}][\p{L}\s.'&-]{2,60})/iu,
+  );
+  return m ? m[1].replace(/\s+/g, " ").trim() : "";
+}
+
+/** Payload cru de uma proposta — usado pelo diagnóstico da tela do Bling. */
+export async function getProposalRaw(userId: string, id: string): Promise<any> {
+  const token = await getAccessToken(userId);
+  return blingGet(token, `/propostas-comerciais/${id}`);
+}
+
 
 export type BlingProposal = {
   id: string;
