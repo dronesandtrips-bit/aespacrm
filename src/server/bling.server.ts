@@ -378,7 +378,7 @@ export async function listProposals(
   const semFone = out.filter((p) => p.id && (!p.phone || !p.nome || p.nome === "Sem nome"));
   const detQueue = [...semFone];
   const detWorkers = Array.from({ length: Math.min(4, detQueue.length) }, async () => {
-    while (detQueue.length) {
+    while (detQueue.length && !outOfTime()) {
       const p = detQueue.shift();
       if (!p) break;
       try {
