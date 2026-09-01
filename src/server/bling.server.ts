@@ -259,7 +259,11 @@ export function extractNameFromText(text: string | null | undefined): string {
     .replace(/[^\p{L}\s.'&-]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
-  if (cleaned.length >= 3 && /\p{L}{2,}/u.test(cleaned)) return cleaned.slice(0, 60);
+  const noPrefix = cleaned
+    .replace(/^(?:a\s*\/?\s*c|att\.?|aos?\s+cuidados\s+de|ref\.?|sr\.?|sra\.?)\s+/i, "")
+    .trim();
+  const final = noPrefix.length >= 3 ? noPrefix : cleaned;
+  if (final.length >= 3 && /\p{L}{2,}/u.test(final)) return final.slice(0, 60);
   return "";
 }
 
