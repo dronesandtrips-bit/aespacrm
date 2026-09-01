@@ -375,9 +375,11 @@ export async function listProposals(
   // Fallback: propostas sem telefone (ou sem nome) no cadastro do contato —
   // abre a proposta e varre TODOS os campos de texto do payload em busca de
   // um WhatsApp e de um nome de cliente.
-  const semFone = out.filter((p) => p.id && (!p.phone || !p.nome || p.nome === "Sem nome"));
+  const semFone = out
+    .filter((p) => p.id && (!p.phone || !p.nome || p.nome === "Sem nome"))
+    .slice(0, 60);
   const detQueue = [...semFone];
-  const detWorkers = Array.from({ length: Math.min(4, detQueue.length) }, async () => {
+  const detWorkers = Array.from({ length: Math.min(6, detQueue.length) }, async () => {
     while (detQueue.length && !outOfTime()) {
       const p = detQueue.shift();
       if (!p) break;
