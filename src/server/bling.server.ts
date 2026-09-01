@@ -382,7 +382,7 @@ export async function listProposals(
         if ((!p.nome || p.nome === "Sem nome") && nomeDet) p.nome = String(nomeDet);
         if (!p.nome || p.nome === "Sem nome") {
           const nomeTxt = extractNameFromText(
-            [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacao]
+            [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacaoInterna, d?.observacao, d?.prazoEntrega, d?.aosCuidadosDe]
               .filter(Boolean)
               .join("\n"),
           );
@@ -428,7 +428,7 @@ export async function listProposals(
             if (typeof node === "object") Object.values(node).forEach((v) => walkText(v, depth + 1));
           };
           // prioriza os campos de texto "editoriais" da proposta
-          const prio = [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacao]
+          const prio = [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacaoInterna, d?.observacao, d?.prazoEntrega, d?.aosCuidadosDe]
             .filter(Boolean)
             .join("\n");
           walkText(d);
