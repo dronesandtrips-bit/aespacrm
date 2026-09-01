@@ -293,10 +293,18 @@ export async function listProposals(
   userId: string,
   opts: { dias?: number; limite?: number } = {},
 ): Promise<BlingProposal[]> {
+  const t0 = Date.now();
+  // Orçamento de tempo para o enriquecimento (detalhes de contato/proposta).
+  // Sem isso, com muitos itens + retry de 429 a requisição nunca terminava
+  // e a tela ficava carregando para sempre.
+  const BUDGET_MS = 18_000;
+  const outOfTime = () => Date.now() - t0 > BUDGET_MS;
+
   const token = await getAccessToken(userId);
   const limite = Math.min(Math.max(opts.limite ?? 100, 1), 300);
   const dias = Math.min(Math.max(opts.dias ?? 90, 1), 720);
   const since = new Date(Date.now() - dias * 86_400_000).toISOString().slice(0, 10);
+
 
   const out: BlingProposal[] = [];
   for (let pagina = 1; pagina <= 5 && out.length < limite; pagina++) {
