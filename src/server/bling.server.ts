@@ -179,7 +179,7 @@ async function blingGet(token: string, path: string) {
   let json: any = {};
   // O Bling limita requisições (429). Sem retry, os detalhes das propostas
   // falhavam silenciosamente e nome/telefone ficavam vazios.
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     res = await fetch(`${BLING_API}${path}`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -191,8 +191,9 @@ async function blingGet(token: string, path: string) {
     });
     json = await res.json().catch(() => ({}));
     if (res.status !== 429 && res.status !== 503) break;
-    await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+    await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
   }
+
   if (!res.ok) {
     const detail = json?.error?.description ?? json?.error?.message ?? `HTTP ${res.status}`;
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
