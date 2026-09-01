@@ -175,22 +175,31 @@ export async function getAccessToken(userId: string): Promise<string> {
 }
 
 async function blingGet(token: string, path: string) {
-  const res = await fetch(`${BLING_API}${path}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-      "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 ZapCRM/1.0",
-    },
-  });
-  const json: any = await res.json().catch(() => ({}));
+  let res!: Response;
+  let json: any = {};
+  // O Bling limita requisições (429). Sem retry, os detalhes das propostas
+  // falhavam silenciosamente e nome/telefone ficavam vazios.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    res = await fetch(`${BLING_API}${path}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 ZapCRM/1.0",
+      },
+    });
+    json = await res.json().catch(() => ({}));
+    if (res.status !== 429 && res.status !== 503) break;
+    await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+  }
   if (!res.ok) {
     const detail = json?.error?.description ?? json?.error?.message ?? `HTTP ${res.status}`;
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
   }
   return json;
 }
+
 
 /** Normaliza telefone BR para o formato usado no CRM (com DDI 55). */
 export function normalizeBrPhone(raw: string | null | undefined): string {
@@ -234,12 +243,25 @@ export function extractBrPhoneFromText(text: string | null | undefined): string 
 
 /** Tenta achar um nome de cliente em texto livre (ex.: "Cliente: Fulano"). */
 export function extractNameFromText(text: string | null | undefined): string {
-  const src = String(text ?? "");
+  const src = String(text ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ");
   const m = src.match(
     /(?:cliente|contato|nome|resp(?:ons[áa]vel)?)\s*[:\-]\s*([\p{L}][\p{L}\s.'&-]{2,60})/iu,
   );
-  return m ? m[1].replace(/\s+/g, " ").trim() : "";
+  if (m) return m[1].replace(/\s+/g, " ").trim();
+  // Fallback: texto livre no formato "Eldorado Caxias 5551996690395" —
+  // remove números/telefones e usa o trecho de palavras restante como nome.
+  const firstLine = src.split(/[\n;|]/).map((s) => s.trim()).find(Boolean) ?? "";
+  const cleaned = firstLine
+    .replace(/(?:\+?55)?[\s().\-/_]*\d[\d\s().\-/_]{7,}/g, " ")
+    .replace(/[^\p{L}\s.'&-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cleaned.length >= 3 && /\p{L}{2,}/u.test(cleaned)) return cleaned.slice(0, 60);
+  return "";
 }
+
 
 /** Payload cru de uma proposta — usado pelo diagnóstico da tela do Bling. */
 export async function getProposalRaw(userId: string, id: string): Promise<any> {
@@ -360,7 +382,7 @@ export async function listProposals(
         if ((!p.nome || p.nome === "Sem nome") && nomeDet) p.nome = String(nomeDet);
         if (!p.nome || p.nome === "Sem nome") {
           const nomeTxt = extractNameFromText(
-            [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacao]
+            [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacaoInterna, d?.observacao, d?.prazoEntrega, d?.aosCuidadosDe]
               .filter(Boolean)
               .join("\n"),
           );
@@ -406,7 +428,7 @@ export async function listProposals(
             if (typeof node === "object") Object.values(node).forEach((v) => walkText(v, depth + 1));
           };
           // prioriza os campos de texto "editoriais" da proposta
-          const prio = [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacao]
+          const prio = [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacaoInterna, d?.observacao, d?.prazoEntrega, d?.aosCuidadosDe]
             .filter(Boolean)
             .join("\n");
           walkText(d);
