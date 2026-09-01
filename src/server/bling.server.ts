@@ -175,22 +175,31 @@ export async function getAccessToken(userId: string): Promise<string> {
 }
 
 async function blingGet(token: string, path: string) {
-  const res = await fetch(`${BLING_API}${path}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-      "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 ZapCRM/1.0",
-    },
-  });
-  const json: any = await res.json().catch(() => ({}));
+  let res!: Response;
+  let json: any = {};
+  // O Bling limita requisições (429). Sem retry, os detalhes das propostas
+  // falhavam silenciosamente e nome/telefone ficavam vazios.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    res = await fetch(`${BLING_API}${path}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 ZapCRM/1.0",
+      },
+    });
+    json = await res.json().catch(() => ({}));
+    if (res.status !== 429 && res.status !== 503) break;
+    await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+  }
   if (!res.ok) {
     const detail = json?.error?.description ?? json?.error?.message ?? `HTTP ${res.status}`;
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
   }
   return json;
 }
+
 
 /** Normaliza telefone BR para o formato usado no CRM (com DDI 55). */
 export function normalizeBrPhone(raw: string | null | undefined): string {
