@@ -341,7 +341,7 @@ export async function listProposals(
   const details = new Map<string, { phone: string; raw: string | null; email: string | null; nome?: string }>();
   const queue = [...ids];
   const workers = Array.from({ length: Math.min(4, queue.length) }, async () => {
-    while (queue.length) {
+    while (queue.length && !outOfTime()) {
       const id = queue.shift();
       if (!id) break;
       try {
