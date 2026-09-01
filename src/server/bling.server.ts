@@ -259,7 +259,11 @@ export function extractNameFromText(text: string | null | undefined): string {
     .replace(/[^\p{L}\s.'&-]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
-  if (cleaned.length >= 3 && /\p{L}{2,}/u.test(cleaned)) return cleaned.slice(0, 60);
+  const noPrefix = cleaned
+    .replace(/^(?:a\s*\/?\s*c|att\.?|aos?\s+cuidados\s+de|ref\.?|sr\.?|sra\.?)\s+/i, "")
+    .trim();
+  const final = noPrefix.length >= 3 ? noPrefix : cleaned;
+  if (final.length >= 3 && /\p{L}{2,}/u.test(final)) return final.slice(0, 60);
   return "";
 }
 
@@ -336,50 +340,14 @@ export async function listProposals(
     if (items.length < 100) break;
   }
 
-  // Resolve telefone/e-mail dos contatos (cache por contatoId, concorrência 4)
-  const ids = Array.from(new Set(out.map((p) => p.contatoId).filter(Boolean))) as string[];
-  const details = new Map<string, { phone: string; raw: string | null; email: string | null; nome?: string }>();
-  const queue = [...ids];
-  const workers = Array.from({ length: Math.min(4, queue.length) }, async () => {
-    while (queue.length && !outOfTime()) {
-      const id = queue.shift();
-      if (!id) break;
-      try {
-        const res: any = await blingGet(token, `/contatos/${id}`);
-        const d = res?.data ?? {};
-        const raw = d?.celular || d?.telefone || null;
-        details.set(id, {
-          phone: normalizeBrPhone(raw),
-          raw: raw ? String(raw) : null,
-          email: d?.email ? String(d.email) : null,
-          nome: d?.nome ? String(d.nome) : undefined,
-        });
-      } catch {
-        details.set(id, { phone: "", raw: null, email: null });
-      }
-    }
-  });
-  await Promise.all(workers);
-
-  for (const p of out) {
-    const d = p.contatoId ? details.get(p.contatoId) : null;
-    if (d) {
-      p.phone = d.phone;
-      p.phoneRaw = d.raw;
-      p.phoneFonte = d.phone ? "cadastro" : null;
-      p.email = d.email;
-      if (d.nome) p.nome = d.nome;
-    }
-  }
-
   // Fallback: propostas sem telefone (ou sem nome) no cadastro do contato —
   // abre a proposta e varre TODOS os campos de texto do payload em busca de
   // um WhatsApp e de um nome de cliente.
   const semFone = out
     .filter((p) => p.id && (!p.phone || !p.nome || p.nome === "Sem nome"))
-    .slice(0, 60);
+    .slice(0, 40);
   const detQueue = [...semFone];
-  const detWorkers = Array.from({ length: Math.min(6, detQueue.length) }, async () => {
+  const detWorkers = Array.from({ length: Math.min(3, detQueue.length) }, async () => {
     while (detQueue.length && !outOfTime()) {
       const p = detQueue.shift();
       if (!p) break;
@@ -457,6 +425,52 @@ export async function listProposals(
     }
   });
   await Promise.all(detWorkers);
+  // Resolve telefone/e-mail dos contatos (cache por contatoId, concorrência 4)
+  const ids = Array.from(
+    new Set(
+      out
+        .filter((p) => !p.phone || !p.nome || p.nome === "Sem nome")
+        .slice(0, 40)
+        .map((p) => p.contatoId)
+        .filter(Boolean),
+    ),
+  ) as string[];
+  const details = new Map<string, { phone: string; raw: string | null; email: string | null; nome?: string }>();
+  const queue = [...ids];
+  const workers = Array.from({ length: Math.min(3, queue.length) }, async () => {
+    while (queue.length && !outOfTime()) {
+      const id = queue.shift();
+      if (!id) break;
+      try {
+        const res: any = await blingGet(token, `/contatos/${id}`);
+        const d = res?.data ?? {};
+        const raw = d?.celular || d?.telefone || null;
+        details.set(id, {
+          phone: normalizeBrPhone(raw),
+          raw: raw ? String(raw) : null,
+          email: d?.email ? String(d.email) : null,
+          nome: d?.nome ? String(d.nome) : undefined,
+        });
+      } catch {
+        details.set(id, { phone: "", raw: null, email: null });
+      }
+    }
+  });
+  await Promise.all(workers);
+
+  for (const p of out) {
+    const d = p.contatoId ? details.get(p.contatoId) : null;
+    if (d) {
+      if (!p.phone && d.phone) {
+        p.phone = d.phone;
+        p.phoneRaw = d.raw;
+        p.phoneFonte = "cadastro";
+      }
+      if (!p.email && d.email) p.email = d.email;
+      if ((!p.nome || p.nome === "Sem nome") && d.nome) p.nome = d.nome;
+    }
+  }
+
 
   return out;
 }
