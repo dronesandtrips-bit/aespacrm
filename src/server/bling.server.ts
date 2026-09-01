@@ -243,12 +243,25 @@ export function extractBrPhoneFromText(text: string | null | undefined): string 
 
 /** Tenta achar um nome de cliente em texto livre (ex.: "Cliente: Fulano"). */
 export function extractNameFromText(text: string | null | undefined): string {
-  const src = String(text ?? "");
+  const src = String(text ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ");
   const m = src.match(
     /(?:cliente|contato|nome|resp(?:ons[áa]vel)?)\s*[:\-]\s*([\p{L}][\p{L}\s.'&-]{2,60})/iu,
   );
-  return m ? m[1].replace(/\s+/g, " ").trim() : "";
+  if (m) return m[1].replace(/\s+/g, " ").trim();
+  // Fallback: texto livre no formato "Eldorado Caxias 5551996690395" —
+  // remove números/telefones e usa o trecho de palavras restante como nome.
+  const firstLine = src.split(/[\n;|]/).map((s) => s.trim()).find(Boolean) ?? "";
+  const cleaned = firstLine
+    .replace(/(?:\+?55)?[\s().\-/_]*\d[\d\s().\-/_]{7,}/g, " ")
+    .replace(/[^\p{L}\s.'&-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cleaned.length >= 3 && /\p{L}{2,}/u.test(cleaned)) return cleaned.slice(0, 60);
+  return "";
 }
+
 
 /** Payload cru de uma proposta — usado pelo diagnóstico da tela do Bling. */
 export async function getProposalRaw(userId: string, id: string): Promise<any> {
