@@ -179,7 +179,7 @@ async function blingGet(token: string, path: string) {
   let json: any = {};
   // O Bling limita requisições (429). Sem retry, os detalhes das propostas
   // falhavam silenciosamente e nome/telefone ficavam vazios.
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     res = await fetch(`${BLING_API}${path}`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -191,8 +191,9 @@ async function blingGet(token: string, path: string) {
     });
     json = await res.json().catch(() => ({}));
     if (res.status !== 429 && res.status !== 503) break;
-    await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+    await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
   }
+
   if (!res.ok) {
     const detail = json?.error?.description ?? json?.error?.message ?? `HTTP ${res.status}`;
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
@@ -292,10 +293,18 @@ export async function listProposals(
   userId: string,
   opts: { dias?: number; limite?: number } = {},
 ): Promise<BlingProposal[]> {
+  const t0 = Date.now();
+  // Orçamento de tempo para o enriquecimento (detalhes de contato/proposta).
+  // Sem isso, com muitos itens + retry de 429 a requisição nunca terminava
+  // e a tela ficava carregando para sempre.
+  const BUDGET_MS = 18_000;
+  const outOfTime = () => Date.now() - t0 > BUDGET_MS;
+
   const token = await getAccessToken(userId);
   const limite = Math.min(Math.max(opts.limite ?? 100, 1), 300);
   const dias = Math.min(Math.max(opts.dias ?? 90, 1), 720);
   const since = new Date(Date.now() - dias * 86_400_000).toISOString().slice(0, 10);
+
 
   const out: BlingProposal[] = [];
   for (let pagina = 1; pagina <= 5 && out.length < limite; pagina++) {
@@ -332,7 +341,7 @@ export async function listProposals(
   const details = new Map<string, { phone: string; raw: string | null; email: string | null; nome?: string }>();
   const queue = [...ids];
   const workers = Array.from({ length: Math.min(4, queue.length) }, async () => {
-    while (queue.length) {
+    while (queue.length && !outOfTime()) {
       const id = queue.shift();
       if (!id) break;
       try {
@@ -366,10 +375,12 @@ export async function listProposals(
   // Fallback: propostas sem telefone (ou sem nome) no cadastro do contato —
   // abre a proposta e varre TODOS os campos de texto do payload em busca de
   // um WhatsApp e de um nome de cliente.
-  const semFone = out.filter((p) => p.id && (!p.phone || !p.nome || p.nome === "Sem nome"));
+  const semFone = out
+    .filter((p) => p.id && (!p.phone || !p.nome || p.nome === "Sem nome"))
+    .slice(0, 60);
   const detQueue = [...semFone];
-  const detWorkers = Array.from({ length: Math.min(4, detQueue.length) }, async () => {
-    while (detQueue.length) {
+  const detWorkers = Array.from({ length: Math.min(6, detQueue.length) }, async () => {
+    while (detQueue.length && !outOfTime()) {
       const p = detQueue.shift();
       if (!p) break;
       try {
