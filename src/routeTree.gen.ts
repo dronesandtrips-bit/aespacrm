@@ -86,6 +86,7 @@ import { Route as ApiPublicBlingProposalRawRouteImport } from './routes/api.publ
 import { Route as ApiPublicBlingContactsRouteImport } from './routes/api.public.bling.contacts'
 import { Route as ApiPublicBlingConfigRouteImport } from './routes/api.public.bling.config'
 import { Route as ApiPublicBlingCallbackRouteImport } from './routes/api.public.bling.callback'
+import { Route as ApiPublicBlingAutoTickRouteImport } from './routes/api.public.bling.auto-tick'
 import { Route as ApiPublicAvatarsRefreshRouteImport } from './routes/api.public.avatars.refresh'
 import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
 import { Route as ApiPublicAiInterestTermsRouteImport } from './routes/api.public.ai.interest-terms'
@@ -512,6 +513,11 @@ const ApiPublicBlingCallbackRoute = ApiPublicBlingCallbackRouteImport.update({
   path: '/api/public/bling/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBlingAutoTickRoute = ApiPublicBlingAutoTickRouteImport.update({
+  id: '/api/public/bling/auto-tick',
+  path: '/api/public/bling/auto-tick',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicAvatarsRefreshRoute = ApiPublicAvatarsRefreshRouteImport.update({
   id: '/api/public/avatars/refresh',
   path: '/api/public/avatars/refresh',
@@ -591,6 +597,7 @@ export interface FileRoutesByFullPath {
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
+  '/api/public/bling/auto-tick': typeof ApiPublicBlingAutoTickRoute
   '/api/public/bling/callback': typeof ApiPublicBlingCallbackRoute
   '/api/public/bling/config': typeof ApiPublicBlingConfigRoute
   '/api/public/bling/contacts': typeof ApiPublicBlingContactsRoute
@@ -677,6 +684,7 @@ export interface FileRoutesByTo {
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
+  '/api/public/bling/auto-tick': typeof ApiPublicBlingAutoTickRoute
   '/api/public/bling/callback': typeof ApiPublicBlingCallbackRoute
   '/api/public/bling/config': typeof ApiPublicBlingConfigRoute
   '/api/public/bling/contacts': typeof ApiPublicBlingContactsRoute
@@ -765,6 +773,7 @@ export interface FileRoutesById {
   '/api/public/ai/interest-terms': typeof ApiPublicAiInterestTermsRoute
   '/api/public/ai/lovable-proxy': typeof ApiPublicAiLovableProxyRoute
   '/api/public/avatars/refresh': typeof ApiPublicAvatarsRefreshRoute
+  '/api/public/bling/auto-tick': typeof ApiPublicBlingAutoTickRoute
   '/api/public/bling/callback': typeof ApiPublicBlingCallbackRoute
   '/api/public/bling/config': typeof ApiPublicBlingConfigRoute
   '/api/public/bling/contacts': typeof ApiPublicBlingContactsRoute
@@ -853,6 +862,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
+    | '/api/public/bling/auto-tick'
     | '/api/public/bling/callback'
     | '/api/public/bling/config'
     | '/api/public/bling/contacts'
@@ -939,6 +949,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
+    | '/api/public/bling/auto-tick'
     | '/api/public/bling/callback'
     | '/api/public/bling/config'
     | '/api/public/bling/contacts'
@@ -1026,6 +1037,7 @@ export interface FileRouteTypes {
     | '/api/public/ai/interest-terms'
     | '/api/public/ai/lovable-proxy'
     | '/api/public/avatars/refresh'
+    | '/api/public/bling/auto-tick'
     | '/api/public/bling/callback'
     | '/api/public/bling/config'
     | '/api/public/bling/contacts'
@@ -1097,6 +1109,7 @@ export interface RootRouteChildren {
   ApiPublicAiInterestTermsRoute: typeof ApiPublicAiInterestTermsRoute
   ApiPublicAiLovableProxyRoute: typeof ApiPublicAiLovableProxyRoute
   ApiPublicAvatarsRefreshRoute: typeof ApiPublicAvatarsRefreshRoute
+  ApiPublicBlingAutoTickRoute: typeof ApiPublicBlingAutoTickRoute
   ApiPublicBlingCallbackRoute: typeof ApiPublicBlingCallbackRoute
   ApiPublicBlingConfigRoute: typeof ApiPublicBlingConfigRoute
   ApiPublicBlingContactsRoute: typeof ApiPublicBlingContactsRoute
@@ -1692,6 +1705,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBlingCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/bling/auto-tick': {
+      id: '/api/public/bling/auto-tick'
+      path: '/api/public/bling/auto-tick'
+      fullPath: '/api/public/bling/auto-tick'
+      preLoaderRoute: typeof ApiPublicBlingAutoTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/avatars/refresh': {
       id: '/api/public/avatars/refresh'
       path: '/api/public/avatars/refresh'
@@ -1810,6 +1830,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAiInterestTermsRoute: ApiPublicAiInterestTermsRoute,
   ApiPublicAiLovableProxyRoute: ApiPublicAiLovableProxyRoute,
   ApiPublicAvatarsRefreshRoute: ApiPublicAvatarsRefreshRoute,
+  ApiPublicBlingAutoTickRoute: ApiPublicBlingAutoTickRoute,
   ApiPublicBlingCallbackRoute: ApiPublicBlingCallbackRoute,
   ApiPublicBlingConfigRoute: ApiPublicBlingConfigRoute,
   ApiPublicBlingContactsRoute: ApiPublicBlingContactsRoute,
