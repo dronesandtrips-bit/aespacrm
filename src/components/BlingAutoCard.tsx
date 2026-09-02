@@ -96,7 +96,7 @@ export function BlingAutoCard() {
       const json = await res.json();
       if (json?.ok === false) throw new Error(json?.error ?? "falha na execução");
       toast.success(
-        `Verificadas ${json.checked ?? 0} propostas · ${json.sent ?? 0} enviadas · ${json.skipped ?? 0} ignoradas`,
+        `Verificadas ${json.checked ?? 0} · ${json.queued ?? 0} agendadas · ${json.sent ?? 0} enviadas · ${json.skipped ?? 0} ignoradas`,
       );
       await load();
     } catch (e: any) {
