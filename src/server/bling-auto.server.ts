@@ -21,6 +21,8 @@ export type BlingAutoConfig = {
   mediaType: "image" | "video" | "document" | "";
   /** Só propostas com data >= since (ISO date) — evita disparar histórico. */
   since: string;
+  /** Minutos de espera entre detectar a proposta e enviar a mensagem. */
+  delayMin: number;
 };
 
 export const DEFAULT_AUTO_CONFIG: BlingAutoConfig = {
@@ -33,6 +35,7 @@ export const DEFAULT_AUTO_CONFIG: BlingAutoConfig = {
   mediaUrl: "",
   mediaType: "",
   since: new Date().toISOString().slice(0, 10),
+  delayMin: 60,
 };
 
 export async function getAutoConfig(userId: string): Promise<BlingAutoConfig> {
