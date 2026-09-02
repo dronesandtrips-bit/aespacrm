@@ -60,6 +60,10 @@ export async function saveAutoConfig(
     dias: Math.min(Math.max(Number(patch.dias ?? current.dias) || 7, 1), 90),
     maxPerRun: Math.min(Math.max(Number(patch.maxPerRun ?? current.maxPerRun) || 10, 1), 50),
     situacoes: Array.isArray(patch.situacoes) ? patch.situacoes : current.situacoes,
+    delayMin: Math.min(
+      Math.max(Number(patch.delayMin ?? current.delayMin ?? 60), 0),
+      7 * 24 * 60,
+    ),
   };
   await setSecret(userId, CONFIG_SECRET, JSON.stringify(next));
   return next;
