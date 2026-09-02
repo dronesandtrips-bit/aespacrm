@@ -227,6 +227,8 @@ export type AutoRunResult = {
   ok: boolean;
   checked: number;
   sent: number;
+  /** Propostas detectadas nesta rodada e agendadas para envio após o atraso. */
+  queued?: number;
   skipped: number;
   errors: number;
   detail: Array<{ proposal: string; status: string; info?: string }>;
