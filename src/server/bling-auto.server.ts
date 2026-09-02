@@ -263,6 +263,9 @@ export async function runBlingAutoTick(
       return true;
     });
 
+    const categoryId = await ensureBlingCategory(sb, userId);
+
+    // --- Fase 1: registra as propostas novas como "pending" (não envia agora) ---
     const { data: done } = await sb
       .from("crm_bling_auto_log")
       .select("proposal_id")
@@ -273,50 +276,78 @@ export async function runBlingAutoTick(
       );
     const already = new Set((done ?? []).map((r: any) => String(r.proposal_id)));
 
-    const categoryId = await ensureBlingCategory(sb, userId);
-    const queue = wanted.filter((p) => !already.has(p.id)).slice(0, cfg.maxPerRun);
+    for (const p of wanted.filter((x) => !already.has(x.id))) {
+      if (!p.phone) {
+        await sb.from("crm_bling_auto_log").insert({
+          user_id: userId,
+          proposal_id: p.id,
+          status: "skipped",
+          detail: "sem telefone",
+        });
+        out.skipped++;
+        out.detail.push({ proposal: p.numero ?? p.id, status: "sem telefone" });
+        continue;
+      }
+      const { error } = await sb.from("crm_bling_auto_log").insert({
+        user_id: userId,
+        proposal_id: p.id,
+        phone: p.phone,
+        status: "pending",
+        detail: `aguardando ${cfg.delayMin} min`,
+      });
+      if (!error) {
+        out.queued = (out.queued ?? 0) + 1;
+        out.detail.push({
+          proposal: p.numero ?? p.id,
+          status: "agendado",
+          info: `envio em ${cfg.delayMin} min`,
+        });
+      }
+    }
 
-    for (const p of queue) {
+    // --- Fase 2: envia as pendentes que já venceram o tempo de espera ---
+    const delayMs = Math.max(0, Number(cfg.delayMin ?? 60)) * 60_000;
+    const cutoff = new Date(Date.now() - (opts.force ? 0 : delayMs)).toISOString();
+
+    const { data: pending } = await sb
+      .from("crm_bling_auto_log")
+      .select("proposal_id, created_at")
+      .eq("user_id", userId)
+      .eq("status", "pending")
+      .lte("created_at", cutoff)
+      .order("created_at", { ascending: true })
+      .limit(cfg.maxPerRun);
+
+    const byId = new Map(proposals.map((p) => [String(p.id), p]));
+
+    for (const row of pending ?? []) {
+      const p = byId.get(String(row.proposal_id));
+      if (!p) continue; // fora da janela atual; tenta na próxima rodada
       try {
-        if (!p.phone) {
-          await sb.from("crm_bling_auto_log").insert({
-            user_id: userId,
-            proposal_id: p.id,
-            status: "skipped",
-            detail: "sem telefone",
-          });
-          out.skipped++;
-          out.detail.push({ proposal: p.numero ?? p.id, status: "sem telefone" });
-          continue;
-        }
-
         const contact = await ensureContact(sb, userId, categoryId, p);
         if (!contact) throw new Error("não foi possível criar o contato");
 
         if (await isBlacklisted(sb, userId, p.phone)) {
-          await sb.from("crm_bling_auto_log").insert({
-            user_id: userId,
-            proposal_id: p.id,
-            contact_id: contact.id,
-            phone: p.phone,
-            status: "skipped",
-            detail: "blacklist",
-          });
+          await sb
+            .from("crm_bling_auto_log")
+            .update({ contact_id: contact.id, status: "skipped", detail: "blacklist" })
+            .eq("user_id", userId)
+            .eq("proposal_id", p.id);
           out.skipped++;
           out.detail.push({ proposal: p.numero ?? p.id, status: "blacklist" });
           continue;
         }
 
         // Marca ANTES de enviar (idempotência): evita duplicar se o worker cair.
-        const { error: logErr } = await sb.from("crm_bling_auto_log").insert({
-          user_id: userId,
-          proposal_id: p.id,
-          contact_id: contact.id,
-          phone: p.phone,
-          status: "sent",
-        });
-        if (logErr) {
-          // 23505 = outra execução já pegou esta proposta
+        const { data: claimed } = await sb
+          .from("crm_bling_auto_log")
+          .update({ contact_id: contact.id, phone: p.phone, status: "sent", detail: null })
+          .eq("user_id", userId)
+          .eq("proposal_id", p.id)
+          .eq("status", "pending")
+          .select("proposal_id")
+          .maybeSingle();
+        if (!claimed) {
           out.skipped++;
           continue;
         }
