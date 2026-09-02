@@ -21,6 +21,8 @@ export type BlingAutoConfig = {
   mediaType: "image" | "video" | "document" | "";
   /** Só propostas com data >= since (ISO date) — evita disparar histórico. */
   since: string;
+  /** Minutos de espera entre detectar a proposta e enviar a mensagem. */
+  delayMin: number;
 };
 
 export const DEFAULT_AUTO_CONFIG: BlingAutoConfig = {
@@ -33,6 +35,7 @@ export const DEFAULT_AUTO_CONFIG: BlingAutoConfig = {
   mediaUrl: "",
   mediaType: "",
   since: new Date().toISOString().slice(0, 10),
+  delayMin: 60,
 };
 
 export async function getAutoConfig(userId: string): Promise<BlingAutoConfig> {
@@ -57,6 +60,10 @@ export async function saveAutoConfig(
     dias: Math.min(Math.max(Number(patch.dias ?? current.dias) || 7, 1), 90),
     maxPerRun: Math.min(Math.max(Number(patch.maxPerRun ?? current.maxPerRun) || 10, 1), 50),
     situacoes: Array.isArray(patch.situacoes) ? patch.situacoes : current.situacoes,
+    delayMin: Math.min(
+      Math.max(Number(patch.delayMin ?? current.delayMin ?? 60), 0),
+      7 * 24 * 60,
+    ),
   };
   await setSecret(userId, CONFIG_SECRET, JSON.stringify(next));
   return next;
@@ -220,6 +227,8 @@ export type AutoRunResult = {
   ok: boolean;
   checked: number;
   sent: number;
+  /** Propostas detectadas nesta rodada e agendadas para envio após o atraso. */
+  queued?: number;
   skipped: number;
   errors: number;
   detail: Array<{ proposal: string; status: string; info?: string }>;
@@ -256,6 +265,9 @@ export async function runBlingAutoTick(
       return true;
     });
 
+    const categoryId = await ensureBlingCategory(sb, userId);
+
+    // --- Fase 1: registra as propostas novas como "pending" (não envia agora) ---
     const { data: done } = await sb
       .from("crm_bling_auto_log")
       .select("proposal_id")
@@ -266,50 +278,78 @@ export async function runBlingAutoTick(
       );
     const already = new Set((done ?? []).map((r: any) => String(r.proposal_id)));
 
-    const categoryId = await ensureBlingCategory(sb, userId);
-    const queue = wanted.filter((p) => !already.has(p.id)).slice(0, cfg.maxPerRun);
+    for (const p of wanted.filter((x) => !already.has(x.id))) {
+      if (!p.phone) {
+        await sb.from("crm_bling_auto_log").insert({
+          user_id: userId,
+          proposal_id: p.id,
+          status: "skipped",
+          detail: "sem telefone",
+        });
+        out.skipped++;
+        out.detail.push({ proposal: p.numero ?? p.id, status: "sem telefone" });
+        continue;
+      }
+      const { error } = await sb.from("crm_bling_auto_log").insert({
+        user_id: userId,
+        proposal_id: p.id,
+        phone: p.phone,
+        status: "pending",
+        detail: `aguardando ${cfg.delayMin} min`,
+      });
+      if (!error) {
+        out.queued = (out.queued ?? 0) + 1;
+        out.detail.push({
+          proposal: p.numero ?? p.id,
+          status: "agendado",
+          info: `envio em ${cfg.delayMin} min`,
+        });
+      }
+    }
 
-    for (const p of queue) {
+    // --- Fase 2: envia as pendentes que já venceram o tempo de espera ---
+    const delayMs = Math.max(0, Number(cfg.delayMin ?? 60)) * 60_000;
+    const cutoff = new Date(Date.now() - (opts.force ? 0 : delayMs)).toISOString();
+
+    const { data: pending } = await sb
+      .from("crm_bling_auto_log")
+      .select("proposal_id, created_at")
+      .eq("user_id", userId)
+      .eq("status", "pending")
+      .lte("created_at", cutoff)
+      .order("created_at", { ascending: true })
+      .limit(cfg.maxPerRun);
+
+    const byId = new Map(proposals.map((p) => [String(p.id), p]));
+
+    for (const row of pending ?? []) {
+      const p = byId.get(String(row.proposal_id));
+      if (!p) continue; // fora da janela atual; tenta na próxima rodada
       try {
-        if (!p.phone) {
-          await sb.from("crm_bling_auto_log").insert({
-            user_id: userId,
-            proposal_id: p.id,
-            status: "skipped",
-            detail: "sem telefone",
-          });
-          out.skipped++;
-          out.detail.push({ proposal: p.numero ?? p.id, status: "sem telefone" });
-          continue;
-        }
-
         const contact = await ensureContact(sb, userId, categoryId, p);
         if (!contact) throw new Error("não foi possível criar o contato");
 
         if (await isBlacklisted(sb, userId, p.phone)) {
-          await sb.from("crm_bling_auto_log").insert({
-            user_id: userId,
-            proposal_id: p.id,
-            contact_id: contact.id,
-            phone: p.phone,
-            status: "skipped",
-            detail: "blacklist",
-          });
+          await sb
+            .from("crm_bling_auto_log")
+            .update({ contact_id: contact.id, status: "skipped", detail: "blacklist" })
+            .eq("user_id", userId)
+            .eq("proposal_id", p.id);
           out.skipped++;
           out.detail.push({ proposal: p.numero ?? p.id, status: "blacklist" });
           continue;
         }
 
         // Marca ANTES de enviar (idempotência): evita duplicar se o worker cair.
-        const { error: logErr } = await sb.from("crm_bling_auto_log").insert({
-          user_id: userId,
-          proposal_id: p.id,
-          contact_id: contact.id,
-          phone: p.phone,
-          status: "sent",
-        });
-        if (logErr) {
-          // 23505 = outra execução já pegou esta proposta
+        const { data: claimed } = await sb
+          .from("crm_bling_auto_log")
+          .update({ contact_id: contact.id, phone: p.phone, status: "sent", detail: null })
+          .eq("user_id", userId)
+          .eq("proposal_id", p.id)
+          .eq("status", "pending")
+          .select("proposal_id")
+          .maybeSingle();
+        if (!claimed) {
           out.skipped++;
           continue;
         }

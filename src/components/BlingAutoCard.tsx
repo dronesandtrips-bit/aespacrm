@@ -28,6 +28,7 @@ type AutoConfig = {
   mediaUrl: string;
   mediaType: "image" | "video" | "document" | "";
   since: string;
+  delayMin: number;
 };
 
 type LogRow = {
@@ -95,7 +96,7 @@ export function BlingAutoCard() {
       const json = await res.json();
       if (json?.ok === false) throw new Error(json?.error ?? "falha na execução");
       toast.success(
-        `Verificadas ${json.checked ?? 0} propostas · ${json.sent ?? 0} enviadas · ${json.skipped ?? 0} ignoradas`,
+        `Verificadas ${json.checked ?? 0} · ${json.queued ?? 0} agendadas · ${json.sent ?? 0} enviadas · ${json.skipped ?? 0} ignoradas`,
       );
       await load();
     } catch (e: any) {
@@ -181,6 +182,21 @@ export function BlingAutoCard() {
                   onChange={(e) => setCfg({ ...cfg, since: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Atraso antes do envio (minutos)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={10080}
+                value={cfg.delayMin ?? 60}
+                onChange={(e) => setCfg({ ...cfg, delayMin: Number(e.target.value) })}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                A proposta é detectada e fica agendada; a mensagem sai depois desse tempo (padrão 60
+                min). O botão "Executar agora" ignora a espera.
+              </p>
             </div>
 
             <div className="space-y-1.5">
