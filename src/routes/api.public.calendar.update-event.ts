@@ -207,17 +207,26 @@ export const Route = createFileRoute("/api/public/calendar/update-event")({
         let notified = false;
         let notifyError: string | null = null;
         if (parsed.notifyNow && parsed.contactPhone) {
-          const quando = start.toLocaleString("pt-BR", {
-            dateStyle: "short",
-            timeStyle: "short",
+          const data = start.toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            timeZone: "America/Sao_Paulo",
+          });
+          const hora = start.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
             timeZone: "America/Sao_Paulo",
           });
           const text = [
-            `Olá${parsed.contactName ? ` ${parsed.contactName}` : ""}! Seu compromisso foi atualizado:`,
-            parsed.title,
-            `Novo horário: ${quando}`,
-            parsed.location ? `Local: ${parsed.location}` : "",
-            mapsLink ? `Mapa: ${mapsLink}` : "",
+            `Olá${parsed.contactName ? ` ${parsed.contactName}` : ""}! 👋`,
+            ``,
+            `Seu compromisso foi *atualizado*:`,
+            ``,
+            `📌 *${parsed.title}*`,
+            `📅 ${data}`,
+            `🕘 ${hora}`,
+            parsed.location ? `📍 ${parsed.location}` : "",
           ]
             .filter(Boolean)
             .join("\n");

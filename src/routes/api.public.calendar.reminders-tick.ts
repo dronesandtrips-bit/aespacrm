@@ -15,37 +15,52 @@ import {
 
 const INSTANCE = "zapcrm";
 
-function formatWhen(startAt: string) {
-  return new Date(startAt).toLocaleString("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
+function formatDate(startAt: string) {
+  return new Date(startAt).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "America/Sao_Paulo",
+  });
+}
+
+function formatTime(startAt: string) {
+  return new Date(startAt).toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
     timeZone: "America/Sao_Paulo",
   });
 }
 
 function buildText(r: any) {
-  const quando = formatWhen(r.start_at);
+  const data = formatDate(r.start_at);
+  const hora = formatTime(r.start_at);
   if (r.target === "owner") {
     return [
-      `⏰ Lembrete de compromisso: ${r.title}`,
-      `Quando: ${quando}`,
-      r.contact_name ? `Cliente: ${r.contact_name}` : "",
-      r.location ? `Local: ${r.location}` : "",
-      r.maps_link ? `Mapa: ${r.maps_link}` : "",
-      r.html_link ? `Agenda: ${r.html_link}` : "",
+      `⏰ *Lembrete de compromisso*`,
+      ``,
+      `📌 ${r.title}`,
+      `📅 ${data} às ${hora}`,
+      r.contact_name ? `👤 Cliente: ${r.contact_name}` : "",
+      r.location ? `📍 Endereço: ${r.location}` : "",
     ]
       .filter(Boolean)
       .join("\n");
   }
-  const lines = [
-    `Olá${r.contact_name ? ` ${r.contact_name}` : ""}! Passando para lembrar do nosso compromisso:`,
-    `${r.title}`,
-    `Quando: ${quando}`,
-    r.location ? `Local: ${r.location}` : "",
-    r.maps_link ? `Mapa: ${r.maps_link}` : "",
-  ].filter(Boolean);
-  lines.push("", "Responda *SIM* para confirmar sua presença ou *NÃO* para cancelar.");
-  return lines.join("\n");
+  return [
+    `Olá${r.contact_name ? ` ${r.contact_name}` : ""}! 👋`,
+    ``,
+    `Passando para lembrar do nosso compromisso:`,
+    ``,
+    `📌 *${r.title}*`,
+    `📅 ${data}`,
+    `🕘 ${hora}`,
+    r.location ? `📍 ${r.location}` : "",
+    ``,
+    `Responda *SIM* para confirmar ou *NÃO* para cancelar.`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export const Route = createFileRoute("/api/public/calendar/reminders-tick")({
