@@ -185,6 +185,21 @@ export function BlingAutoCard() {
             </div>
 
             <div className="space-y-1.5">
+              <Label className="text-xs">Atraso antes do envio (minutos)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={10080}
+                value={cfg.delayMin ?? 60}
+                onChange={(e) => setCfg({ ...cfg, delayMin: Number(e.target.value) })}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                A proposta é detectada e fica agendada; a mensagem sai depois desse tempo (padrão 60
+                min). O botão "Executar agora" ignora a espera.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
               <Label className="text-xs">Mensagem enviada</Label>
               <Textarea
                 rows={5}
