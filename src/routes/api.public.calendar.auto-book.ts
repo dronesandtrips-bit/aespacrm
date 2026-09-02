@@ -258,13 +258,12 @@ export const Route = createFileRoute("/api/public/calendar/auto-book")({
         const apiKey = process.env.EVOLUTION_API_KEY?.trim();
         if (apiUrl && apiKey && ownerPhone) {
           const msg = [
-            "🤖 O Robô marcou um horário (a confirmar):",
-            baseTitle,
-            `Quando: ${formatWhen(start.toISOString())}`,
-            body.name ? `Cliente: ${body.name} (${phone})` : `Cliente: ${phone}`,
-            body.location ? `Local: ${body.location}` : "",
-            mapsLink ? `Mapa: ${mapsLink}` : "",
-            data?.htmlLink ? `Agenda: ${data.htmlLink}` : "",
+            "🤖 *O Robô marcou um horário (a confirmar)*",
+            ``,
+            `📌 ${baseTitle}`,
+            `📅 ${formatWhen(start.toISOString())}`,
+            body.name ? `👤 Cliente: ${body.name} (${phone})` : `👤 Cliente: ${phone}`,
+            body.location ? `📍 Endereço: ${body.location}` : "",
             "",
             "Confirme ou ajuste na tela Agenda do CRM. O cliente ainda não recebeu nada.",
           ]
