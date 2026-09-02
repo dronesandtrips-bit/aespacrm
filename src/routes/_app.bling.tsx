@@ -27,6 +27,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { authFetch } from "@/lib/auth-fetch";
+import { BlingAutoCard } from "@/components/BlingAutoCard";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { contactsDb, categoriesDb, bulkSendsDb, type Contact } from "@/lib/db";
 import { phoneMatchVariants } from "@/lib/phone-validation";
