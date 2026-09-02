@@ -107,16 +107,24 @@ export function ScheduleEventDialog({
   const shareText = useMemo(() => {
     if (!created) return "";
     const dt = new Date(created.startISO);
-    const quando = dt.toLocaleString("pt-BR", {
-      dateStyle: "short",
-      timeStyle: "short",
+    const data = dt.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+    const hora = dt.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
     return [
-      `Olá ${contactName}! Agendei nosso compromisso: ${created.title}`,
-      `Data: ${quando}`,
-      created.location ? `Local: ${created.location}` : "",
-      created.mapsLink ? `Mapa: ${created.mapsLink}` : "",
-      created.htmlLink ? `Agenda: ${created.htmlLink}` : "",
+      `Olá ${contactName}! 👋`,
+      ``,
+      `Seu compromisso está *agendado*:`,
+      ``,
+      `📌 *${created.title}*`,
+      `📅 ${data}`,
+      `🕘 ${hora}`,
+      created.location ? `📍 ${created.location}` : "",
     ]
       .filter(Boolean)
       .join("\n");
