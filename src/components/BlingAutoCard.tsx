@@ -28,6 +28,7 @@ type AutoConfig = {
   mediaUrl: string;
   mediaType: "image" | "video" | "document" | "";
   since: string;
+  delayMin: number;
 };
 
 type LogRow = {
