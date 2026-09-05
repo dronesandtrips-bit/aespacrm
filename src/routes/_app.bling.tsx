@@ -274,6 +274,20 @@ function BlingPage() {
     [blingContacts, contactIndex],
   );
 
+  /** Busca livre nos contatos do Bling: nome, telefone ou e-mail. */
+  const blingContactsFiltrados = useMemo(() => {
+    const q = contactQuery.trim().toLowerCase();
+    if (!q) return blingContacts;
+    const qDigits = q.replace(/\D/g, "");
+    return blingContacts.filter((c) => {
+      if (normalizeName(c.nome).includes(normalizeName(q))) return true;
+      if ((c.email ?? "").toLowerCase().includes(q)) return true;
+      if (qDigits && (c.phone.includes(qDigits) || (c.phoneRaw ?? "").replace(/\D/g, "").includes(qDigits)))
+        return true;
+      return false;
+    });
+  }, [blingContacts, contactQuery]);
+
   /** Importa TODOS os contatos do Bling que ainda não existem no CRM. */
   const importAllBlingContacts = async () => {
     if (!blingContacts.length) {
