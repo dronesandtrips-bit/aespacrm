@@ -124,6 +124,7 @@ function BlingPage() {
   const [items, setItems] = useState<BlingProposalItem[]>([]);
   const [blingContacts, setBlingContacts] = useState<BlingContactItem[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
+  const [contactQuery, setContactQuery] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [phones, setPhones] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState<Record<string, boolean>>({});
