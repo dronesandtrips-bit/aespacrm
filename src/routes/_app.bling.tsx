@@ -632,17 +632,35 @@ function BlingPage() {
             existe. Os números do cadastro também são usados para completar automaticamente as
             propostas que estão sem WhatsApp.
           </p>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-8"
+              placeholder="Buscar por nome, telefone ou e-mail…"
+              value={contactQuery}
+              onChange={(e) => setContactQuery(e.target.value)}
+            />
+          </div>
           <div className="max-h-56 space-y-1 overflow-auto rounded-lg border p-2">
             {blingContacts.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 {loadingContacts ? "Carregando contatos…" : "Nenhum contato encontrado no Bling."}
               </p>
+            ) : blingContactsFiltrados.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Nenhum contato encontrado para “{contactQuery}”.
+              </p>
             ) : (
-              blingContacts.slice(0, 200).map((bc) => {
+              blingContactsFiltrados.slice(0, 200).map((bc) => {
                 const existente = bc.phone ? findContact(bc.phone) : null;
                 return (
                   <div key={bc.id} className="flex items-center gap-3 rounded-md px-2 py-1 text-sm">
-                    <span className="min-w-0 flex-1 truncate">{bc.nome}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate">{bc.nome}</p>
+                      {bc.email && (
+                        <p className="truncate text-xs text-muted-foreground">{bc.email}</p>
+                      )}
+                    </div>
                     <span className="w-40 truncate text-right font-mono text-xs text-muted-foreground">
                       {bc.phone || "sem número"}
                     </span>
