@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { sequencesDb, type Contact, type Sequence, type Category } from "@/lib/db";
+import { contactsDb, sequencesDb, type Contact, type Sequence, type Category } from "@/lib/db";
 
 export function ContactDialog({
   initial,
@@ -214,6 +214,112 @@ export function EnrollDialog({
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={submit} disabled={!sequenceId || enrolling}>
             {enrolling && <Loader2 className="size-4 mr-1 animate-spin" />} Inscrever
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Diálogo mostrado quando o número digitado já pertence a outro contato.
+ * Permite mesclar os dois cadastros, apenas somar as categorias ao contato
+ * existente, ou voltar e corrigir o número.
+ */
+export function MergeContactDialog({
+  source,
+  existing,
+  pending,
+  categories,
+  onCancel,
+  onDone,
+}: {
+  source: Contact;
+  existing: Contact;
+  pending: Omit<Contact, "id" | "createdAt">;
+  categories: Pick<Category, "id" | "name" | "color">[];
+  onCancel: () => void;
+  onDone: () => void | Promise<void>;
+}) {
+  const unionTags = Array.from(
+    new Set([...(existing.categoryIds ?? []), ...(pending.categoryIds ?? [])]),
+  );
+  const [finalName, setFinalName] = useState(pending.name || existing.name || "");
+  const [busy, setBusy] = useState<null | "merge" | "tags">(null);
+
+  const run = async (mode: "merge" | "tags") => {
+    setBusy(mode);
+    try {
+      if (mode === "merge") {
+        await contactsDb.merge(source.id, existing.id, {
+          name: finalName.trim() || existing.name,
+          email: pending.email ?? undefined,
+          website: pending.website ?? undefined,
+          notes: pending.notes ?? undefined,
+          categoryIds: unionTags,
+        });
+        toast.success("Contatos mesclados");
+      } else {
+        await contactsDb.update(existing.id, {
+          name: finalName.trim() || existing.name,
+          categoryIds: unionTags,
+        });
+        toast.success("Categorias adicionadas ao contato existente");
+      }
+      await onDone();
+    } catch (e: any) {
+      toast.error(`Erro: ${e?.message ?? e}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const tagName = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onCancel(); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Esse número já tem um contato</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            O número <span className="font-medium text-foreground">{pending.phone}</span> já está
+            no contato <span className="font-medium text-foreground">{existing.name || "sem nome"}</span>.
+            Escolha o que fazer:
+          </p>
+          <div className="rounded-md border p-3 space-y-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="mergename">Nome que vai ficar</Label>
+              <Input
+                id="mergename"
+                value={finalName}
+                onChange={(e) => setFinalName(e.target.value)}
+              />
+            </div>
+            {unionTags.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Categorias juntadas: {unionTags.map(tagName).join(", ")}
+              </p>
+            )}
+          </div>
+        </div>
+        <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
+          <Button className="w-full" onClick={() => run("merge")} disabled={busy !== null}>
+            {busy === "merge" && <Loader2 className="size-4 mr-1 animate-spin" />}
+            Mesclar os dois contatos
+          </Button>
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() => run("tags")}
+            disabled={busy !== null}
+          >
+            {busy === "tags" && <Loader2 className="size-4 mr-1 animate-spin" />}
+            Só adicionar as categorias ao contato existente
+          </Button>
+          <Button variant="outline" className="w-full" onClick={onCancel} disabled={busy !== null}>
+            Voltar e usar outro número
           </Button>
         </DialogFooter>
       </DialogContent>
