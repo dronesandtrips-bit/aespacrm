@@ -542,7 +542,7 @@ export async function listContacts(
       .map((t) => t.id)
       .filter(Boolean);
     for (const tipoId of soFornecedor) {
-      for (let pagina = 1; pagina <= 30; pagina++) {
+      for (let pagina = 1; pagina <= 10; pagina++) {
         const qs = new URLSearchParams({
           pagina: String(pagina),
           limite: "100",
