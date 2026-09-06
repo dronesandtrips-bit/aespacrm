@@ -155,6 +155,7 @@ export function DuplicateScanDialog({
   const [busy, setBusy] = useState<string | null>(null);
   const [bulk, setBulk] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const pairs = useMemo(() => (open ? findDuplicatePairs(contacts) : []), [open, contacts]);
   const visible = useMemo(() => {
