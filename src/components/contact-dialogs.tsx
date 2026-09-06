@@ -184,6 +184,54 @@ export function ContactDialog({
             rows={3}
           />
         </div>
+        {initial && agendaContacts && (
+          <div className="space-y-1.5">
+            <Label htmlFor="linkq" className="flex items-center gap-1.5">
+              <Link2 className="size-3.5" /> Puxar da agenda
+            </Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="linkq"
+                value={linkQuery}
+                onChange={(e) => setLinkQuery(e.target.value)}
+                placeholder="Digite um nome da agenda (ex.: Léa)…"
+                className="pl-8"
+                disabled={linking !== null}
+              />
+            </div>
+            {norm(linkQuery).trim().length >= 2 && (
+              <div className="max-h-40 overflow-auto rounded-md border">
+                {linkMatches.length === 0 ? (
+                  <p className="px-3 py-2.5 text-xs text-muted-foreground">
+                    Nenhum contato com telefone encontrado para “{linkQuery}”.
+                  </p>
+                ) : (
+                  linkMatches.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => linkTo(c)}
+                      disabled={linking !== null}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/60 disabled:opacity-50"
+                    >
+                      {linking === c.id ? (
+                        <Loader2 className="size-3.5 shrink-0 animate-spin" />
+                      ) : (
+                        <Link2 className="size-3.5 shrink-0 text-muted-foreground" />
+                      )}
+                      <span className="min-w-0 flex-1 truncate font-medium">{c.name || "(sem nome)"}</span>
+                      <span className="shrink-0 font-mono text-xs text-muted-foreground">{c.phone}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Ao escolher um contato, este cadastro é mesclado a ele: ficam o nome e o telefone do contato da agenda.
+            </p>
+          </div>
+        )}
         <DialogFooter>
           <Button type="submit" disabled={saving}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : null}
