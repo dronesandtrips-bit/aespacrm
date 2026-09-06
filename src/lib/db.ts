@@ -585,6 +585,26 @@ export const contactsDb = {
     if (patch.urgencyLevel !== undefined) dbPatch.urgency_level = patch.urgencyLevel || null;
     if (patch.lastAiSync !== undefined) dbPatch.last_ai_sync = patch.lastAiSync || null;
 
+    // Telefone já usado por OUTRO contato: avisa em português em vez de
+    // estourar o erro cru da constraint uq_crm_contacts_user_phone.
+    if (patch.phone !== undefined) {
+      const norm = normalizeContactPhone(patch.phone);
+      if (norm) {
+        const { data: clash } = await c
+          .from("crm_contacts")
+          .select("id,name")
+          .eq("phone_norm", norm)
+          .neq("id", id)
+          .limit(1)
+          .maybeSingle();
+        if (clash) {
+          throw new Error(
+            `Esse número já está cadastrado no contato "${clash.name ?? "sem nome"}". Edite ou apague esse contato, ou use outro número.`,
+          );
+        }
+      }
+    }
+
     // Estado anterior das tags (para detectar novas e disparar gatilhos)
     let prevTags: Set<string> = new Set();
     if (patch.categoryIds !== undefined || patch.categoryId !== undefined) {
@@ -602,8 +622,16 @@ export const contactsDb = {
 
     if (Object.keys(dbPatch).length) {
       const { error } = await c.from("crm_contacts").update(dbPatch).eq("id", id);
-      if (error) throw error;
+      if (error) {
+        if (isDuplicateContactPhoneError(error)) {
+          throw new Error(
+            "Esse número já está cadastrado em outro contato. Edite ou apague o contato existente, ou use outro número.",
+          );
+        }
+        throw error;
+      }
     }
+
 
     // Atualiza tags. Prioriza categoryIds; senão, usa categoryId (single).
     let nextTags: string[] | null = null;
