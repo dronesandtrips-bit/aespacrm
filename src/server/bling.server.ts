@@ -588,12 +588,17 @@ export async function listContacts(
   }
 
 
+  const listados = out.length;
+  const semDocNaLista = out.filter((c) => !c.documento).length;
+
   // Alguns registros vêm sem telefone/documento na listagem — busca no detalhe.
   // Limitado para não estourar o limite de requisições do Bling em bases grandes.
-  const pend = out.filter((c) => c.id && (!c.phone || !c.documento)).slice(0, 300);
+  const pend = out.filter((c) => c.id && (!c.phone || !c.documento)).slice(0, 400);
+  const checados = new Set<string>();
+  let falhasDetalhe = 0;
   const queue = [...pend];
 
-  const workers = Array.from({ length: Math.min(4, queue.length) }, async () => {
+  const workers = Array.from({ length: Math.min(3, queue.length) }, async () => {
     while (queue.length) {
       const c = queue.shift();
       if (!c) break;
@@ -609,15 +614,29 @@ export async function listContacts(
         if (!c.email && d?.email) c.email = String(d.email);
         if (!c.documento) c.documento = onlyDigits(d?.numeroDocumento ?? d?.cpfCnpj) || null;
         if (!c.tipo && d?.tipo) c.tipo = String(d.tipo);
+        checados.add(c.id);
       } catch {
-        // ignora — contato segue sem telefone
+        falhasDetalhe++;
       }
+      // respeita o limite de requisições do Bling (3/s)
+      await new Promise((r) => setTimeout(r, 340));
     }
   });
   await Promise.all(workers);
 
+  const semDocFinal = out.filter((c) => !c.documento).length;
+  console.log(
+    `[bling] contatos listados=${listados} semDocNaLista=${semDocNaLista} detalhes=${pend.length} falhas=${falhasDetalhe} semDocFinal=${semDocFinal} fornecedoresExcluidos=${fornecedorIds.size}`,
+  );
+
   if (opts.comDocumento) {
-    return out.filter((c) => c.documento && (c.documento.length === 11 || c.documento.length === 14));
+    // Só descarta quem comprovadamente não tem CPF/CNPJ: se o detalhe não pôde ser
+    // consultado (limite de requisições do Bling), o cadastro continua na lista.
+    return out.filter((c) => {
+      if (c.documento) return c.documento.length === 11 || c.documento.length === 14;
+      return !checados.has(c.id);
+    });
   }
   return out;
+
 }
