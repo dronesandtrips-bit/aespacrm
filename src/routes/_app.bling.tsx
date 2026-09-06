@@ -766,7 +766,10 @@ function BlingPage() {
             disabled={busy || !blingContacts.length}
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-            Importar clientes do Bling ({blingNovos.length} novos)
+            {importProgress
+              ? `Importando… ${importProgress.done} de ${importProgress.total}`
+              : `Importar clientes do Bling (${blingNovos.length} novos)`}
+
           </Button>
         </CardContent>
       </Card>
