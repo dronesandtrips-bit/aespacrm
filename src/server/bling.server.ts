@@ -528,25 +528,42 @@ export async function listContacts(
   opts: { limite?: number; apenasClientes?: boolean; comDocumento?: boolean } = {},
 ): Promise<BlingContact[]> {
   const token = await getAccessToken(userId);
-  const limite = Math.min(Math.max(opts.limite ?? 300, 1), 1000);
+  const limite = Math.min(Math.max(opts.limite ?? 2000, 1), 5000);
   const out: BlingContact[] = [];
 
-  // Ids dos tipos "Cliente" (pode haver mais de um: Cliente, Cliente Especial etc.)
-  let tipoIds: string[] = [];
+  // Antes filtrávamos pelos tipos "Cliente" — mas a maioria dos cadastros não tem
+  // essa marcação, então quase todo mundo ficava de fora. Agora trazemos TODOS os
+  // cadastros e removemos apenas quem é exclusivamente fornecedor.
+  const fornecedorIds = new Set<string>();
   if (opts.apenasClientes) {
     const tipos = await listContactTypes(token);
-    tipoIds = tipos
-      .filter((t) => /cliente/i.test(t.descricao) && !/fornecedor/i.test(t.descricao))
+    const soFornecedor = tipos
+      .filter((t) => /fornecedor/i.test(t.descricao) && !/cliente/i.test(t.descricao))
       .map((t) => t.id)
       .filter(Boolean);
+    for (const tipoId of soFornecedor) {
+      for (let pagina = 1; pagina <= 30; pagina++) {
+        const qs = new URLSearchParams({
+          pagina: String(pagina),
+          limite: "100",
+          idTipoContato: tipoId,
+        });
+        let items: any[] = [];
+        try {
+          const page: any = await blingGet(token, `/contatos?${qs.toString()}`);
+          items = page?.data ?? [];
+        } catch {
+          break;
+        }
+        for (const d of items) if (d?.id) fornecedorIds.add(String(d.id));
+        if (items.length < 100) break;
+      }
+    }
   }
-  const tipoQueries = tipoIds.length ? tipoIds : [""];
 
   const seenIds = new Set<string>();
-  for (const tipoId of tipoQueries) {
-  for (let pagina = 1; pagina <= 10 && out.length < limite; pagina++) {
+  for (let pagina = 1; pagina <= 60 && out.length < limite; pagina++) {
     const qs = new URLSearchParams({ pagina: String(pagina), limite: "100" });
-    if (tipoId) qs.set("idTipoContato", tipoId);
     const page: any = await blingGet(token, `/contatos?${qs.toString()}`);
     const items: any[] = page?.data ?? [];
     if (!items.length) break;
@@ -554,6 +571,7 @@ export async function listContacts(
       const id = String(d?.id ?? "");
       if (id && seenIds.has(id)) continue;
       if (id) seenIds.add(id);
+      if (id && fornecedorIds.has(id)) continue;
       const raw = d?.celular || d?.telefone || null;
       out.push({
         id,
@@ -568,11 +586,13 @@ export async function listContacts(
     }
     if (items.length < 100) break;
   }
-  }
+
 
   // Alguns registros vêm sem telefone/documento na listagem — busca no detalhe.
-  const pend = out.filter((c) => c.id && (!c.phone || !c.documento));
+  // Limitado para não estourar o limite de requisições do Bling em bases grandes.
+  const pend = out.filter((c) => c.id && (!c.phone || !c.documento)).slice(0, 300);
   const queue = [...pend];
+
   const workers = Array.from({ length: Math.min(4, queue.length) }, async () => {
     while (queue.length) {
       const c = queue.shift();

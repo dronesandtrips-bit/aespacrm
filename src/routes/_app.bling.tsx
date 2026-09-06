@@ -212,7 +212,7 @@ function BlingPage() {
   const loadBlingContacts = useCallback(async (silent = false) => {
     setLoadingContacts(true);
     try {
-      const res = await authFetch("/api/public/bling/contacts?limite=500");
+      const res = await authFetch("/api/public/bling/contacts?limite=2000");
       const json = await res.json();
       if (!json?.ok) throw new Error(json?.error ?? "falha ao consultar contatos do Bling");
       setBlingContacts(json.items ?? []);
