@@ -536,7 +536,12 @@ export async function listContacts(
   // cadastros e removemos apenas quem é exclusivamente fornecedor.
   const fornecedorIds = new Set<string>();
   if (opts.apenasClientes) {
-    const tipos = await listContactTypes(token);
+    let tipos: { id: string; descricao: string }[] = [];
+    try {
+      tipos = await listContactTypes(token);
+    } catch (err) {
+      console.warn("[bling] falha ao listar tipos de contato:", (err as any)?.message ?? err);
+    }
     const soFornecedor = tipos
       .filter((t) => /fornecedor/i.test(t.descricao) && !/cliente/i.test(t.descricao))
       .map((t) => t.id)
