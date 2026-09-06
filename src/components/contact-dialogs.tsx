@@ -1,22 +1,35 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Link2, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { contactsDb, sequencesDb, type Contact, type Sequence, type Category } from "@/lib/db";
+
+function norm(s: string) {
+  return String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
 export function ContactDialog({
   initial,
   categories,
   onSubmit,
+  agendaContacts,
+  onLinked,
 }: {
   initial: Contact | null;
   categories: Pick<Category, "id" | "name" | "color">[];
   onSubmit: (data: Omit<Contact, "id" | "createdAt">) => void | Promise<void>;
+  /** Agenda completa — habilita o campo "Puxar da agenda" ao editar. */
+  agendaContacts?: Contact[];
+  /** Chamado depois que o contato editado foi mesclado a um contato da agenda. */
+  onLinked?: (target: Contact) => void | Promise<void>;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
