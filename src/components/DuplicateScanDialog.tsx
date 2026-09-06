@@ -143,7 +143,7 @@ export function DuplicateScanDialog({
 
   const mergeCertain = async () => {
     if (!certain.length) return;
-    if (!confirm(`Mesclar automaticamente ${certain.length} pares com telefone ou e-mail idêntico?`))
+    if (!confirm(`Mesclar automaticamente ${certain.length} pares com telefone idêntico?`))
       return;
     setBulk(true);
     let ok = 0;
