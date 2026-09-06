@@ -100,49 +100,20 @@ export function findDuplicatePairs(contacts: Contact[]): DupPair[] {
       for (let j = i + 1; j < uniq.length; j++) add(uniq[i], uniq[j], 100, "Mesmo telefone");
   }
 
-  // 2) E-mail igual
-  const byEmail = new Map<string, Contact[]>();
+  // 2) Telefone semelhante: mesmos 8 dígitos finais (variações de DDI/9º dígito)
+  const byTail = new Map<string, Contact[]>();
   for (const c of list) {
-    const e = normEmail(c.email);
-    if (!e || !e.includes("@")) continue;
-    const arr = byEmail.get(e) ?? [];
+    const d = String(c.phone ?? "").replace(/\D/g, "");
+    if (d.length < 10) continue;
+    const tail = d.slice(-8);
+    const arr = byTail.get(tail) ?? [];
     arr.push(c);
-    byEmail.set(e, arr);
+    byTail.set(tail, arr);
   }
-  for (const arr of byEmail.values())
+  for (const arr of byTail.values()) {
+    if (arr.length > 20) continue;
     for (let i = 0; i < arr.length; i++)
-      for (let j = i + 1; j < arr.length; j++) add(arr[i], arr[j], 95, "Mesmo e-mail");
-
-  // 3) Nome idêntico (normalizado)
-  const byName = new Map<string, Contact[]>();
-  for (const c of list) {
-    const n = normName(c.name);
-    if (n.length < 4) continue;
-    const arr = byName.get(n) ?? [];
-    arr.push(c);
-    byName.set(n, arr);
-  }
-  for (const arr of byName.values())
-    for (let i = 0; i < arr.length; i++)
-      for (let j = i + 1; j < arr.length; j++) add(arr[i], arr[j], 85, "Mesmo nome");
-
-  // 4) Nome muito parecido — só compara dentro do mesmo "balde" (1ª palavra)
-  const buckets = new Map<string, Array<{ c: Contact; n: string }>>();
-  for (const c of list) {
-    const n = normName(c.name);
-    if (n.length < 5) continue;
-    const head = n.split(" ")[0].slice(0, 4);
-    const arr = buckets.get(head) ?? [];
-    arr.push({ c, n });
-    buckets.set(head, arr);
-  }
-  for (const arr of buckets.values()) {
-    if (arr.length > 60) continue;
-    for (let i = 0; i < arr.length; i++)
-      for (let j = i + 1; j < arr.length; j++) {
-        const sim = nameSimilarity(arr[i].n, arr[j].n);
-        if (sim >= 0.8) add(arr[i].c, arr[j].c, 60 + Math.round(sim * 20), "Nome parecido");
-      }
+      for (let j = i + 1; j < arr.length; j++) add(arr[i], arr[j], 90, "Telefone parecido");
   }
 
   return Array.from(found.values()).sort((a, b) => b.score - a.score);
