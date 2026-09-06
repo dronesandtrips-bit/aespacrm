@@ -269,9 +269,14 @@ function BlingPage() {
   const selecionados = items.filter((it) => checked[it.id]);
 
   const blingNovos = useMemo(
-    () => blingContacts.filter((c) => c.phone && !findContact(c.phone)),
+    () =>
+      blingContacts.filter((c) =>
+        c.phone
+          ? !findContact(c.phone)
+          : !contacts.some((x) => normalizeName(x.name) === normalizeName(c.nome)),
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [blingContacts, contactIndex],
+    [blingContacts, contactIndex, contacts],
   );
 
   /** Busca livre nos contatos do Bling: nome, telefone ou e-mail. */
