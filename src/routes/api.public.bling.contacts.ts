@@ -12,8 +12,11 @@ export const Route = createFileRoute("/api/public/bling/contacts")({
         if ("error" in auth) return jsonResponse({ ok: false, error: auth.error }, auth.status);
         const url = new URL(request.url);
         const limite = Number(url.searchParams.get("limite") ?? 300);
+        // Por padrão traz só clientes (exclui fornecedores) e só quem tem CPF/CNPJ.
+        const apenasClientes = url.searchParams.get("clientes") !== "0";
+        const comDocumento = url.searchParams.get("comDocumento") !== "0";
         try {
-          const items = await listContacts(auth.userId, { limite });
+          const items = await listContacts(auth.userId, { limite, apenasClientes, comDocumento });
           return jsonResponse({ ok: true, items, count: items.length });
         } catch (err: any) {
           return jsonResponse(

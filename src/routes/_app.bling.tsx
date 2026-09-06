@@ -269,9 +269,14 @@ function BlingPage() {
   const selecionados = items.filter((it) => checked[it.id]);
 
   const blingNovos = useMemo(
-    () => blingContacts.filter((c) => c.phone && !findContact(c.phone)),
+    () =>
+      blingContacts.filter((c) =>
+        c.phone
+          ? !findContact(c.phone)
+          : !contacts.some((x) => normalizeName(x.name) === normalizeName(c.nome)),
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [blingContacts, contactIndex],
+    [blingContacts, contactIndex, contacts],
   );
 
   /** Busca livre nos contatos do Bling: nome, telefone ou e-mail. */
@@ -288,7 +293,7 @@ function BlingPage() {
     });
   }, [blingContacts, contactQuery]);
 
-  /** Importa TODOS os contatos do Bling que ainda não existem no CRM. */
+  /** Importa TODOS os clientes do Bling que ainda não existem no CRM. */
   const importAllBlingContacts = async () => {
     if (!blingContacts.length) {
       toast.error("Nenhum contato carregado do Bling");
@@ -298,41 +303,54 @@ function BlingPage() {
     try {
       const catId = await ensureBlingCategory();
       const seen = new Set<string>();
+      const nomesNoCrm = new Set(contacts.map((c) => normalizeName(c.name)));
       let novos = 0;
       let marcados = 0;
       let semFone = 0;
 
-      for (const bc of blingContacts) {
-        if (!bc.phone) {
-          semFone++;
-          continue;
+      const marcarExistente = async (existente: Contact) => {
+        if (!catId) return;
+        const tags = new Set([
+          ...(existente.categoryIds ?? []),
+          ...(existente.categoryId ? [existente.categoryId] : []),
+        ]);
+        if (!tags.has(catId)) {
+          tags.add(catId);
+          await contactsDb.setCategories(existente.id, Array.from(tags));
+          marcados++;
         }
-        if (seen.has(bc.phone)) continue;
-        seen.add(bc.phone);
-        const existente = findContact(bc.phone);
+      };
+
+      for (const bc of blingContacts) {
+        const chave = bc.phone || `nome:${normalizeName(bc.nome)}`;
+        if (seen.has(chave)) continue;
+        seen.add(chave);
         try {
-          if (existente) {
-            if (catId) {
-              const tags = new Set([
-                ...(existente.categoryIds ?? []),
-                ...(existente.categoryId ? [existente.categoryId] : []),
-              ]);
-              if (!tags.has(catId)) {
-                tags.add(catId);
-                await contactsDb.setCategories(existente.id, Array.from(tags));
-                marcados++;
-              }
+          if (bc.phone) {
+            const existente = findContact(bc.phone);
+            if (existente) {
+              await marcarExistente(existente);
+              continue;
             }
           } else {
-            await contactsDb.create({
-              name: bc.nome || bc.phone,
-              phone: bc.phone,
-              email: bc.email ?? null,
-              notes: `Bling — contato ${bc.id}${bc.documento ? ` · doc ${bc.documento}` : ""}`,
-              categoryIds: catId ? [catId] : [],
-            } as any);
-            novos++;
+            semFone++;
+            // Sem telefone não dá para casar pelo número — evita duplicar pelo nome.
+            const porNome = contacts.find((c) => normalizeName(c.name) === normalizeName(bc.nome));
+            if (porNome) {
+              await marcarExistente(porNome);
+              continue;
+            }
+            if (nomesNoCrm.has(normalizeName(bc.nome))) continue;
+            nomesNoCrm.add(normalizeName(bc.nome));
           }
+          await contactsDb.create({
+            name: bc.nome || bc.phone,
+            phone: bc.phone || "",
+            email: bc.email ?? null,
+            notes: `Bling — cliente ${bc.id}${bc.documento ? ` · doc ${bc.documento}` : ""}`,
+            categoryIds: catId ? [catId] : [],
+          } as any);
+          novos++;
         } catch (e: any) {
           console.warn("[bling] import contato:", e?.message ?? e);
         }
@@ -341,7 +359,7 @@ function BlingPage() {
       const parts = [`${novos} novos`];
       if (marcados) parts.push(`${marcados} marcados como BLING`);
       if (semFone) parts.push(`${semFone} sem telefone`);
-      toast.success(`Contatos do Bling importados — ${parts.join(" · ")}`);
+      toast.success(`Clientes do Bling importados — ${parts.join(" · ")}`);
     } catch (e: any) {
       toast.error(`Falha ao importar contatos: ${e?.message ?? e}`);
     } finally {
@@ -605,7 +623,7 @@ function BlingPage() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-            Contatos cadastrados no Bling
+            Clientes cadastrados no Bling
             <Badge variant="secondary">{blingContacts.length}</Badge>
             {blingNovos.length > 0 && (
               <Badge variant="outline">{blingNovos.length} ainda não estão no CRM</Badge>
@@ -628,9 +646,10 @@ function BlingPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Importa os clientes reais do Bling para o CRM (categoria BLING), sem duplicar quem já
-            existe. Os números do cadastro também são usados para completar automaticamente as
-            propostas que estão sem WhatsApp.
+            Vem de Cadastros → Clientes e Fornecedores, trazendo <strong>apenas clientes</strong>{" "}
+            (fornecedores ficam de fora) e só quem tem CPF ou CNPJ cadastrado. A importação grava na
+            categoria BLING sem duplicar quem já existe; quem não tem telefone entra só com nome e
+            e-mail.
           </p>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -652,20 +671,24 @@ function BlingPage() {
               </p>
             ) : (
               blingContactsFiltrados.slice(0, 200).map((bc) => {
-                const existente = bc.phone ? findContact(bc.phone) : null;
+                const existente = bc.phone
+                  ? findContact(bc.phone)
+                  : contacts.find((x) => normalizeName(x.name) === normalizeName(bc.nome)) ?? null;
+                const doc = bc.documento ?? "";
                 return (
                   <div key={bc.id} className="flex items-center gap-3 rounded-md px-2 py-1 text-sm">
                     <div className="min-w-0 flex-1">
                       <p className="truncate">{bc.nome}</p>
-                      {bc.email && (
-                        <p className="truncate text-xs text-muted-foreground">{bc.email}</p>
-                      )}
+                      <p className="truncate text-xs text-muted-foreground">
+                        {doc ? `${doc.length === 14 ? "CNPJ" : "CPF"} ${doc}` : "sem documento"}
+                        {bc.email ? ` · ${bc.email}` : ""}
+                      </p>
                     </div>
                     <span className="w-40 truncate text-right font-mono text-xs text-muted-foreground">
                       {bc.phone || "sem número"}
                     </span>
-                    <Badge variant={existente ? "secondary" : bc.phone ? "outline" : "destructive"}>
-                      {existente ? "no CRM" : bc.phone ? "novo" : "sem número"}
+                    <Badge variant={existente ? "secondary" : "outline"}>
+                      {existente ? "no CRM" : "novo"}
                     </Badge>
                   </div>
                 );
@@ -679,7 +702,7 @@ function BlingPage() {
             disabled={busy || !blingContacts.length}
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-            Importar contatos do Bling ({blingNovos.length} novos)
+            Importar clientes do Bling ({blingNovos.length} novos)
           </Button>
         </CardContent>
       </Card>
