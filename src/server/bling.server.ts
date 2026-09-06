@@ -6,6 +6,25 @@ export const BLING_API = "https://api.bling.com.br/Api/v3";
 export const BLING_AUTH_URL = "https://www.bling.com.br/Api/v3/oauth/authorize";
 export const BLING_TOKEN_URL = "https://www.bling.com.br/Api/v3/oauth/token";
 
+// O Bling aceita somente 3 chamadas por segundo. Todas as consultas desta
+// instância passam pela mesma fila para propostas, contatos e detalhes não
+// disputarem o limite e fazerem a primeira página voltar vazia.
+let blingRequestQueue: Promise<void> = Promise.resolve();
+let blingNextRequestAt = 0;
+
+async function waitForBlingRequestSlot() {
+  const previous = blingRequestQueue;
+  let release: (() => void) | undefined;
+  blingRequestQueue = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await previous;
+  const waitMs = Math.max(0, blingNextRequestAt - Date.now());
+  if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+  blingNextRequestAt = Date.now() + 360;
+  release?.();
+}
+
 export const BLING_SECRET_NAMES = [
   "BLING_CLIENT_ID",
   "BLING_CLIENT_SECRET",
@@ -175,11 +194,12 @@ export async function getAccessToken(userId: string): Promise<string> {
 }
 
 async function blingGet(token: string, path: string) {
-  let res!: Response;
+  let res: Response | null = null;
   let json: any = {};
   // O Bling limita requisições (429). Sem retry, os detalhes das propostas
   // falhavam silenciosamente e nome/telefone ficavam vazios.
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await waitForBlingRequestSlot();
     res = await fetch(`${BLING_API}${path}`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -191,10 +211,13 @@ async function blingGet(token: string, path: string) {
     });
     json = await res.json().catch(() => ({}));
     if (res.status !== 429 && res.status !== 503) break;
-    await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+    const retryAfter = Number(res.headers.get("retry-after") ?? 0);
+    const retryMs = retryAfter > 0 ? retryAfter * 1000 : 1000 * (attempt + 1);
+    await new Promise((r) => setTimeout(r, retryMs));
   }
 
-  if (!res.ok) {
+  if (!res || !res.ok) {
+    if (!res) throw new Error("Bling não respondeu à consulta");
     const detail = json?.error?.description ?? json?.error?.message ?? `HTTP ${res.status}`;
     throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
   }
@@ -576,6 +599,9 @@ export async function listContacts(
       items = page?.data ?? [];
     } catch (err) {
       console.warn(`[bling] falha ao listar página ${pagina}:`, (err as any)?.message ?? err);
+      // Nunca transforma falha da primeira página em uma lista válida com 0
+      // contatos. Assim a tela pode preservar o resultado anterior e tentar de novo.
+      if (pagina === 1) throw err;
       break; // devolve o que já foi coletado em vez de derrubar a requisição
     }
     if (!items.length) break;
@@ -632,8 +658,8 @@ export async function listContacts(
       } catch {
         falhasDetalhe++;
       }
-      // respeita o limite de requisições do Bling (3/s)
-      await new Promise((r) => setTimeout(r, 340));
+      // O espaçamento global em blingGet controla o limite também entre
+      // consultas simultâneas de propostas, contatos e detalhes.
     }
   });
   await Promise.all(workers);
