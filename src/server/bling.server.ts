@@ -551,9 +551,12 @@ export async function listContacts(
     const items: any[] = page?.data ?? [];
     if (!items.length) break;
     for (const d of items) {
+      const id = String(d?.id ?? "");
+      if (id && seenIds.has(id)) continue;
+      if (id) seenIds.add(id);
       const raw = d?.celular || d?.telefone || null;
       out.push({
-        id: String(d?.id ?? ""),
+        id,
         nome: String(d?.nome ?? "Sem nome"),
         phone: normalizeBrPhone(raw),
         phoneRaw: raw ? String(raw) : null,
@@ -565,10 +568,11 @@ export async function listContacts(
     }
     if (items.length < 100) break;
   }
+  }
 
-  // Alguns registros vêm sem telefone na listagem — busca no detalhe (concorrência 4).
-  const semFone = out.filter((c) => c.id && !c.phone);
-  const queue = [...semFone];
+  // Alguns registros vêm sem telefone/documento na listagem — busca no detalhe.
+  const pend = out.filter((c) => c.id && (!c.phone || !c.documento));
+  const queue = [...pend];
   const workers = Array.from({ length: Math.min(4, queue.length) }, async () => {
     while (queue.length) {
       const c = queue.shift();
@@ -584,6 +588,7 @@ export async function listContacts(
         }
         if (!c.email && d?.email) c.email = String(d.email);
         if (!c.documento) c.documento = onlyDigits(d?.numeroDocumento ?? d?.cpfCnpj) || null;
+        if (!c.tipo && d?.tipo) c.tipo = String(d.tipo);
       } catch {
         // ignora — contato segue sem telefone
       }
@@ -591,5 +596,8 @@ export async function listContacts(
   });
   await Promise.all(workers);
 
+  if (opts.comDocumento) {
+    return out.filter((c) => c.documento && (c.documento.length === 11 || c.documento.length === 14));
+  }
   return out;
 }
