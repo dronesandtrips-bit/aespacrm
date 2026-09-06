@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, GitMerge, ArrowRight } from "lucide-react";
 import { contactsDb, type Contact } from "@/lib/db";
 import { phoneMatchVariants } from "@/lib/phone-validation";
