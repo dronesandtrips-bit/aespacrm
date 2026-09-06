@@ -1,22 +1,35 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Link2, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { contactsDb, sequencesDb, type Contact, type Sequence, type Category } from "@/lib/db";
+
+function norm(s: string) {
+  return String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
 export function ContactDialog({
   initial,
   categories,
   onSubmit,
+  agendaContacts,
+  onLinked,
 }: {
   initial: Contact | null;
   categories: Pick<Category, "id" | "name" | "color">[];
   onSubmit: (data: Omit<Contact, "id" | "createdAt">) => void | Promise<void>;
+  /** Agenda completa — habilita o campo "Puxar da agenda" ao editar. */
+  agendaContacts?: Contact[];
+  /** Chamado depois que o contato editado foi mesclado a um contato da agenda. */
+  onLinked?: (target: Contact) => void | Promise<void>;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
@@ -31,6 +44,43 @@ export function ContactDialog({
         : [];
   const [selectedIds, setSelectedIds] = useState<string[]>(initialTags);
   const [saving, setSaving] = useState(false);
+  const [linkQuery, setLinkQuery] = useState("");
+  const [linking, setLinking] = useState<string | null>(null);
+
+  // Sugestões da agenda: só contatos com telefone, excluindo o que está sendo editado.
+  const linkMatches = useMemo(() => {
+    const q = norm(linkQuery).trim();
+    if (!initial || !agendaContacts || q.length < 2) return [];
+    return agendaContacts
+      .filter(
+        (c) =>
+          c.id !== initial.id &&
+          !c.isGroup &&
+          String(c.phone ?? "").replace(/\D/g, "").length > 0 &&
+          norm(c.name).includes(q),
+      )
+      .slice(0, 8);
+  }, [linkQuery, agendaContacts, initial]);
+
+  // Mescla o contato editado (origem) no contato escolhido da agenda (destino).
+  const linkTo = async (target: Contact) => {
+    if (!initial || linking) return;
+    const ok = confirm(
+      `Relacionar "${initial.name || "este contato"}" a "${target.name || target.phone}"?\n\n` +
+        `O contato da agenda permanece com o nome e o telefone dele; os dados e as categorias deste cadastro serão somados a ele.`,
+    );
+    if (!ok) return;
+    setLinking(target.id);
+    try {
+      await contactsDb.merge(initial.id, target.id, { categoryIds: selectedIds });
+      toast.success(`Relacionado a ${target.name || target.phone}`);
+      await onLinked?.(target);
+    } catch (e: any) {
+      toast.error(`Erro: ${e?.message ?? e}`);
+    } finally {
+      setLinking(null);
+    }
+  };
 
   const toggle = (id: string) => {
     setSelectedIds((prev) =>
@@ -134,6 +184,54 @@ export function ContactDialog({
             rows={3}
           />
         </div>
+        {initial && agendaContacts && (
+          <div className="space-y-1.5">
+            <Label htmlFor="linkq" className="flex items-center gap-1.5">
+              <Link2 className="size-3.5" /> Puxar da agenda
+            </Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="linkq"
+                value={linkQuery}
+                onChange={(e) => setLinkQuery(e.target.value)}
+                placeholder="Digite um nome da agenda (ex.: Léa)…"
+                className="pl-8"
+                disabled={linking !== null}
+              />
+            </div>
+            {norm(linkQuery).trim().length >= 2 && (
+              <div className="max-h-40 overflow-auto rounded-md border">
+                {linkMatches.length === 0 ? (
+                  <p className="px-3 py-2.5 text-xs text-muted-foreground">
+                    Nenhum contato com telefone encontrado para “{linkQuery}”.
+                  </p>
+                ) : (
+                  linkMatches.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => linkTo(c)}
+                      disabled={linking !== null}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/60 disabled:opacity-50"
+                    >
+                      {linking === c.id ? (
+                        <Loader2 className="size-3.5 shrink-0 animate-spin" />
+                      ) : (
+                        <Link2 className="size-3.5 shrink-0 text-muted-foreground" />
+                      )}
+                      <span className="min-w-0 flex-1 truncate font-medium">{c.name || "(sem nome)"}</span>
+                      <span className="shrink-0 font-mono text-xs text-muted-foreground">{c.phone}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Ao escolher um contato, este cadastro é mesclado a ele: ficam o nome e o telefone do contato da agenda.
+            </p>
+          </div>
+        )}
         <DialogFooter>
           <Button type="submit" disabled={saving}>
             {saving ? <Loader2 className="size-4 animate-spin" /> : null}

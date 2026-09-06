@@ -630,6 +630,12 @@ function ContactsPage() {
               initial={editing}
               categories={categories}
               onSubmit={handleSave}
+              agendaContacts={contacts}
+              onLinked={async () => {
+                setOpen(false);
+                setEditing(null);
+                await refresh();
+              }}
             />
           </Dialog>
           <DuplicateScanDialog
