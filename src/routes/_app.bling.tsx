@@ -646,9 +646,10 @@ function BlingPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Importa os clientes reais do Bling para o CRM (categoria BLING), sem duplicar quem já
-            existe. Os números do cadastro também são usados para completar automaticamente as
-            propostas que estão sem WhatsApp.
+            Vem de Cadastros → Clientes e Fornecedores, trazendo <strong>apenas clientes</strong>{" "}
+            (fornecedores ficam de fora) e só quem tem CPF ou CNPJ cadastrado. A importação grava na
+            categoria BLING sem duplicar quem já existe; quem não tem telefone entra só com nome e
+            e-mail.
           </p>
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
