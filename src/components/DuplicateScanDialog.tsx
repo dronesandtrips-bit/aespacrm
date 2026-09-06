@@ -170,6 +170,42 @@ export function DuplicateScanDialog({
   }, [pairs, q, dismissed]);
 
   const certain = visible.filter((p) => p.score >= 95);
+  const selectedPairs = visible.filter((p) => selected.has(p.key));
+
+  const toggleSelect = (key: string, on: boolean) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (on) n.add(key);
+      else n.delete(key);
+      return n;
+    });
+
+  const mergeSelected = async () => {
+    if (!selectedPairs.length) return;
+    if (!confirm(`Mesclar os ${selectedPairs.length} pares selecionados?`)) return;
+    setBulk(true);
+    let ok = 0;
+    const done = new Set<string>();
+    for (const p of selectedPairs) {
+      if (done.has(p.keep.id) || done.has(p.drop.id)) continue;
+      try {
+        await contactsDb.merge(p.drop.id, p.keep.id, {});
+        done.add(p.drop.id);
+        ok++;
+      } catch (e) {
+        console.warn("[dup] merge selecionado", e);
+      }
+    }
+    setDismissed((s) => {
+      const n = new Set(s);
+      for (const p of selectedPairs) n.add(p.key);
+      return n;
+    });
+    setSelected(new Set());
+    setBulk(false);
+    await onMerged();
+    toast.success(`${ok} contatos mesclados`);
+  };
 
   const mergePair = async (p: DupPair) => {
     setBusy(p.key);
