@@ -608,6 +608,7 @@ export async function listContacts(
 
   const workers = Array.from({ length: Math.min(3, queue.length) }, async () => {
     while (queue.length) {
+      if (Date.now() > deadline) break;
       const c = queue.shift();
       if (!c) break;
       try {
