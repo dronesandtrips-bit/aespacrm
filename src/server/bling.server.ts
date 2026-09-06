@@ -589,8 +589,10 @@ export async function listContacts(
 
 
   // Alguns registros vêm sem telefone/documento na listagem — busca no detalhe.
-  const pend = out.filter((c) => c.id && (!c.phone || !c.documento));
+  // Limitado para não estourar o limite de requisições do Bling em bases grandes.
+  const pend = out.filter((c) => c.id && (!c.phone || !c.documento)).slice(0, 300);
   const queue = [...pend];
+
   const workers = Array.from({ length: Math.min(4, queue.length) }, async () => {
     while (queue.length) {
       const c = queue.shift();
