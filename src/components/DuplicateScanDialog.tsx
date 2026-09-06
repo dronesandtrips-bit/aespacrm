@@ -89,8 +89,25 @@ export function findDuplicatePairs(contacts: Contact[]): DupPair[] {
       for (let j = i + 1; j < arr.length; j++) add(arr[i], arr[j], 90, "Telefone parecido");
   }
 
+  // 3) Contato SEM telefone x contato COM telefone, quando o nome bate.
+  // Caso típico: cliente importado do Bling (só nome) que já existe no
+  // WhatsApp com número. Sem isso ele nunca aparece como duplicado.
+  const noPhone = list.filter((c) => !String(c.phone ?? "").replace(/\D/g, ""));
+  const withPhone = list.filter((c) => String(c.phone ?? "").replace(/\D/g, ""));
+  for (const a of noPhone) {
+    const ta = nameTokens(a.name);
+    if (!ta.length) continue;
+    for (const b of withPhone) {
+      const tb = nameTokens(b.name);
+      if (!tb.length) continue;
+      const s = tokenScore(ta, tb);
+      if (s >= 0.6) add(a, b, s >= 0.99 ? 88 : 70, s >= 0.99 ? "Mesmo nome, sem número" : "Nome parecido, sem número");
+    }
+  }
+
   return Array.from(found.values()).sort((a, b) => b.score - a.score);
 }
+
 
 function label(c: Contact) {
   const bits = [c.phone ? `+${c.phone}` : "sem número", c.email ?? ""].filter(Boolean);
