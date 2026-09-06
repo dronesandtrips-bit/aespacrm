@@ -548,10 +548,11 @@ export async function listContactTypes(
  */
 export async function listContacts(
   userId: string,
-  opts: { limite?: number; apenasClientes?: boolean; comDocumento?: boolean } = {},
+  opts: { limite?: number; apenasClientes?: boolean; comDocumento?: boolean; busca?: string } = {},
 ): Promise<BlingContact[]> {
   const token = await getAccessToken(userId);
   const limite = Math.min(Math.max(opts.limite ?? 2000, 1), 5000);
+  const busca = String(opts.busca ?? "").trim().slice(0, 120);
   const out: BlingContact[] = [];
 
   // Antes filtrávamos pelos tipos "Cliente" — mas a maioria dos cadastros não tem
@@ -576,6 +577,7 @@ export async function listContacts(
           limite: "100",
           idTipoContato: tipoId,
         });
+        if (busca) qs.set("criterio", busca);
         let items: any[] = [];
         try {
           const page: any = await blingGet(token, `/contatos?${qs.toString()}`);
@@ -593,6 +595,7 @@ export async function listContacts(
   const deadline = Date.now() + 20000; // orçamento de tempo para não estourar o gateway
   for (let pagina = 1; pagina <= 60 && out.length < limite; pagina++) {
     const qs = new URLSearchParams({ pagina: String(pagina), limite: "100" });
+    if (busca) qs.set("criterio", busca);
     let items: any[] = [];
     try {
       const page: any = await blingGet(token, `/contatos?${qs.toString()}`);
@@ -631,7 +634,12 @@ export async function listContacts(
 
   // Alguns registros vêm sem telefone/documento na listagem — busca no detalhe.
   // Limitado para não estourar o limite de requisições do Bling nem o tempo da requisição.
-  const pend = out.filter((c) => c.id && (!c.phone || !c.documento)).slice(0, 120);
+  // Numa busca nominal há poucos resultados, então consultamos todos os detalhes.
+  // Isso evita que clientes mais antigos (fora dos primeiros 120 sem documento da
+  // listagem geral) nunca apareçam, mesmo tendo CPF/CNPJ no cadastro completo.
+  const pend = out
+    .filter((c) => c.id && (!c.phone || !c.documento))
+    .slice(0, busca ? Math.min(out.length, 300) : 120);
 
   const checados = new Set<string>();
   let falhasDetalhe = 0;

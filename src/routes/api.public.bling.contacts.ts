@@ -15,8 +15,14 @@ export const Route = createFileRoute("/api/public/bling/contacts")({
         // Por padrão traz só clientes (exclui fornecedores) e só quem tem CPF/CNPJ.
         const apenasClientes = url.searchParams.get("clientes") !== "0";
         const comDocumento = url.searchParams.get("comDocumento") !== "0";
+        const busca = url.searchParams.get("busca") ?? "";
         try {
-          const items = await listContacts(auth.userId, { limite, apenasClientes, comDocumento });
+          const items = await listContacts(auth.userId, {
+            limite,
+            apenasClientes,
+            comDocumento,
+            busca,
+          });
           return jsonResponse({ ok: true, items, count: items.length });
         } catch (err: any) {
           return jsonResponse(

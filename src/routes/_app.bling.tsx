@@ -229,6 +229,30 @@ function BlingPage() {
     loadBlingContacts(true);
   }, [loadBlingContacts]);
 
+  // A listagem resumida do Bling omite CPF/CNPJ em parte dos cadastros. Ao buscar
+  // um nome, consulta esse cadastro diretamente e o incorpora à lista carregada.
+  useEffect(() => {
+    const busca = contactQuery.trim();
+    if (busca.length < 3) return;
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await authFetch(
+          `/api/public/bling/contacts?limite=300&busca=${encodeURIComponent(busca)}`,
+        );
+        const json = await res.json();
+        if (!json?.ok || !Array.isArray(json.items)) return;
+        setBlingContacts((current) => {
+          const byId = new Map(current.map((item) => [item.id, item]));
+          for (const item of json.items as BlingContactItem[]) byId.set(item.id, item);
+          return Array.from(byId.values());
+        });
+      } catch {
+        // A lista já carregada continua disponível se a busca remota falhar.
+      }
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [contactQuery]);
+
   const contactIndex = useMemo(() => {
     const m = new Map<string, Contact>();
     for (const c of contacts) for (const v of phoneMatchVariants(c.phone)) m.set(v, c);
