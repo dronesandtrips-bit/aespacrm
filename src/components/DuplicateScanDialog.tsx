@@ -44,7 +44,32 @@ function orderPair(a: Contact, b: Contact): [Contact, Contact] {
   return (a.createdAt ?? "") <= (b.createdAt ?? "") ? [a, b] : [b, a];
 }
 
+const STOP = new Set(["cliente", "clientes", "ltda", "me", "epp", "sa", "eireli", "sr", "sra", "da", "de", "do", "dos", "das", "e"]);
+
+/** Palavras significativas do nome, sem acento e sem termos genéricos. */
+function nameTokens(name: string | null | undefined): string[] {
+  return String(name ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length >= 3 && !STOP.has(t));
+}
+
+/** Proporção de palavras em comum em relação ao nome mais curto. */
+function tokenScore(a: string[], b: string[]): number {
+  const sa = new Set(a);
+  const sb = new Set(b);
+  let hits = 0;
+  for (const t of sa) if (sb.has(t)) hits++;
+  const min = Math.min(sa.size, sb.size);
+  if (min < 2) return 0;
+  return hits / min;
+}
+
 export function findDuplicatePairs(contacts: Contact[]): DupPair[] {
+
   const list = contacts.filter((c) => !c.isGroup);
   const found = new Map<string, DupPair>();
 
