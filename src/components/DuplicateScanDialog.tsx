@@ -269,6 +269,16 @@ export function DuplicateScanDialog({
             size="sm"
             variant="outline"
             className="ml-auto gap-1.5"
+            onClick={mergeSelected}
+            disabled={bulk || selectedPairs.length === 0}
+          >
+            {bulk ? <Loader2 className="size-3.5 animate-spin" /> : <GitMerge className="size-3.5" />}
+            Mesclar selecionados ({selectedPairs.length})
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
             onClick={mergeCertain}
             disabled={bulk || certain.length === 0}
           >
