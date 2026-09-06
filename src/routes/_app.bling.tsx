@@ -131,6 +131,8 @@ function BlingPage() {
   const [dias, setDias] = useState("90");
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
+
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
@@ -326,61 +328,95 @@ function BlingPage() {
       return;
     }
     setBusy(true);
+    setImportProgress({ done: 0, total: 0 });
     try {
       const catId = await ensureBlingCategory();
       const seen = new Set<string>();
       const nomesNoCrm = new Set(contacts.map((c) => normalizeName(c.name)));
-      let novos = 0;
-      let marcados = 0;
       let semFone = 0;
 
-      const marcarExistente = async (existente: Contact) => {
-        if (!catId) return;
-        const tags = new Set([
-          ...(existente.categoryIds ?? []),
-          ...(existente.categoryId ? [existente.categoryId] : []),
-        ]);
-        if (!tags.has(catId)) {
-          tags.add(catId);
-          await contactsDb.setCategories(existente.id, Array.from(tags));
-          marcados++;
-        }
-      };
+      // 1) Monta o plano sem tocar no banco (rápido e sem duplicar).
+      type Job =
+        | { tipo: "marcar"; existente: Contact }
+        | { tipo: "criar"; bc: (typeof blingContacts)[number] };
+      const jobs: Job[] = [];
 
       for (const bc of blingContacts) {
         const chave = bc.phone || `nome:${normalizeName(bc.nome)}`;
         if (seen.has(chave)) continue;
         seen.add(chave);
+
+        if (bc.phone) {
+          const existente = findContact(bc.phone);
+          if (existente) {
+            jobs.push({ tipo: "marcar", existente });
+            continue;
+          }
+        } else {
+          semFone++;
+          const porNome = contacts.find((c) => normalizeName(c.name) === normalizeName(bc.nome));
+          if (porNome) {
+            jobs.push({ tipo: "marcar", existente: porNome });
+            continue;
+          }
+          if (nomesNoCrm.has(normalizeName(bc.nome))) continue;
+          nomesNoCrm.add(normalizeName(bc.nome));
+        }
+        jobs.push({ tipo: "criar", bc });
+      }
+
+      let novos = 0;
+      let marcados = 0;
+      let done = 0;
+      setImportProgress({ done: 0, total: jobs.length });
+
+      const runJob = async (job: Job) => {
         try {
-          if (bc.phone) {
-            const existente = findContact(bc.phone);
-            if (existente) {
-              await marcarExistente(existente);
-              continue;
+          if (job.tipo === "marcar") {
+            const existente = job.existente;
+            if (catId) {
+              const tags = new Set([
+                ...(existente.categoryIds ?? []),
+                ...(existente.categoryId ? [existente.categoryId] : []),
+              ]);
+              if (!tags.has(catId)) {
+                tags.add(catId);
+                await contactsDb.setCategories(existente.id, Array.from(tags));
+                marcados++;
+              }
             }
           } else {
-            semFone++;
-            // Sem telefone não dá para casar pelo número — evita duplicar pelo nome.
-            const porNome = contacts.find((c) => normalizeName(c.name) === normalizeName(bc.nome));
-            if (porNome) {
-              await marcarExistente(porNome);
-              continue;
-            }
-            if (nomesNoCrm.has(normalizeName(bc.nome))) continue;
-            nomesNoCrm.add(normalizeName(bc.nome));
+            const bc = job.bc;
+            await contactsDb.create({
+              name: bc.nome || bc.phone,
+              phone: bc.phone || "",
+              email: bc.email ?? null,
+              notes: `Bling — cliente ${bc.id}${bc.documento ? ` · doc ${bc.documento}` : ""}`,
+              categoryIds: catId ? [catId] : [],
+            } as any);
+            novos++;
           }
-          await contactsDb.create({
-            name: bc.nome || bc.phone,
-            phone: bc.phone || "",
-            email: bc.email ?? null,
-            notes: `Bling — cliente ${bc.id}${bc.documento ? ` · doc ${bc.documento}` : ""}`,
-            categoryIds: catId ? [catId] : [],
-          } as any);
-          novos++;
         } catch (e: any) {
           console.warn("[bling] import contato:", e?.message ?? e);
+        } finally {
+          done++;
+          if (done % 5 === 0 || done === jobs.length)
+            setImportProgress({ done, total: jobs.length });
         }
-      }
+      };
+
+      // 2) Executa em paralelo (8 por vez) — sem isso, ~800 cadastros levam minutos.
+      const CONC = 8;
+      let cursor = 0;
+      await Promise.all(
+        Array.from({ length: Math.min(CONC, jobs.length) }, async () => {
+          while (cursor < jobs.length) {
+            const job = jobs[cursor++];
+            await runJob(job);
+          }
+        }),
+      );
+
       setContacts(await contactsDb.list().catch(() => contacts));
       const parts = [`${novos} novos`];
       if (marcados) parts.push(`${marcados} marcados como BLING`);
@@ -389,9 +425,11 @@ function BlingPage() {
     } catch (e: any) {
       toast.error(`Falha ao importar contatos: ${e?.message ?? e}`);
     } finally {
+      setImportProgress(null);
       setBusy(false);
     }
   };
+
 
   /** Importa (cria/atualiza) contatos das propostas selecionadas. Retorna ids. */
   const importSelected = async (): Promise<string[]> => {
@@ -728,7 +766,10 @@ function BlingPage() {
             disabled={busy || !blingContacts.length}
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-            Importar clientes do Bling ({blingNovos.length} novos)
+            {importProgress
+              ? `Importando… ${importProgress.done} de ${importProgress.total}`
+              : `Importar clientes do Bling (${blingNovos.length} novos)`}
+
           </Button>
         </CardContent>
       </Card>
