@@ -217,6 +217,8 @@ function BlingPage() {
       if (!json?.ok) throw new Error(json?.error ?? "falha ao consultar contatos do Bling");
       setBlingContacts(json.items ?? []);
     } catch (e: any) {
+      // Mantém a última listagem válida quando o Bling limita temporariamente
+      // as consultas, em vez de trocar a tela por uma contagem enganosa de zero.
       if (!silent) toast.error(e?.message ?? "Erro ao consultar contatos do Bling");
     } finally {
       setLoadingContacts(false);
