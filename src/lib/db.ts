@@ -333,6 +333,22 @@ function isDuplicateContactPhoneError(error: unknown): boolean {
   return e?.code === "23505" && text.includes("uq_crm_contacts_user_phone");
 }
 
+/**
+ * Erro tipado para "telefone já usado por outro contato".
+ * Carrega o contato existente para a UI oferecer mesclar/editar.
+ */
+export class DuplicateContactPhoneError extends Error {
+  existing: Contact;
+  constructor(existing: Contact) {
+    super(
+      `Esse número já está cadastrado no contato "${existing.name || "sem nome"}".`,
+    );
+    this.name = "DuplicateContactPhoneError";
+    this.existing = existing;
+  }
+}
+
+
 async function loadExistingContactByPhoneNorm(userId: string, phone: string): Promise<Contact | null> {
   const norm = normalizeContactPhone(phone);
   if (!norm) return null;
