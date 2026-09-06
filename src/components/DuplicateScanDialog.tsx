@@ -186,16 +186,20 @@ export function DuplicateScanDialog({
     setBulk(true);
     let ok = 0;
     const done = new Set<string>();
-    for (const p of selectedPairs) {
-      if (done.has(p.keep.id) || done.has(p.drop.id)) continue;
-      try {
-        await contactsDb.merge(p.drop.id, p.keep.id, {});
-        done.add(p.drop.id);
-        ok++;
-      } catch (e) {
-        console.warn("[dup] merge selecionado", e);
+    const queue = selectedPairs.filter((p) => !done.has(p.keep.id) && !done.has(p.drop.id));
+    const worker = async () => {
+      for (let p = queue.shift(); p; p = queue.shift()) {
+        if (done.has(p.keep.id) || done.has(p.drop.id)) continue;
+        try {
+          await contactsDb.merge(p.drop.id, p.keep.id, {});
+          done.add(p.drop.id);
+          ok++;
+        } catch (e) {
+          console.warn("[dup] merge selecionado", e);
+        }
       }
-    }
+    };
+    await Promise.all(Array.from({ length: 6 }, worker));
     setDismissed((s) => {
       const n = new Set(s);
       for (const p of selectedPairs) n.add(p.key);
@@ -228,16 +232,20 @@ export function DuplicateScanDialog({
     setBulk(true);
     let ok = 0;
     const done = new Set<string>();
-    for (const p of certain) {
-      if (done.has(p.keep.id) || done.has(p.drop.id)) continue;
-      try {
-        await contactsDb.merge(p.drop.id, p.keep.id, {});
-        done.add(p.drop.id);
-        ok++;
-      } catch (e) {
-        console.warn("[dup] merge", e);
+    const queue = [...certain];
+    const worker = async () => {
+      for (let p = queue.shift(); p; p = queue.shift()) {
+        if (done.has(p.keep.id) || done.has(p.drop.id)) continue;
+        try {
+          await contactsDb.merge(p.drop.id, p.keep.id, {});
+          done.add(p.drop.id);
+          ok++;
+        } catch (e) {
+          console.warn("[dup] merge", e);
+        }
       }
-    }
+    };
+    await Promise.all(Array.from({ length: 6 }, worker));
     setDismissed((s) => {
       const n = new Set(s);
       for (const p of certain) n.add(p.key);
