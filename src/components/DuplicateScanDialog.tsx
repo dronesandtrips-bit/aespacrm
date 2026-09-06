@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, GitMerge, ArrowRight } from "lucide-react";
 import { contactsDb, type Contact } from "@/lib/db";
 import { phoneMatchVariants } from "@/lib/phone-validation";
@@ -154,6 +155,7 @@ export function DuplicateScanDialog({
   const [busy, setBusy] = useState<string | null>(null);
   const [bulk, setBulk] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const pairs = useMemo(() => (open ? findDuplicatePairs(contacts) : []), [open, contacts]);
   const visible = useMemo(() => {
@@ -168,6 +170,42 @@ export function DuplicateScanDialog({
   }, [pairs, q, dismissed]);
 
   const certain = visible.filter((p) => p.score >= 95);
+  const selectedPairs = visible.filter((p) => selected.has(p.key));
+
+  const toggleSelect = (key: string, on: boolean) =>
+    setSelected((s) => {
+      const n = new Set(s);
+      if (on) n.add(key);
+      else n.delete(key);
+      return n;
+    });
+
+  const mergeSelected = async () => {
+    if (!selectedPairs.length) return;
+    if (!confirm(`Mesclar os ${selectedPairs.length} pares selecionados?`)) return;
+    setBulk(true);
+    let ok = 0;
+    const done = new Set<string>();
+    for (const p of selectedPairs) {
+      if (done.has(p.keep.id) || done.has(p.drop.id)) continue;
+      try {
+        await contactsDb.merge(p.drop.id, p.keep.id, {});
+        done.add(p.drop.id);
+        ok++;
+      } catch (e) {
+        console.warn("[dup] merge selecionado", e);
+      }
+    }
+    setDismissed((s) => {
+      const n = new Set(s);
+      for (const p of selectedPairs) n.add(p.key);
+      return n;
+    });
+    setSelected(new Set());
+    setBulk(false);
+    await onMerged();
+    toast.success(`${ok} contatos mesclados`);
+  };
 
   const mergePair = async (p: DupPair) => {
     setBusy(p.key);
@@ -231,6 +269,16 @@ export function DuplicateScanDialog({
             size="sm"
             variant="outline"
             className="ml-auto gap-1.5"
+            onClick={mergeSelected}
+            disabled={bulk || selectedPairs.length === 0}
+          >
+            {bulk ? <Loader2 className="size-3.5 animate-spin" /> : <GitMerge className="size-3.5" />}
+            Mesclar selecionados ({selectedPairs.length})
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
             onClick={mergeCertain}
             disabled={bulk || certain.length === 0}
           >
@@ -247,6 +295,13 @@ export function DuplicateScanDialog({
           ) : (
             visible.map((p) => (
               <div key={p.key} className="flex items-center gap-3 rounded-md border px-3 py-2">
+                <Checkbox
+                  checked={selected.has(p.key)}
+                  onCheckedChange={(v) => toggleSelect(p.key, v === true)}
+                  disabled={busy !== null || bulk}
+                  className="shrink-0"
+                  aria-label="Selecionar par para mesclar"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{p.drop.name || "(sem nome)"}</p>
                   <p className="truncate text-xs text-muted-foreground">{label(p.drop)}</p>
