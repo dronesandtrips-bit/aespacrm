@@ -671,20 +671,24 @@ function BlingPage() {
               </p>
             ) : (
               blingContactsFiltrados.slice(0, 200).map((bc) => {
-                const existente = bc.phone ? findContact(bc.phone) : null;
+                const existente = bc.phone
+                  ? findContact(bc.phone)
+                  : contacts.find((x) => normalizeName(x.name) === normalizeName(bc.nome)) ?? null;
+                const doc = bc.documento ?? "";
                 return (
                   <div key={bc.id} className="flex items-center gap-3 rounded-md px-2 py-1 text-sm">
                     <div className="min-w-0 flex-1">
                       <p className="truncate">{bc.nome}</p>
-                      {bc.email && (
-                        <p className="truncate text-xs text-muted-foreground">{bc.email}</p>
-                      )}
+                      <p className="truncate text-xs text-muted-foreground">
+                        {doc ? `${doc.length === 14 ? "CNPJ" : "CPF"} ${doc}` : "sem documento"}
+                        {bc.email ? ` · ${bc.email}` : ""}
+                      </p>
                     </div>
                     <span className="w-40 truncate text-right font-mono text-xs text-muted-foreground">
                       {bc.phone || "sem número"}
                     </span>
-                    <Badge variant={existente ? "secondary" : bc.phone ? "outline" : "destructive"}>
-                      {existente ? "no CRM" : bc.phone ? "novo" : "sem número"}
+                    <Badge variant={existente ? "secondary" : "outline"}>
+                      {existente ? "no CRM" : "novo"}
                     </Badge>
                   </div>
                 );
@@ -698,7 +702,7 @@ function BlingPage() {
             disabled={busy || !blingContacts.length}
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-            Importar contatos do Bling ({blingNovos.length} novos)
+            Importar clientes do Bling ({blingNovos.length} novos)
           </Button>
         </CardContent>
       </Card>
