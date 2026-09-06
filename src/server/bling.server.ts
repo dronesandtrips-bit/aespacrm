@@ -502,17 +502,51 @@ export function normalizeName(v: string | null | undefined): string {
     .trim();
 }
 
-/** Lista contatos (clientes/fornecedores) cadastrados no Bling. */
+/**
+ * Tipos de contato cadastrados no Bling (Cliente, Fornecedor, Transportador…).
+ * Usado para importar apenas clientes (quem recebe nota de saída).
+ */
+export async function listContactTypes(
+  token: string,
+): Promise<{ id: string; descricao: string }[]> {
+  try {
+    const res: any = await blingGet(token, `/contatos/tipos-contato`);
+    const items: any[] = res?.data ?? [];
+    return items.map((t) => ({ id: String(t?.id ?? ""), descricao: String(t?.descricao ?? "") }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Lista contatos cadastrados no Bling.
+ * - `apenasClientes`: filtra pelos tipos de contato "Cliente" (exclui quem é só fornecedor).
+ * - `comDocumento`: mantém apenas quem tem CPF (11) ou CNPJ (14) cadastrado.
+ */
 export async function listContacts(
   userId: string,
-  opts: { limite?: number } = {},
+  opts: { limite?: number; apenasClientes?: boolean; comDocumento?: boolean } = {},
 ): Promise<BlingContact[]> {
   const token = await getAccessToken(userId);
   const limite = Math.min(Math.max(opts.limite ?? 300, 1), 1000);
   const out: BlingContact[] = [];
 
+  // Ids dos tipos "Cliente" (pode haver mais de um: Cliente, Cliente Especial etc.)
+  let tipoIds: string[] = [];
+  if (opts.apenasClientes) {
+    const tipos = await listContactTypes(token);
+    tipoIds = tipos
+      .filter((t) => /cliente/i.test(t.descricao) && !/fornecedor/i.test(t.descricao))
+      .map((t) => t.id)
+      .filter(Boolean);
+  }
+  const tipoQueries = tipoIds.length ? tipoIds : [""];
+
+  const seenIds = new Set<string>();
+  for (const tipoId of tipoQueries) {
   for (let pagina = 1; pagina <= 10 && out.length < limite; pagina++) {
     const qs = new URLSearchParams({ pagina: String(pagina), limite: "100" });
+    if (tipoId) qs.set("idTipoContato", tipoId);
     const page: any = await blingGet(token, `/contatos?${qs.toString()}`);
     const items: any[] = page?.data ?? [];
     if (!items.length) break;
