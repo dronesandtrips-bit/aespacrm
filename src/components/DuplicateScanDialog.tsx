@@ -295,6 +295,13 @@ export function DuplicateScanDialog({
           ) : (
             visible.map((p) => (
               <div key={p.key} className="flex items-center gap-3 rounded-md border px-3 py-2">
+                <Checkbox
+                  checked={selected.has(p.key)}
+                  onCheckedChange={(v) => toggleSelect(p.key, v === true)}
+                  disabled={busy !== null || bulk}
+                  className="shrink-0"
+                  aria-label="Selecionar par para mesclar"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{p.drop.name || "(sem nome)"}</p>
                   <p className="truncate text-xs text-muted-foreground">{label(p.drop)}</p>
