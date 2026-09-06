@@ -44,7 +44,32 @@ function orderPair(a: Contact, b: Contact): [Contact, Contact] {
   return (a.createdAt ?? "") <= (b.createdAt ?? "") ? [a, b] : [b, a];
 }
 
+const STOP = new Set(["cliente", "clientes", "ltda", "me", "epp", "sa", "eireli", "sr", "sra", "da", "de", "do", "dos", "das", "e"]);
+
+/** Palavras significativas do nome, sem acento e sem termos genéricos. */
+function nameTokens(name: string | null | undefined): string[] {
+  return String(name ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length >= 3 && !STOP.has(t));
+}
+
+/** Proporção de palavras em comum em relação ao nome mais curto. */
+function tokenScore(a: string[], b: string[]): number {
+  const sa = new Set(a);
+  const sb = new Set(b);
+  let hits = 0;
+  for (const t of sa) if (sb.has(t)) hits++;
+  const min = Math.min(sa.size, sb.size);
+  if (min < 2) return 0;
+  return hits / min;
+}
+
 export function findDuplicatePairs(contacts: Contact[]): DupPair[] {
+
   const list = contacts.filter((c) => !c.isGroup);
   const found = new Map<string, DupPair>();
 
@@ -89,8 +114,25 @@ export function findDuplicatePairs(contacts: Contact[]): DupPair[] {
       for (let j = i + 1; j < arr.length; j++) add(arr[i], arr[j], 90, "Telefone parecido");
   }
 
+  // 3) Contato SEM telefone x contato COM telefone, quando o nome bate.
+  // Caso típico: cliente importado do Bling (só nome) que já existe no
+  // WhatsApp com número. Sem isso ele nunca aparece como duplicado.
+  const noPhone = list.filter((c) => !String(c.phone ?? "").replace(/\D/g, ""));
+  const withPhone = list.filter((c) => String(c.phone ?? "").replace(/\D/g, ""));
+  for (const a of noPhone) {
+    const ta = nameTokens(a.name);
+    if (!ta.length) continue;
+    for (const b of withPhone) {
+      const tb = nameTokens(b.name);
+      if (!tb.length) continue;
+      const s = tokenScore(ta, tb);
+      if (s >= 0.6) add(a, b, s >= 0.99 ? 88 : 70, s >= 0.99 ? "Mesmo nome, sem número" : "Nome parecido, sem número");
+    }
+  }
+
   return Array.from(found.values()).sort((a, b) => b.score - a.score);
 }
+
 
 function label(c: Contact) {
   const bits = [c.phone ? `+${c.phone}` : "sem número", c.email ?? ""].filter(Boolean);
