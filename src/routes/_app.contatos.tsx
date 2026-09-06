@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle, ArrowUp, ArrowDown, ArrowUpDown, ShieldOff, ShieldCheck } from "lucide-react";
-import { contactsDb, categoriesDb, sequencesDb, userSettingsDb, ignoredPhonesDb, type Contact, type Category, type Sequence } from "@/lib/db";
+import { contactsDb, DuplicateContactPhoneError, categoriesDb, sequencesDb, userSettingsDb, ignoredPhonesDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
 // papaparse é carregado sob demanda (import/export CSV) para não pesar o bundle inicial.
 import { z } from "zod";
