@@ -562,10 +562,17 @@ export async function listContacts(
   }
 
   const seenIds = new Set<string>();
+  const deadline = Date.now() + 20000; // orçamento de tempo para não estourar o gateway
   for (let pagina = 1; pagina <= 60 && out.length < limite; pagina++) {
     const qs = new URLSearchParams({ pagina: String(pagina), limite: "100" });
-    const page: any = await blingGet(token, `/contatos?${qs.toString()}`);
-    const items: any[] = page?.data ?? [];
+    let items: any[] = [];
+    try {
+      const page: any = await blingGet(token, `/contatos?${qs.toString()}`);
+      items = page?.data ?? [];
+    } catch (err) {
+      console.warn(`[bling] falha ao listar página ${pagina}:`, (err as any)?.message ?? err);
+      break; // devolve o que já foi coletado em vez de derrubar a requisição
+    }
     if (!items.length) break;
     for (const d of items) {
       const id = String(d?.id ?? "");
@@ -592,8 +599,9 @@ export async function listContacts(
   const semDocNaLista = out.filter((c) => !c.documento).length;
 
   // Alguns registros vêm sem telefone/documento na listagem — busca no detalhe.
-  // Limitado para não estourar o limite de requisições do Bling em bases grandes.
-  const pend = out.filter((c) => c.id && (!c.phone || !c.documento)).slice(0, 400);
+  // Limitado para não estourar o limite de requisições do Bling nem o tempo da requisição.
+  const pend = out.filter((c) => c.id && (!c.phone || !c.documento)).slice(0, 120);
+
   const checados = new Set<string>();
   let falhasDetalhe = 0;
   const queue = [...pend];
