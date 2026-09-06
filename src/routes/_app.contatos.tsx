@@ -48,6 +48,7 @@ import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { previewInvalidContacts, deleteInvalidContacts } from "@/lib/contacts-cleanup.functions";
 import { ContactDialog, EnrollDialog, MergeContactDialog } from "@/components/contact-dialogs";
 import { DuplicateScanDialog, findDuplicatePairs } from "@/components/DuplicateScanDialog";
+import { BlingOrphanCleanupDialog, findBlingOrphans } from "@/components/BlingOrphanCleanupDialog";
 
 const ALL = "__all__";
 const NONE = "__none__";
@@ -432,6 +433,11 @@ function ContactsPage() {
 
   const [dupOpen, setDupOpen] = useState(false);
   const dupCount = useMemo(() => findDuplicatePairs(contacts).length, [contacts]);
+  const [blingCleanOpen, setBlingCleanOpen] = useState(false);
+  const blingOrphanCount = useMemo(
+    () => findBlingOrphans(contacts, categories).length,
+    [contacts, categories],
+  );
 
   const [mergeState, setMergeState] = useState<{
     source: Contact;
