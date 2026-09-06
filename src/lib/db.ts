@@ -333,6 +333,22 @@ function isDuplicateContactPhoneError(error: unknown): boolean {
   return e?.code === "23505" && text.includes("uq_crm_contacts_user_phone");
 }
 
+/**
+ * Erro tipado para "telefone já usado por outro contato".
+ * Carrega o contato existente para a UI oferecer mesclar/editar.
+ */
+export class DuplicateContactPhoneError extends Error {
+  existing: Contact;
+  constructor(existing: Contact) {
+    super(
+      `Esse número já está cadastrado no contato "${existing.name || "sem nome"}".`,
+    );
+    this.name = "DuplicateContactPhoneError";
+    this.existing = existing;
+  }
+}
+
+
 async function loadExistingContactByPhoneNorm(userId: string, phone: string): Promise<Contact | null> {
   const norm = normalizeContactPhone(phone);
   if (!norm) return null;
@@ -592,16 +608,19 @@ export const contactsDb = {
       if (norm) {
         const { data: clash } = await c
           .from("crm_contacts")
-          .select("id,name")
+          .select(CONTACT_COLUMNS)
           .eq("phone_norm", norm)
           .neq("id", id)
           .limit(1)
           .maybeSingle();
         if (clash) {
-          throw new Error(
-            `Esse número já está cadastrado no contato "${clash.name ?? "sem nome"}". Edite ou apague esse contato, ou use outro número.`,
-          );
+          const existing = rowToContact(clash);
+          const tags = await loadContactCategoriesMap();
+          existing.categoryIds =
+            tags.get(existing.id) ?? (existing.categoryId ? [existing.categoryId] : []);
+          throw new DuplicateContactPhoneError(existing);
         }
+
       }
     }
 
@@ -650,6 +669,64 @@ export const contactsDb = {
       }
     }
   },
+  /**
+   * Mescla dois contatos: mantém o contato `targetId` (o que já tem o número
+   * e o histórico) e absorve dados/tags de `sourceId`, apagando-o depois.
+   * `patch` traz os campos escolhidos pelo usuário no diálogo de mesclagem.
+   */
+  async merge(
+    sourceId: string,
+    targetId: string,
+    patch: Partial<Omit<Contact, "id" | "createdAt">> = {},
+  ): Promise<void> {
+    if (sourceId === targetId) return;
+    const c = await client();
+
+    const [srcRes, tgtRes] = await Promise.all([
+      c.from("crm_contacts").select(CONTACT_COLUMNS).eq("id", sourceId).maybeSingle(),
+      c.from("crm_contacts").select(CONTACT_COLUMNS).eq("id", targetId).maybeSingle(),
+    ]);
+    if (srcRes.error) throw srcRes.error;
+    if (tgtRes.error) throw tgtRes.error;
+    if (!tgtRes.data) throw new Error("Contato de destino não encontrado.");
+    const source = srcRes.data ? rowToContact(srcRes.data) : null;
+    const target = rowToContact(tgtRes.data);
+
+    // Mensagens do contato origem passam para o destino (best-effort).
+    try {
+      await c.from("crm_messages").update({ contact_id: targetId }).eq("contact_id", sourceId);
+    } catch (e) {
+      console.warn("[contacts] falha ao mover mensagens na mesclagem:", e);
+    }
+
+    // União das tags dos dois contatos + as escolhidas no diálogo.
+    const tagsMap = await loadContactCategoriesMap();
+    const union = new Set<string>([
+      ...(tagsMap.get(targetId) ?? (target.categoryId ? [target.categoryId] : [])),
+      ...(tagsMap.get(sourceId) ?? (source?.categoryId ? [source.categoryId] : [])),
+      ...(patch.categoryIds ?? []),
+    ]);
+
+    // Campos: usa o que veio do diálogo; senão mantém o destino; senão herda da origem.
+    const pick = (chosen: string | null | undefined, tgt: any, src: any) =>
+      (chosen ?? "") !== "" ? chosen : (tgt || src || null);
+    const dbPatch: Record<string, unknown> = {
+      name: pick(patch.name, target.name, source?.name) ?? target.name,
+      email: pick(patch.email, target.email, source?.email),
+      website: pick(patch.website, target.website, source?.website),
+      notes: pick(patch.notes, target.notes, source?.notes),
+    };
+    const { error: upErr } = await c.from("crm_contacts").update(dbPatch).eq("id", targetId);
+    if (upErr) throw upErr;
+
+    if (source) {
+      const { error: delErr } = await c.from("crm_contacts").delete().eq("id", sourceId);
+      if (delErr) throw delErr;
+    }
+
+    await setContactCategories(targetId, Array.from(union));
+  },
+
   async remove(id: string) {
     const c = await client();
     const { error } = await c.from("crm_contacts").delete().eq("id", id);

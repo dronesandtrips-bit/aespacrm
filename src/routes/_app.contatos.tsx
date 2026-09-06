@@ -40,13 +40,13 @@ import {
 } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle, ArrowUp, ArrowDown, ArrowUpDown, ShieldOff, ShieldCheck } from "lucide-react";
-import { contactsDb, categoriesDb, sequencesDb, userSettingsDb, ignoredPhonesDb, type Contact, type Category, type Sequence } from "@/lib/db";
+import { contactsDb, DuplicateContactPhoneError, categoriesDb, sequencesDb, userSettingsDb, ignoredPhonesDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
 // papaparse é carregado sob demanda (import/export CSV) para não pesar o bundle inicial.
 import { z } from "zod";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { previewInvalidContacts, deleteInvalidContacts } from "@/lib/contacts-cleanup.functions";
-import { ContactDialog, EnrollDialog } from "@/components/contact-dialogs";
+import { ContactDialog, EnrollDialog, MergeContactDialog } from "@/components/contact-dialogs";
 
 const ALL = "__all__";
 const NONE = "__none__";
@@ -429,6 +429,12 @@ function ContactsPage() {
     }
   };
 
+  const [mergeState, setMergeState] = useState<{
+    source: Contact;
+    existing: Contact;
+    pending: Omit<Contact, "id" | "createdAt">;
+  } | null>(null);
+
   const handleSave = async (data: Omit<Contact, "id" | "createdAt">) => {
     try {
       if (editing) {
@@ -442,6 +448,11 @@ function ContactsPage() {
       setOpen(false);
       setEditing(null);
     } catch (e: any) {
+      // Número já usado por outro contato: oferece mesclar em vez de só avisar.
+      if (e instanceof DuplicateContactPhoneError && editing) {
+        setMergeState({ source: editing, existing: e.existing, pending: data });
+        return;
+      }
       toast.error(`Erro: ${e.message ?? e}`);
     }
   };
@@ -593,6 +604,21 @@ function ContactsPage() {
               onSubmit={handleSave}
             />
           </Dialog>
+          {mergeState && (
+            <MergeContactDialog
+              source={mergeState.source}
+              existing={mergeState.existing}
+              pending={mergeState.pending}
+              categories={categories}
+              onCancel={() => setMergeState(null)}
+              onDone={async () => {
+                setMergeState(null);
+                setOpen(false);
+                setEditing(null);
+                await refresh();
+              }}
+            />
+          )}
           <NewCategoryDialog
             onCreated={() => {
               refresh();
