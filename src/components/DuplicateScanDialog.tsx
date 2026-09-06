@@ -26,33 +26,6 @@ export type DupPair = {
   reason: string;
 };
 
-function normName(v: string | null | undefined) {
-  return String(v ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\b(ltda|me|epp|eireli|s\/?a|comercio|com|industria|ind)\b/g, " ")
-    .replace(/[^a-z0-9 ]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function normEmail(v: string | null | undefined) {
-  return String(v ?? "").trim().toLowerCase();
-}
-
-/** Similaridade 0..1 por tokens compartilhados (Jaccard ponderado por tamanho). */
-function nameSimilarity(a: string, b: string) {
-  if (!a || !b) return 0;
-  if (a === b) return 1;
-  const ta = new Set(a.split(" ").filter((t) => t.length > 2));
-  const tb = new Set(b.split(" ").filter((t) => t.length > 2));
-  if (ta.size === 0 || tb.size === 0) return 0;
-  let inter = 0;
-  for (const t of ta) if (tb.has(t)) inter++;
-  return inter / Math.min(ta.size, tb.size);
-}
-
 /** Qual dos dois contatos deve ficar (o mais completo/antigo). */
 function rank(c: Contact) {
   let s = 0;
