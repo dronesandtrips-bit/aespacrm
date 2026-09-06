@@ -131,6 +131,8 @@ function BlingPage() {
   const [dias, setDias] = useState("90");
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
+
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
