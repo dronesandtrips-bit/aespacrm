@@ -623,7 +623,7 @@ function BlingPage() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-            Contatos cadastrados no Bling
+            Clientes cadastrados no Bling
             <Badge variant="secondary">{blingContacts.length}</Badge>
             {blingNovos.length > 0 && (
               <Badge variant="outline">{blingNovos.length} ainda não estão no CRM</Badge>
