@@ -44,6 +44,43 @@ export function ContactDialog({
         : [];
   const [selectedIds, setSelectedIds] = useState<string[]>(initialTags);
   const [saving, setSaving] = useState(false);
+  const [linkQuery, setLinkQuery] = useState("");
+  const [linking, setLinking] = useState<string | null>(null);
+
+  // Sugestões da agenda: só contatos com telefone, excluindo o que está sendo editado.
+  const linkMatches = useMemo(() => {
+    const q = norm(linkQuery).trim();
+    if (!initial || !agendaContacts || q.length < 2) return [];
+    return agendaContacts
+      .filter(
+        (c) =>
+          c.id !== initial.id &&
+          !c.isGroup &&
+          String(c.phone ?? "").replace(/\D/g, "").length > 0 &&
+          norm(c.name).includes(q),
+      )
+      .slice(0, 8);
+  }, [linkQuery, agendaContacts, initial]);
+
+  // Mescla o contato editado (origem) no contato escolhido da agenda (destino).
+  const linkTo = async (target: Contact) => {
+    if (!initial || linking) return;
+    const ok = confirm(
+      `Relacionar "${initial.name || "este contato"}" a "${target.name || target.phone}"?\n\n` +
+        `O contato da agenda permanece com o nome e o telefone dele; os dados e as categorias deste cadastro serão somados a ele.`,
+    );
+    if (!ok) return;
+    setLinking(target.id);
+    try {
+      await contactsDb.merge(initial.id, target.id, { categoryIds: selectedIds });
+      toast.success(`Relacionado a ${target.name || target.phone}`);
+      await onLinked?.(target);
+    } catch (e: any) {
+      toast.error(`Erro: ${e?.message ?? e}`);
+    } finally {
+      setLinking(null);
+    }
+  };
 
   const toggle = (id: string) => {
     setSelectedIds((prev) =>
