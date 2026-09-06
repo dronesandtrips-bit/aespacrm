@@ -608,16 +608,19 @@ export const contactsDb = {
       if (norm) {
         const { data: clash } = await c
           .from("crm_contacts")
-          .select("id,name")
+          .select(CONTACT_COLUMNS)
           .eq("phone_norm", norm)
           .neq("id", id)
           .limit(1)
           .maybeSingle();
         if (clash) {
-          throw new Error(
-            `Esse número já está cadastrado no contato "${clash.name ?? "sem nome"}". Edite ou apague esse contato, ou use outro número.`,
-          );
+          const existing = rowToContact(clash);
+          const tags = await loadContactCategoriesMap();
+          existing.categoryIds =
+            tags.get(existing.id) ?? (existing.categoryId ? [existing.categoryId] : []);
+          throw new DuplicateContactPhoneError(existing);
         }
+
       }
     }
 
