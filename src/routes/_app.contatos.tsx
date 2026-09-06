@@ -598,6 +598,15 @@ function ContactsPage() {
           >
             <GitMerge className="size-4" /> Contatos parecidos{dupCount ? ` (${dupCount})` : ""}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setBlingCleanOpen(true)}
+            title="Lista contatos do Bling sem telefone e sem correspondência na agenda, para apagar em lote"
+          >
+            <Trash2 className="size-4" /> Limpar sem número{blingOrphanCount ? ` (${blingOrphanCount})` : ""}
+          </Button>
           <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
             <Download className="size-4" /> Exportar CSV
           </Button>
@@ -628,6 +637,13 @@ function ContactsPage() {
             onOpenChange={setDupOpen}
             contacts={contacts}
             onMerged={refresh}
+          />
+          <BlingOrphanCleanupDialog
+            open={blingCleanOpen}
+            onOpenChange={setBlingCleanOpen}
+            contacts={contacts}
+            categories={categories}
+            onDone={refresh}
           />
           {mergeState && (
             <MergeContactDialog
