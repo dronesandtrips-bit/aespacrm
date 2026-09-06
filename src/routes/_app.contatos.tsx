@@ -39,7 +39,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle, ArrowUp, ArrowDown, ArrowUpDown, ShieldOff, ShieldCheck } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Users, Download, Upload, Loader2, GitBranch, AlertTriangle, Sparkles, Sparkle, ArrowUp, ArrowDown, ArrowUpDown, ShieldOff, ShieldCheck, GitMerge } from "lucide-react";
 import { contactsDb, DuplicateContactPhoneError, categoriesDb, sequencesDb, userSettingsDb, ignoredPhonesDb, type Contact, type Category, type Sequence } from "@/lib/db";
 import { toast } from "sonner";
 // papaparse é carregado sob demanda (import/export CSV) para não pesar o bundle inicial.
@@ -47,6 +47,7 @@ import { z } from "zod";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { previewInvalidContacts, deleteInvalidContacts } from "@/lib/contacts-cleanup.functions";
 import { ContactDialog, EnrollDialog, MergeContactDialog } from "@/components/contact-dialogs";
+import { DuplicateScanDialog, findDuplicatePairs } from "@/components/DuplicateScanDialog";
 
 const ALL = "__all__";
 const NONE = "__none__";
@@ -429,6 +430,9 @@ function ContactsPage() {
     }
   };
 
+  const [dupOpen, setDupOpen] = useState(false);
+  const dupCount = useMemo(() => findDuplicatePairs(contacts).length, [contacts]);
+
   const [mergeState, setMergeState] = useState<{
     source: Contact;
     existing: Contact;
@@ -579,6 +583,15 @@ function ContactsPage() {
             {cleaning ? <Loader2 className="size-4 animate-spin" /> : <Sparkle className="size-4" />}
             Limpar contatos inválidos
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setDupOpen(true)}
+            title="Cruza telefone, e-mail e nome para achar cadastros repetidos"
+          >
+            <GitMerge className="size-4" /> Contatos parecidos{dupCount ? ` (${dupCount})` : ""}
+          </Button>
           <Button variant="outline" size="sm" className="gap-2" onClick={handleExport}>
             <Download className="size-4" /> Exportar CSV
           </Button>
@@ -604,6 +617,12 @@ function ContactsPage() {
               onSubmit={handleSave}
             />
           </Dialog>
+          <DuplicateScanDialog
+            open={dupOpen}
+            onOpenChange={setDupOpen}
+            contacts={contacts}
+            onMerged={refresh}
+          />
           {mergeState && (
             <MergeContactDialog
               source={mergeState.source}
