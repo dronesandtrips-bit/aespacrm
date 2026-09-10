@@ -115,42 +115,70 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
         const quoted = parsed.quotedMessageId
           ? await buildQuoted(sbAdmin, userId, parsed.quotedMessageId, fallbackRemoteJid)
           : null;
-        // Timeout explícito — sem isso, se o VPS travar, o Worker é abortado
-        // pelo CF (~30s) e o browser mostra "Failed to fetch" sem corpo de erro.
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20_000);
-        let evRes: Response;
-        try {
-          evRes = await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
-            method: "POST",
-            headers: { apikey: apiKey, "Content-Type": "application/json" },
-            body: JSON.stringify({ number: sendNumber, text: parsed.text, ...(quoted ? { quoted } : {}) }),
-            signal: controller.signal,
-          });
-        } catch (fetchErr: any) {
-          clearTimeout(timeoutId);
-          const isAbort = fetchErr?.name === "AbortError";
-          console.error("[send-and-log] evolution fetch failed", {
-            name: fetchErr?.name ?? null,
-            message: fetchErr?.message ?? String(fetchErr),
-            isAbort,
-          });
-          return jsonResponse(
-            {
-              ok: false,
-              error: isAbort
-                ? "Evolution API não respondeu a tempo (timeout 20s). Verifique se o serviço está no ar no VPS."
-                : `Falha de rede ao contatar Evolution: ${fetchErr?.message ?? String(fetchErr)}`,
-            },
-            504,
-          );
+
+        // Números BR podem estar salvos sem o 9º dígito (ou com ele a mais).
+        // Se o WhatsApp responder "exists:false", tentamos a variante equivalente.
+        const candidates = contact.is_group ? [sendNumber] : phoneMatchVariants(sendNumber);
+
+        const postText = async (number: string) => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 20_000);
+          try {
+            return await fetch(`${apiUrl}/message/sendText/${INSTANCE}`, {
+              method: "POST",
+              headers: { apikey: apiKey, "Content-Type": "application/json" },
+              body: JSON.stringify({ number, text: parsed.text, ...(quoted ? { quoted } : {}) }),
+              signal: controller.signal,
+            });
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        };
+
+        let evRes!: Response;
+        let evData: any = null;
+        let usedNumber = sendNumber;
+        let lastErrorPayload: any = null;
+
+        for (const candidate of candidates) {
+          try {
+            evRes = await postText(candidate);
+          } catch (fetchErr: any) {
+            const isAbort = fetchErr?.name === "AbortError";
+            console.error("[send-and-log] evolution fetch failed", {
+              name: fetchErr?.name ?? null,
+              message: fetchErr?.message ?? String(fetchErr),
+              isAbort,
+            });
+            return jsonResponse(
+              {
+                ok: false,
+                error: isAbort
+                  ? "Evolution API não respondeu a tempo (timeout 20s). Verifique se o serviço está no ar no VPS."
+                  : `Falha de rede ao contatar Evolution: ${fetchErr?.message ?? String(fetchErr)}`,
+              },
+              504,
+            );
+          }
+
+          const evText = await evRes.text();
+          evData = evText;
+          try { evData = JSON.parse(evText); } catch {}
+
+          if (evRes.ok) {
+            usedNumber = candidate;
+            break;
+          }
+
+          lastErrorPayload = evData;
+          const raw = typeof evData === "string" ? evData : JSON.stringify(evData ?? "");
+          const numberNotOnWhatsApp = /"exists"\s*:\s*false/.test(raw);
+          if (!numberNotOnWhatsApp) break;
         }
-        clearTimeout(timeoutId);
-        const evText = await evRes.text();
-        let evData: any = evText;
-        try { evData = JSON.parse(evText); } catch {}
 
         if (!evRes.ok) {
+          const raw = typeof lastErrorPayload === "string" ? lastErrorPayload : JSON.stringify(lastErrorPayload ?? "");
+          const notOnWhatsApp = /"exists"\s*:\s*false/.test(raw);
           // Loga falha
           await sbAdmin.from("crm_messages").insert({
             user_id: userId,
@@ -160,18 +188,33 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
             at: new Date().toISOString(),
             type: "text",
             status: "failed",
-            raw: { error: evData },
+            raw: { error: lastErrorPayload },
           });
           return jsonResponse(
-            { ok: false, status: evRes.status, error: evData },
+            {
+              ok: false,
+              status: evRes.status,
+              error: notOnWhatsApp
+                ? `O número ${sendNumber} não tem WhatsApp ativo. Confira o número do contato (DDD e o 9 do celular).`
+                : lastErrorPayload,
+            },
             502,
           );
+        }
+
+        // Se o envio só funcionou com a variante (9º dígito), corrige o cadastro.
+        if (!contact.is_group && usedNumber !== contact.phone_norm) {
+          await sbAdmin
+            .from("crm_contacts")
+            .update({ phone_norm: usedNumber })
+            .eq("id", contact.id)
+            .eq("user_id", userId);
         }
 
         const messageId: string | null = evData?.key?.id ?? null;
         const remoteJid: string | null =
           evData?.key?.remoteJid ??
-          (contact.is_group ? contact.wa_jid : `${contact.phone_norm}@s.whatsapp.net`);
+          (contact.is_group ? contact.wa_jid : `${usedNumber}@s.whatsapp.net`);
 
         // Insert simples. O índice único de message_id é parcial (where message_id is not null)
         // e o Postgres não aceita esse índice em ON CONFLICT, então tratamos duplicata como sucesso.
