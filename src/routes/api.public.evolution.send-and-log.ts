@@ -6,6 +6,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin, jsonResponse } from "@/integrations/supabase/server";
+import { phoneMatchVariants } from "@/lib/phone-validation";
 
 const INSTANCE = "zapcrm";
 
