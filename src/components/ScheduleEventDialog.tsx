@@ -218,7 +218,7 @@ export function ScheduleEventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] overflow-y-auto p-4 sm:max-w-md sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarPlus className="size-4" />
@@ -266,7 +266,7 @@ export function ScheduleEventDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="evt-when">Data e hora</Label>
                 <Input
@@ -367,7 +367,7 @@ export function ScheduleEventDialog({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="sticky bottom-0 -mx-4 gap-2 border-t border-border bg-background px-4 pb-[max(0rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mx-0 sm:gap-0 sm:px-0 sm:pb-0">
           {created ? (
             <>
               <Button variant="ghost" onClick={() => onOpenChange(false)}>

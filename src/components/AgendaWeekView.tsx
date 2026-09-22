@@ -134,8 +134,8 @@ export function AgendaWeekView({
   };
 
   return (
-    <div className="rounded-lg border border-border bg-card">
-      <div className="flex items-center justify-between gap-2 border-b border-border p-2">
+    <div className="min-w-0 rounded-lg border border-border bg-card">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 border-b border-border p-2 sm:flex sm:justify-between">
         <div className="flex items-center gap-1">
           <Button
             size="icon"
@@ -157,11 +157,13 @@ export function AgendaWeekView({
             <ChevronRight className="size-4" />
           </Button>
         </div>
-        <div className="text-sm font-medium">{rangeLabel}</div>
+        <div className="min-w-0 text-right text-xs font-medium sm:text-sm">{rangeLabel}</div>
       </div>
 
+      <div className="overflow-x-auto overscroll-x-contain">
+        <div className="min-w-[49rem] sm:min-w-0">
       {/* Cabeçalho dos dias */}
-      <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-border">
+      <div className="grid grid-cols-[3.5rem_repeat(7,minmax(6.5rem,1fr))] border-b border-border sm:grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]">
         <div />
         {days.map((d) => {
           const today = sameDay(d, new Date());
@@ -184,7 +186,7 @@ export function AgendaWeekView({
 
       {/* Dia inteiro */}
       {allDay.some((e) => days.some((d) => sameDay(new Date(e.start!), d))) && (
-        <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-border">
+        <div className="grid grid-cols-[3.5rem_repeat(7,minmax(6.5rem,1fr))] border-b border-border sm:grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]">
           <div className="px-1 py-1 text-right text-[10px] text-muted-foreground">dia todo</div>
           {days.map((d) => (
             <div key={d.toISOString()} className="space-y-1 border-l border-border p-1">
@@ -206,7 +208,7 @@ export function AgendaWeekView({
 
       {/* Grade */}
       <div className="max-h-[70vh] overflow-y-auto">
-        <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]">
+        <div className="grid grid-cols-[3.5rem_repeat(7,minmax(6.5rem,1fr))] sm:grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]">
           {/* coluna de horas */}
           <div style={{ height: gridHeight }} className="relative">
             {hours.map((h) => (
@@ -301,6 +303,8 @@ export function AgendaWeekView({
               </div>
             );
           })}
+        </div>
+      </div>
         </div>
       </div>
     </div>

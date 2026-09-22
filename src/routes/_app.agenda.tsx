@@ -47,6 +47,22 @@ const DEFAULT_OWNER_PHONE = "5554991495959";
 
 export const Route = createFileRoute("/_app/agenda")({
   component: AgendaPage,
+  head: () => ({
+    meta: [
+      { title: "Agenda | ZapCRM" },
+      {
+        name: "description",
+        content: "Gerencie compromissos, lembretes e confirmações da agenda do ZapCRM.",
+      },
+      { property: "og:title", content: "Agenda | ZapCRM" },
+      {
+        property: "og:description",
+        content: "Gerencie compromissos, lembretes e confirmações da agenda do ZapCRM.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 type CalEvent = {
@@ -450,19 +466,19 @@ function AgendaPage() {
   );
 
   return (
-    <div className="space-y-4 p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="flex items-center gap-2 text-xl font-semibold">
+    <div className="min-w-0 space-y-4 p-0 sm:p-4">
+      <div className="space-y-3 sm:flex sm:items-center sm:justify-between sm:space-y-0">
+        <h1 className="flex min-w-0 items-center gap-2 text-xl font-semibold">
           <CalendarDays className="size-5" />
           Agenda
         </h1>
-        <div className="flex items-center gap-2">
-          <div className="flex overflow-hidden rounded-md border border-border">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
+          <div className="col-span-2 grid grid-cols-2 overflow-hidden rounded-md border border-border sm:flex">
             {(["semana", "lista"] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className={`px-3 py-1.5 text-xs font-medium capitalize ${
+                className={`px-3 py-2 text-xs font-medium capitalize sm:py-1.5 ${
                   view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                 }`}
               >
@@ -470,7 +486,7 @@ function AgendaPage() {
               </button>
             ))}
           </div>
-          <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+          <Button className="min-w-0" variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             {loading ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
@@ -479,6 +495,7 @@ function AgendaPage() {
             Atualizar
           </Button>
           <Button
+            className="min-w-0"
             variant="outline"
             size="sm"
             onClick={() => void handleSimulate()}
@@ -487,7 +504,7 @@ function AgendaPage() {
             {simulating ? <Loader2 className="size-4 animate-spin" /> : <Bot className="size-4" />}
             Testar robô
           </Button>
-          <Button size="sm" onClick={() => openCreate()}>
+          <Button className="col-span-2 sm:col-span-1" size="sm" onClick={() => openCreate()}>
             <Plus className="size-4" />
             Novo compromisso
           </Button>
@@ -541,7 +558,7 @@ function AgendaPage() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] overflow-y-auto p-4 sm:max-w-md sm:p-6">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar compromisso" : "Novo compromisso"}</DialogTitle>
             <DialogDescription>
@@ -562,7 +579,7 @@ function AgendaPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="ed-when">Data e hora</Label>
                 <Input
@@ -641,8 +658,8 @@ function AgendaPage() {
                 </div>
               )}
               {contactPhone && (
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 text-xs text-muted-foreground">
+                  <span className="min-w-0 break-words">
                     Notificações para: {contactName || "cliente"} ({contactPhone})
                   </span>
                   <button
@@ -660,7 +677,7 @@ function AgendaPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="ed-remind">Lembrete antes</Label>
                 <Select value={reminderMinutes} onValueChange={setReminderMinutes}>
@@ -689,8 +706,8 @@ function AgendaPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div className="space-y-0.5">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md border p-3">
+              <div className="min-w-0 space-y-0.5">
                 <Label htmlFor="ed-notify">
                   {editing ? "Avisar o cliente da alteração agora" : "Avisar o cliente agora"}
                 </Label>
@@ -700,7 +717,7 @@ function AgendaPage() {
                     : "Envia a confirmação do compromisso no WhatsApp na hora (além do lembrete automático)."}
                 </p>
               </div>
-              <Switch id="ed-notify" checked={notifyNow} onCheckedChange={setNotifyNow} />
+              <Switch className="shrink-0" id="ed-notify" checked={notifyNow} onCheckedChange={setNotifyNow} />
             </div>
 
             <div className="space-y-1.5">
@@ -715,7 +732,7 @@ function AgendaPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 -mx-4 gap-2 border-t border-border bg-background px-4 pb-[max(0rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mx-0 sm:gap-0 sm:px-0 sm:pb-0">
             <Button
               variant="ghost"
               onClick={() => {
