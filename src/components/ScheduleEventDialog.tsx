@@ -367,7 +367,7 @@ export function ScheduleEventDialog({
           </div>
         )}
 
-        <DialogFooter className="gap-2 border-t border-border bg-background pt-3 sm:gap-0">
+        <DialogFooter className="sticky bottom-0 -mx-4 gap-2 border-t border-border bg-background px-4 pb-[max(0rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mx-0 sm:gap-0 sm:px-0 sm:pb-0">
           {created ? (
             <>
               <Button variant="ghost" onClick={() => onOpenChange(false)}>
