@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +34,7 @@ import {
   CheckCircle2,
   Plus,
   RefreshCw,
+  Send,
   Trash2,
   UserPlus,
 } from "lucide-react";
@@ -122,7 +122,6 @@ function AgendaPage() {
   const [contactName, setContactName] = useState("");
   const [ownerPhone, setOwnerPhone] = useState(DEFAULT_OWNER_PHONE);
   const [reminderMinutes, setReminderMinutes] = useState("1440");
-  const [notifyNow, setNotifyNow] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -198,7 +197,6 @@ function AgendaPage() {
     setContactQuery("");
     setOwnerPhone(DEFAULT_OWNER_PHONE);
     setReminderMinutes("60");
-    setNotifyNow(true);
   };
 
   // Arrastar um bloco na visão semanal reagenda o compromisso.
@@ -249,7 +247,7 @@ function AgendaPage() {
   };
 
 
-  const handleSave = async () => {
+  const handleSave = async (sendToClient = false) => {
     if (!editing && !creating) return;
     if (!title.trim()) {
       toast.error("Informe um título");
@@ -258,6 +256,10 @@ function AgendaPage() {
     const start = new Date(when);
     if (Number.isNaN(start.getTime())) {
       toast.error("Data/hora inválida");
+      return;
+    }
+    if (sendToClient && !contactPhone.replace(/\D/g, "")) {
+      toast.error("Selecione um contato com telefone para enviar pelo WhatsApp");
       return;
     }
     setSaving(true);
@@ -279,7 +281,7 @@ function AgendaPage() {
             contactName: contactName.trim() || undefined,
             contactPhone: contactPhone.replace(/\D/g, "") || undefined,
             ownerPhone: ownerPhone.replace(/\D/g, "") || undefined,
-            notifyNow,
+            notifyNow: sendToClient,
           }),
         },
       );
@@ -294,7 +296,7 @@ function AgendaPage() {
             ? `Compromisso criado — ${json.remindersCreated} lembrete(s) agendado(s)`
             : "Compromisso criado",
       );
-      if (notifyNow) {
+      if (sendToClient) {
         if (json?.notified) toast.success("Cliente avisada no WhatsApp");
         else if (json?.notifyError) toast.error(`Não avisei a cliente: ${json.notifyError}`);
       }
@@ -706,20 +708,6 @@ function AgendaPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md border p-3">
-              <div className="min-w-0 space-y-0.5">
-                <Label htmlFor="ed-notify">
-                  {editing ? "Avisar o cliente da alteração agora" : "Avisar o cliente agora"}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {editing
-                    ? "Envia no WhatsApp o novo horário/local do compromisso na hora."
-                    : "Envia a confirmação do compromisso no WhatsApp na hora (além do lembrete automático)."}
-                </p>
-              </div>
-              <Switch className="shrink-0" id="ed-notify" checked={notifyNow} onCheckedChange={setNotifyNow} />
-            </div>
-
             <div className="space-y-1.5">
               <Label htmlFor="ed-desc">Descrição</Label>
               <Textarea
@@ -732,7 +720,7 @@ function AgendaPage() {
             </div>
           </div>
 
-          <DialogFooter className="sticky bottom-0 -mx-4 gap-2 border-t border-border bg-background px-4 pb-[max(0rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mx-0 sm:gap-0 sm:px-0 sm:pb-0">
+          <DialogFooter className="sticky bottom-0 -mx-4 gap-2 border-t border-border bg-background px-4 pb-[max(0rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mx-0 sm:flex-wrap sm:gap-2 sm:px-0 sm:pb-0">
             <Button
               variant="ghost"
               onClick={() => {
@@ -743,9 +731,13 @@ function AgendaPage() {
             >
               Cancelar
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button variant="outline" onClick={() => void handleSave(false)} disabled={saving}>
               {saving && <Loader2 className="size-4 animate-spin" />}
               {editing ? "Salvar" : "Agendar"}
+            </Button>
+            <Button onClick={() => void handleSave(true)} disabled={saving}>
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              Enviar ao cliente
             </Button>
           </DialogFooter>
         </DialogContent>
