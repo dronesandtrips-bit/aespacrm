@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useMemo, useRef, useState, useEffect, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useRef, useState, useEffect, type ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -174,6 +174,7 @@ function InboxPage() {
   const [activeId, setActiveId] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
+  const draftsByContactRef = useRef<Record<string, string>>({});
   const [sending, setSending] = useState(false);
   const [attaching, setAttaching] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<{ file: File; previewUrl: string | null } | null>(null);
@@ -757,9 +758,12 @@ function InboxPage() {
     if (!activeId) {
       setMessages([]);
       setReplyTo(null);
+      setDraft("");
       return;
     }
+    setMessages([]);
     setReplyTo(null);
+    setDraft(draftsByContactRef.current[activeId] ?? "");
     let cancelled = false;
     (async () => {
       try {
@@ -826,13 +830,13 @@ function InboxPage() {
             setLastByContact((prev) => ({ ...prev, [msg.contactId]: msg }));
             // Atualiza contagem de não lidas: só conta mensagens recebidas
             // que não pertencem à conversa atualmente aberta.
-            if (!msg.fromMe && msg.contactId !== activeId) {
+            if (!msg.fromMe && msg.contactId !== activeIdRef.current) {
               setUnreadByContact((prev) => ({
                 ...prev,
                 [msg.contactId]: (prev[msg.contactId] ?? 0) + 1,
               }));
             }
-            if (msg.contactId === activeId) {
+            if (msg.contactId === activeIdRef.current) {
               setMessages((prev) =>
                 prev.find((m) => m.id === msg.id) ? prev : [...prev, msg],
               );
@@ -882,7 +886,7 @@ function InboxPage() {
               messageId: row.message_id ?? null,
             };
             setLastByContact((prev) => ({ ...prev, [msg.contactId]: msg }));
-            if (msg.contactId === activeId) {
+            if (msg.contactId === activeIdRef.current) {
               setMessages((prev) => prev.map((item) => (item.id === msg.id ? msg : item)));
             }
           },
@@ -913,7 +917,7 @@ function InboxPage() {
       const c = getSupabaseClientSync();
       if (c && channel) c.removeChannel(channel);
     };
-  }, [activeId]);
+  }, []);
 
   // Realtime: escuta mudanças em contact_sequences para atualizar o badge de pausa
   useEffect(() => {
@@ -984,7 +988,7 @@ function InboxPage() {
     [contacts, lastByContact],
   );
 
-  const filtered = conversations.filter((x) => {
+  const filtered = useMemo(() => conversations.filter((x) => {
     if (!x.contact.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (chipFilter === "unread" && !((unreadByContact[x.contact.id] ?? 0) > 0)) return false;
     if (chipFilter === "groups" && !x.contact.isGroup) return false;
@@ -995,7 +999,7 @@ function InboxPage() {
       if (!ids.includes(chipCategoryId)) return false;
     }
     return true;
-  });
+  }), [chipCategoryId, chipFilter, conversations, search, unreadByContact]);
   const unreadTotal = Object.values(unreadByContact).reduce((a, b) => a + (b > 0 ? 1 : 0), 0);
 
   // Paginação da lista de conversas: renderiza 50 e vai carregando ao rolar.
@@ -1032,6 +1036,7 @@ function InboxPage() {
 
   const uploadFile = async (file: File) => {
     if (!activeId) return;
+    const targetContactId = activeId;
     const MAX = 16 * 1024 * 1024;
     if (file.size > MAX) {
       toast.error("Arquivo maior que 16MB não é suportado pelo WhatsApp.");
@@ -1062,7 +1067,7 @@ function InboxPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contactId: activeId,
+          contactId: targetContactId,
           mediatype,
           media: base64,
           fileName: file.name,
@@ -1082,7 +1087,7 @@ function InboxPage() {
       }
       const msg: ChatMessage | undefined = data.message ?? (data.pending ? {
         id: `pending-${Date.now()}`,
-        contactId: activeId,
+        contactId: targetContactId,
         body: mediatype === "document" ? file.name : (caption ?? (isImage ? "[imagem]" : "[documento]")),
         fromMe: true,
         at: new Date().toISOString(),
@@ -1093,11 +1098,16 @@ function InboxPage() {
         status: "pending",
       } as ChatMessage : undefined);
       if (msg) {
-        setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
-        setLastByContact((prev) => ({ ...prev, [activeId]: msg }));
+        setLastByContact((prev) => ({ ...prev, [targetContactId]: msg }));
+        if (activeIdRef.current === targetContactId) {
+          setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
+        }
       }
-      if (caption) setDraft("");
-      setReplyTo(null);
+      if (caption) {
+        draftsByContactRef.current[targetContactId] = "";
+        if (activeIdRef.current === targetContactId) setDraft("");
+      }
+      if (activeIdRef.current === targetContactId) setReplyTo(null);
       toast.success(isImage ? "Imagem enviada" : "Documento enviado");
     } catch (err: any) {
       toast.error(`Erro ao enviar anexo: ${err.message ?? err}`);
@@ -1151,6 +1161,8 @@ function InboxPage() {
 
   const handleSend = async () => {
     if (!draft.trim() || !activeId) return;
+    const targetContactId = activeId;
+    const textToSend = draft.trim();
     setSending(true);
     const slowWarn = window.setTimeout(() => {
       toast.loading("Envio está demorando… aguardando o WhatsApp responder", {
@@ -1165,8 +1177,8 @@ function InboxPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          contactId: activeId,
-          text: draft.trim(),
+          contactId: targetContactId,
+          text: textToSend,
           ...(quotedMessageId ? { quotedMessageId } : {}),
         }),
       });
@@ -1182,10 +1194,13 @@ function InboxPage() {
         throw new Error(`${errMsg}${detail}`);
       }
       const msg: ChatMessage = data.message;
-      setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
-      setLastByContact((prev) => ({ ...prev, [activeId]: msg }));
-      setDraft("");
-      setReplyTo(null);
+      setLastByContact((prev) => ({ ...prev, [targetContactId]: msg }));
+      draftsByContactRef.current[targetContactId] = "";
+      if (activeIdRef.current === targetContactId) {
+        setMessages((prev) => (prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]));
+        setDraft("");
+        setReplyTo(null);
+      }
     } catch (e: any) {
       toast.error(`Erro ao enviar: ${e.message ?? e}`);
     } finally {
@@ -1846,81 +1861,13 @@ function InboxPage() {
               </div>
 
 
-              <div ref={scrollRef} className="flex-1 overflow-auto p-5 space-y-2">
-                {messages.length === 0 ? (
-                  <div className="text-center text-sm text-[color:var(--ww-text-muted)] py-10">
-                    Nenhuma mensagem ainda. Envie a primeira!
-                  </div>
-                ) : (
-                  messages.map((m, index) => {
-                    const status = (m.status ?? "").toLowerCase();
-                    const hasLaterInboundReply = m.fromMe && messages.slice(index + 1).some((next) => !next.fromMe);
-                    const delivered = isDeliveredStatus(status) || hasLaterInboundReply;
-                    const read = isReadStatus(status) || hasLaterInboundReply;
-                    const canForward =
-                      !!m.messageId &&
-                      (m.type === "text" || !m.type || m.type === "image" || m.type === "sticker" || m.type === "audio");
-                    return (
-                      <div
-                        key={m.id}
-                        className={cn("group/msg flex items-start gap-1", m.fromMe ? "justify-end" : "justify-start")}
-                      >
-                        {m.fromMe && (
-                          <MessageActionsMenu
-                            m={m}
-                            canForward={canForward}
-                            onReply={() => setReplyTo(m)}
-                            onForward={() => m.messageId && setForwardMessageId(m.messageId)}
-                          />
-                        )}
-                        <div
-                          className={cn(
-                            "max-w-[75%] rounded-2xl px-3 py-2 text-sm relative",
-                            m.fromMe ? "rounded-br-sm" : "rounded-bl-sm",
-                          )}
-                          style={{
-                            backgroundColor: m.fromMe ? "var(--ww-bubble-out)" : "var(--ww-bubble-in)",
-                            color: m.fromMe ? "var(--ww-bubble-out-text)" : "var(--ww-bubble-in-text)",
-                            boxShadow: "var(--ww-shadow-sm)",
-                          }}
-                        >
-                          <MessageContent m={m} onOpenImage={(messageId, src, alt) => setViewer({ messageId, src, alt })} />
-                          <div
-                            className={cn(
-                              "flex items-center gap-1 mt-1 text-[10px]",
-                              m.fromMe ? "justify-end opacity-80" : "justify-end opacity-60",
-                            )}
-                          >
-                            <span>
-                              {new Date(m.at).toLocaleTimeString("pt-BR", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                            {m.fromMe && (
-                              read ? (
-                                <CheckCheck className="size-3.5" style={{ color: "#53bdeb" }} />
-                              ) : delivered ? (
-                                <CheckCheck className="size-3.5" style={{ color: "#9aa6b2" }} />
-                              ) : (
-                                <Check className="size-3.5" style={{ color: "#9aa6b2" }} />
-                              )
-                            )}
-                          </div>
-                        </div>
-                        {!m.fromMe && (
-                          <MessageActionsMenu
-                            m={m}
-                            canForward={canForward}
-                            onReply={() => setReplyTo(m)}
-                            onForward={() => m.messageId && setForwardMessageId(m.messageId)}
-                          />
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+              <MessageList
+                ref={scrollRef}
+                messages={messages}
+                onReply={setReplyTo}
+                onForward={setForwardMessageId}
+                onOpenImage={(messageId, src, alt) => setViewer({ messageId, src, alt })}
+              />
 
               {/* Barra de digitação pill */}
               <div
@@ -2036,7 +1983,11 @@ function InboxPage() {
                   <Textarea
                     ref={composerRef}
                     value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      draftsByContactRef.current[activeId] = next;
+                      setDraft(next);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
