@@ -1,0 +1,3 @@
+- [x] Diagnosticar o tempo esgotado no envio de mensagens pelo WhatsApp sem disparar mensagens de teste.
+- [x] Corrigir a orientação exibida quando o envio não é confirmado, preservando o rascunho e evitando reenvio às cegas.
+- [ ] Confirmar a causa da demora no processamento de sendText na Evolution na VPS; depende dos registros e recursos daquele serviço.

@@ -98,7 +98,7 @@ async function fetchWithTimeout(
   } catch (e: any) {
     if (e?.name === "AbortError") {
       throw new Error(
-        `tempo esgotado (${Math.round(timeoutMs / 1000)}s) — verifique sua conexão ou a conexão do WhatsApp`,
+        `envio não confirmado após ${Math.round(timeoutMs / 1000)}s. Confira a conversa antes de tentar novamente para evitar duplicidade`,
       );
     }
     throw e;
@@ -1189,7 +1189,7 @@ function InboxPage() {
           text: textToSend,
           ...(quotedMessageId ? { quotedMessageId } : {}),
         }),
-      });
+      }, 35_000);
       const rawBody = await res.text();
       let data: any = null;
       try { data = JSON.parse(rawBody); } catch {}
