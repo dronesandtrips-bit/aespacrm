@@ -1,0 +1,3 @@
+- [ ] Diagnosticar o tempo esgotado no envio de mensagens pelo WhatsApp sem disparar mensagens de teste.
+- [ ] Corrigir a orientação exibida quando o envio não é confirmado, preservando o rascunho e evitando reenvio às cegas.
+- [ ] Verificar a alteração e registrar o que depende do serviço Evolution na VPS.

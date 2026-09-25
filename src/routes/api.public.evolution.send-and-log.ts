@@ -155,7 +155,7 @@ export const Route = createFileRoute("/api/public/evolution/send-and-log")({
               {
                 ok: false,
                 error: isAbort
-                  ? "Evolution API não respondeu a tempo (timeout 20s). Verifique se o serviço está no ar no VPS."
+                  ? "O WhatsApp não confirmou o envio em 20 segundos. A mensagem pode ter sido enviada; confira a conversa antes de tentar novamente para evitar duplicidade."
                   : `Falha de rede ao contatar Evolution: ${fetchErr?.message ?? String(fetchErr)}`,
               },
               504,
