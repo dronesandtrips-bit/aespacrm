@@ -1,0 +1,12 @@
+{
+  "name": "[ZapCRM] Status Rotation",
+  "description": "A cada 5 minutos consulta o ZapCRM; o próprio CRM respeita o intervalo configurado e publica no máximo um Status por usuário.",
+  "endpoint": "https://crm.aespa.com.br/api/public/evolution/status-tick",
+  "method": "POST",
+  "headers": {
+    "x-api-key": "={{ $env.N8N_API_KEY }}",
+    "Content-Type": "application/json"
+  },
+  "body": {},
+  "schedule": "every 5 minutes"
+}
