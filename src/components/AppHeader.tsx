@@ -18,6 +18,7 @@ const titles: Record<string, string> = {
   "/inbox": "Inbox",
   "/pipeline": "Pipeline",
   "/whatsapp": "WhatsApp Connect",
+  "/status": "Status automático",
   "/configuracoes": "Configurações",
 };
 

@@ -19,6 +19,7 @@ import {
   CalendarDays,
   Bot,
   ShoppingBag,
+  GalleryVerticalEnd,
 } from "lucide-react";
 
 // Ícone oficial do WhatsApp (logo brand) — lucide não tem brand icons
@@ -62,6 +63,7 @@ const items = [
   { to: "/logs", label: "Logs", icon: Activity },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/whatsapp", label: "WhatsApp", icon: Smartphone },
+  { to: "/status", label: "Status", icon: GalleryVerticalEnd },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 
 ] as const;

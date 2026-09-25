@@ -19,6 +19,7 @@ import { Route as MQRouteImport } from './routes/m.$q'
 import { Route as DCodeRouteImport } from './routes/d.$code'
 import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
 import { Route as AppTemplatesRouteImport } from './routes/_app.templates'
+import { Route as AppStatusRouteImport } from './routes/_app.status'
 import { Route as AppSequenciasDashboardRouteImport } from './routes/_app.sequencias-dashboard'
 import { Route as AppSequenciasRouteImport } from './routes/_app.sequencias'
 import { Route as AppRedactRouteImport } from './routes/_app.redact'
@@ -55,6 +56,8 @@ import { Route as ApiPublicEvolutionTestRouteImport } from './routes/api.public.
 import { Route as ApiPublicEvolutionSyncMessagesRouteImport } from './routes/api.public.evolution.sync-messages'
 import { Route as ApiPublicEvolutionSyncGroupsRouteImport } from './routes/api.public.evolution.sync-groups'
 import { Route as ApiPublicEvolutionSyncContactsRouteImport } from './routes/api.public.evolution.sync-contacts'
+import { Route as ApiPublicEvolutionStatusTickRouteImport } from './routes/api.public.evolution.status-tick'
+import { Route as ApiPublicEvolutionStatusLibraryRouteImport } from './routes/api.public.evolution.status-library'
 import { Route as ApiPublicEvolutionStatusRouteImport } from './routes/api.public.evolution.status'
 import { Route as ApiPublicEvolutionSendMediaAndLogRouteImport } from './routes/api.public.evolution.send-media-and-log'
 import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.public.evolution.send-media'
@@ -144,6 +147,11 @@ const AppWhatsappRoute = AppWhatsappRouteImport.update({
 const AppTemplatesRoute = AppTemplatesRouteImport.update({
   id: '/templates',
   path: '/templates',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStatusRoute = AppStatusRouteImport.update({
+  id: '/status',
+  path: '/status',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSequenciasDashboardRoute = AppSequenciasDashboardRouteImport.update({
@@ -335,6 +343,18 @@ const ApiPublicEvolutionSyncContactsRoute =
   ApiPublicEvolutionSyncContactsRouteImport.update({
     id: '/api/public/evolution/sync-contacts',
     path: '/api/public/evolution/sync-contacts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionStatusTickRoute =
+  ApiPublicEvolutionStatusTickRouteImport.update({
+    id: '/api/public/evolution/status-tick',
+    path: '/api/public/evolution/status-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionStatusLibraryRoute =
+  ApiPublicEvolutionStatusLibraryRouteImport.update({
+    id: '/api/public/evolution/status-library',
+    path: '/api/public/evolution/status-library',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicEvolutionStatusRoute =
@@ -591,6 +611,7 @@ export interface FileRoutesByFullPath {
   '/redact': typeof AppRedactRoute
   '/sequencias': typeof AppSequenciasRoute
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
+  '/status': typeof AppStatusRoute
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/d/$code': typeof DCodeRoute
@@ -637,6 +658,8 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/send-media-and-log': typeof ApiPublicEvolutionSendMediaAndLogRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
+  '/api/public/evolution/status-library': typeof ApiPublicEvolutionStatusLibraryRoute
+  '/api/public/evolution/status-tick': typeof ApiPublicEvolutionStatusTickRoute
   '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
   '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
@@ -679,6 +702,7 @@ export interface FileRoutesByTo {
   '/redact': typeof AppRedactRoute
   '/sequencias': typeof AppSequenciasRoute
   '/sequencias-dashboard': typeof AppSequenciasDashboardRoute
+  '/status': typeof AppStatusRoute
   '/templates': typeof AppTemplatesRoute
   '/whatsapp': typeof AppWhatsappRoute
   '/d/$code': typeof DCodeRoute
@@ -725,6 +749,8 @@ export interface FileRoutesByTo {
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/send-media-and-log': typeof ApiPublicEvolutionSendMediaAndLogRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
+  '/api/public/evolution/status-library': typeof ApiPublicEvolutionStatusLibraryRoute
+  '/api/public/evolution/status-tick': typeof ApiPublicEvolutionStatusTickRoute
   '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
   '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
@@ -769,6 +795,7 @@ export interface FileRoutesById {
   '/_app/redact': typeof AppRedactRoute
   '/_app/sequencias': typeof AppSequenciasRoute
   '/_app/sequencias-dashboard': typeof AppSequenciasDashboardRoute
+  '/_app/status': typeof AppStatusRoute
   '/_app/templates': typeof AppTemplatesRoute
   '/_app/whatsapp': typeof AppWhatsappRoute
   '/d/$code': typeof DCodeRoute
@@ -815,6 +842,8 @@ export interface FileRoutesById {
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
   '/api/public/evolution/send-media-and-log': typeof ApiPublicEvolutionSendMediaAndLogRoute
   '/api/public/evolution/status': typeof ApiPublicEvolutionStatusRoute
+  '/api/public/evolution/status-library': typeof ApiPublicEvolutionStatusLibraryRoute
+  '/api/public/evolution/status-tick': typeof ApiPublicEvolutionStatusTickRoute
   '/api/public/evolution/sync-contacts': typeof ApiPublicEvolutionSyncContactsRoute
   '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
@@ -859,6 +888,7 @@ export interface FileRouteTypes {
     | '/redact'
     | '/sequencias'
     | '/sequencias-dashboard'
+    | '/status'
     | '/templates'
     | '/whatsapp'
     | '/d/$code'
@@ -905,6 +935,8 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/send-media-and-log'
     | '/api/public/evolution/status'
+    | '/api/public/evolution/status-library'
+    | '/api/public/evolution/status-tick'
     | '/api/public/evolution/sync-contacts'
     | '/api/public/evolution/sync-groups'
     | '/api/public/evolution/sync-messages'
@@ -947,6 +979,7 @@ export interface FileRouteTypes {
     | '/redact'
     | '/sequencias'
     | '/sequencias-dashboard'
+    | '/status'
     | '/templates'
     | '/whatsapp'
     | '/d/$code'
@@ -993,6 +1026,8 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/send-media-and-log'
     | '/api/public/evolution/status'
+    | '/api/public/evolution/status-library'
+    | '/api/public/evolution/status-tick'
     | '/api/public/evolution/sync-contacts'
     | '/api/public/evolution/sync-groups'
     | '/api/public/evolution/sync-messages'
@@ -1036,6 +1071,7 @@ export interface FileRouteTypes {
     | '/_app/redact'
     | '/_app/sequencias'
     | '/_app/sequencias-dashboard'
+    | '/_app/status'
     | '/_app/templates'
     | '/_app/whatsapp'
     | '/d/$code'
@@ -1082,6 +1118,8 @@ export interface FileRouteTypes {
     | '/api/public/evolution/send-media'
     | '/api/public/evolution/send-media-and-log'
     | '/api/public/evolution/status'
+    | '/api/public/evolution/status-library'
+    | '/api/public/evolution/status-tick'
     | '/api/public/evolution/sync-contacts'
     | '/api/public/evolution/sync-groups'
     | '/api/public/evolution/sync-messages'
@@ -1155,6 +1193,8 @@ export interface RootRouteChildren {
   ApiPublicEvolutionSendMediaRoute: typeof ApiPublicEvolutionSendMediaRoute
   ApiPublicEvolutionSendMediaAndLogRoute: typeof ApiPublicEvolutionSendMediaAndLogRoute
   ApiPublicEvolutionStatusRoute: typeof ApiPublicEvolutionStatusRoute
+  ApiPublicEvolutionStatusLibraryRoute: typeof ApiPublicEvolutionStatusLibraryRoute
+  ApiPublicEvolutionStatusTickRoute: typeof ApiPublicEvolutionStatusTickRoute
   ApiPublicEvolutionSyncContactsRoute: typeof ApiPublicEvolutionSyncContactsRoute
   ApiPublicEvolutionSyncGroupsRoute: typeof ApiPublicEvolutionSyncGroupsRoute
   ApiPublicEvolutionSyncMessagesRoute: typeof ApiPublicEvolutionSyncMessagesRoute
@@ -1248,6 +1288,13 @@ declare module '@tanstack/react-router' {
       path: '/templates'
       fullPath: '/templates'
       preLoaderRoute: typeof AppTemplatesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/status': {
+      id: '/_app/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof AppStatusRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/sequencias-dashboard': {
@@ -1500,6 +1547,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/evolution/sync-contacts'
       fullPath: '/api/public/evolution/sync-contacts'
       preLoaderRoute: typeof ApiPublicEvolutionSyncContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/status-tick': {
+      id: '/api/public/evolution/status-tick'
+      path: '/api/public/evolution/status-tick'
+      fullPath: '/api/public/evolution/status-tick'
+      preLoaderRoute: typeof ApiPublicEvolutionStatusTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/status-library': {
+      id: '/api/public/evolution/status-library'
+      path: '/api/public/evolution/status-library'
+      fullPath: '/api/public/evolution/status-library'
+      preLoaderRoute: typeof ApiPublicEvolutionStatusLibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/evolution/status': {
@@ -1808,6 +1869,7 @@ interface AppRouteChildren {
   AppRedactRoute: typeof AppRedactRoute
   AppSequenciasRoute: typeof AppSequenciasRoute
   AppSequenciasDashboardRoute: typeof AppSequenciasDashboardRoute
+  AppStatusRoute: typeof AppStatusRoute
   AppTemplatesRoute: typeof AppTemplatesRoute
   AppWhatsappRoute: typeof AppWhatsappRoute
 }
@@ -1828,6 +1890,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppRedactRoute: AppRedactRoute,
   AppSequenciasRoute: AppSequenciasRoute,
   AppSequenciasDashboardRoute: AppSequenciasDashboardRoute,
+  AppStatusRoute: AppStatusRoute,
   AppTemplatesRoute: AppTemplatesRoute,
   AppWhatsappRoute: AppWhatsappRoute,
 }
@@ -1886,6 +1949,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEvolutionSendMediaAndLogRoute:
     ApiPublicEvolutionSendMediaAndLogRoute,
   ApiPublicEvolutionStatusRoute: ApiPublicEvolutionStatusRoute,
+  ApiPublicEvolutionStatusLibraryRoute: ApiPublicEvolutionStatusLibraryRoute,
+  ApiPublicEvolutionStatusTickRoute: ApiPublicEvolutionStatusTickRoute,
   ApiPublicEvolutionSyncContactsRoute: ApiPublicEvolutionSyncContactsRoute,
   ApiPublicEvolutionSyncGroupsRoute: ApiPublicEvolutionSyncGroupsRoute,
   ApiPublicEvolutionSyncMessagesRoute: ApiPublicEvolutionSyncMessagesRoute,
