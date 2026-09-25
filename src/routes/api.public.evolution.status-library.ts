@@ -8,7 +8,13 @@ const allowedMime = /^(image\/(jpeg|png|webp)|video\/(mp4|webm)|audio\/(mpeg|mp4
 
 async function authorized(request: Request) {
   const auth = await requireUserJwt(request);
-  return "error" in auth ? null : auth.userId;
+  if ("error" in auth) return null;
+  const { data } = await getSupabaseAdmin()
+    .from("crm_allowed_users")
+    .select("user_id")
+    .eq("user_id", auth.userId)
+    .maybeSingle();
+  return data ? auth.userId : null;
 }
 
 async function ensureBucket(sb: any) {
@@ -33,6 +39,7 @@ const patchSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("settings"), enabled: z.boolean(), intervalMinutes: z.number().int().min(60).max(10080) }),
   z.object({ action: z.literal("toggle"), id: z.string().uuid(), active: z.boolean() }),
   z.object({ action: z.literal("caption"), id: z.string().uuid(), caption: z.string().max(1024) }),
+  z.object({ action: z.literal("content"), id: z.string().uuid(), content: z.string().trim().min(1).max(700), backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/), font: z.number().int().min(0).max(5) }),
   z.object({ action: z.literal("reorder"), ids: z.array(z.string().uuid()).min(1).max(500) }),
 ]);
 
@@ -49,6 +56,9 @@ export const Route = createFileRoute("/api/public/evolution/status-library")({
           sb.from("crm_status_publications").select("id,media_id,status,error,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
         ]);
         if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
+        if (!settings) {
+          await sb.from("crm_status_settings").upsert({ user_id: userId, enabled: false, interval_minutes: 180 }, { onConflict: "user_id" });
+        }
         await ensureBucket(sb);
         const withUrls = await Promise.all((items ?? []).map(async (item: any) => {
           if (!item.storage_path) return { ...item, preview_url: null };
@@ -104,7 +114,11 @@ export const Route = createFileRoute("/api/public/evolution/status-library")({
           const failed = results.find((r: any) => r.error);
           return failed ? Response.json({ ok: false, error: failed.error.message }, { status: 500 }) : Response.json({ ok: true });
         }
-        const patch = parsed.data.action === "toggle" ? { is_active: parsed.data.active } : { caption: parsed.data.caption.trim() || null };
+        const patch = parsed.data.action === "toggle"
+          ? { is_active: parsed.data.active }
+          : parsed.data.action === "caption"
+            ? { caption: parsed.data.caption.trim() || null }
+            : { content: parsed.data.content, background_color: parsed.data.backgroundColor, font: parsed.data.font };
         const { error } = await sb.from("crm_status_media").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", parsed.data.id).eq("user_id", userId);
         return error ? Response.json({ ok: false, error: error.message }, { status: 500 }) : Response.json({ ok: true });
       },

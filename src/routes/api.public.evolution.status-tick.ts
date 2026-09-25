@@ -20,6 +20,10 @@ export const Route = createFileRoute("/api/public/evolution/status-tick")({
         const apiKey = process.env.EVOLUTION_API_KEY?.trim();
         if (!apiUrl || !apiKey) return Response.json({ ok: false, error: "Evolution API não configurada" }, { status: 500 });
         const sb = getSupabaseAdmin();
+        if (userId) {
+          const { data: allowed } = await sb.from("crm_allowed_users").select("user_id").eq("user_id", userId).maybeSingle();
+          if (!allowed) return Response.json({ ok: false, error: "Não autorizado" }, { status: 403 });
+        }
         let settingsQuery = sb.from("crm_status_settings").select("user_id,enabled,interval_minutes,last_published_at,processing_started_at");
         settingsQuery = userId ? settingsQuery.eq("user_id", userId) : settingsQuery.eq("enabled", true).limit(10);
         const { data: settings, error: settingsError } = await settingsQuery;
@@ -54,7 +58,7 @@ export const Route = createFileRoute("/api/public/evolution/status-tick")({
             const response = await fetch(`${apiUrl}/message/sendStatus/${INSTANCE}`, {
               method: "POST",
               headers: { apikey: apiKey, "Content-Type": "application/json" },
-              body: JSON.stringify({ type: selected.type, content, caption: selected.caption ?? "", backgroundColor: selected.background_color, font: selected.font, allContacts: true, statusJidList: [] }),
+              body: JSON.stringify({ type: selected.type, content, caption: selected.caption ?? "", backgroundColor: selected.background_color, font: selected.font, allContacts: true }),
             });
             const responseText = await response.text();
             let responseBody: any = responseText;

@@ -24,6 +24,12 @@ create policy "own_status_settings" on aespacrm.crm_status_settings
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+drop policy if exists "allowlist_only" on aespacrm.crm_status_settings;
+create policy "allowlist_only" on aespacrm.crm_status_settings
+  as restrictive for all to authenticated
+  using (aespacrm.is_allowed_user(auth.uid()))
+  with check (aespacrm.is_allowed_user(auth.uid()));
+
 create table if not exists aespacrm.crm_status_media (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -57,6 +63,12 @@ create policy "own_status_media" on aespacrm.crm_status_media
   using (user_id = auth.uid())
   with check (user_id = auth.uid());
 
+drop policy if exists "allowlist_only" on aespacrm.crm_status_media;
+create policy "allowlist_only" on aespacrm.crm_status_media
+  as restrictive for all to authenticated
+  using (aespacrm.is_allowed_user(auth.uid()))
+  with check (aespacrm.is_allowed_user(auth.uid()));
+
 create index if not exists crm_status_media_rotation_idx
   on aespacrm.crm_status_media(user_id, is_active, last_used_at, position);
 
@@ -79,6 +91,11 @@ drop policy if exists "own_status_publications" on aespacrm.crm_status_publicati
 create policy "own_status_publications" on aespacrm.crm_status_publications
   for select to authenticated
   using (user_id = auth.uid());
+
+drop policy if exists "allowlist_only" on aespacrm.crm_status_publications;
+create policy "allowlist_only" on aespacrm.crm_status_publications
+  as restrictive for select to authenticated
+  using (aespacrm.is_allowed_user(auth.uid()));
 
 create index if not exists crm_status_publications_user_created_idx
   on aespacrm.crm_status_publications(user_id, created_at desc);
