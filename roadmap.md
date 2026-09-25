@@ -1,3 +1,5 @@
 - [x] Diagnosticar o tempo esgotado no envio de mensagens pelo WhatsApp sem disparar mensagens de teste.
 - [x] Corrigir a orientação exibida quando o envio não é confirmado, preservando o rascunho e evitando reenvio às cegas.
 - [ ] Confirmar a causa da demora no processamento de sendText na Evolution na VPS; depende dos registros e recursos daquele serviço.
+- [x] Verificar por que o erro vermelho da Evolution ainda aparece na fila do Status, sem publicar mídia de teste.
+- [ ] Identificar a causa interna do 524 no sendStatus da Evolution na VPS; depende dos registros do serviço/proxy durante uma tentativa.
