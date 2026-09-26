@@ -5,7 +5,7 @@ import { checkApiKey, getSupabaseAdmin, requireUserJwt } from "@/integrations/su
 const INSTANCE = "zapcrm";
 const BUCKET = "crm-status-media";
 const BATCH_SIZE = 20;
-const bodySchema = z.object({ force: z.boolean().optional(), itemId: z.string().uuid().optional() });
+const bodySchema = z.object({ force: z.boolean().optional(), itemId: z.string().uuid().optional(), testRecipient: z.string().regex(/^55\d{10,11}$/).optional() });
 
 type StatusPayload = {
   type: string; content: string | null; storage_path: string | null;
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/public/evolution/status-tick")({
         if (!cron && auth && "error" in auth) return Response.json({ ok: false, error: auth.error }, { status: auth.status });
         const userId = !cron && auth && !("error" in auth) ? auth.userId : null;
         const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
-        if (!parsed.success || (cron && (parsed.data.force || parsed.data.itemId))) return Response.json({ ok: false, error: "Pedido inválido" }, { status: 400 });
+        if (!parsed.success || (cron && (parsed.data.force || parsed.data.itemId || parsed.data.testRecipient)) || (parsed.data.testRecipient && !parsed.data.force)) return Response.json({ ok: false, error: "Pedido inválido" }, { status: 400 });
         const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
         const apiKey = process.env.EVOLUTION_API_KEY?.trim();
         if (!apiUrl || !apiKey) return Response.json({ ok: false, error: "Evolution API não configurada" }, { status: 500 });
@@ -60,6 +60,10 @@ export const Route = createFileRoute("/api/public/evolution/status-tick")({
               results.push({ userId: config.user_id, ok: false, error: "Envio sem confirmação. Verifique com os contatos antes de iniciar outra publicação." });
               continue;
             }
+            if (parsed.data.testRecipient && (config.enabled || open)) {
+              results.push({ userId: config.user_id, ok: false, error: "Pause a automação e conclua ou confira a publicação em andamento antes do teste." });
+              continue;
+            }
             let run = open;
             if (!run) {
               const now = Date.now();
@@ -80,12 +84,18 @@ export const Route = createFileRoute("/api/public/evolution/status-tick")({
                 if (selectionError) throw selectionError;
                 if (!selected) throw new Error("Nenhum conteúdo ativo");
                 // Snapshot de destinatários: nunca recalcular no meio de uma publicação.
-                const contactsResponse = await fetch(`${apiUrl}/chat/findContacts/${INSTANCE}`, {
-                  method: "POST", headers: { apikey: apiKey, "Content-Type": "application/json" }, body: JSON.stringify({ where: {} }),
-                  signal: AbortSignal.timeout(15_000),
-                });
-                if (!contactsResponse.ok) throw new Error(`Não foi possível consultar contatos (${contactsResponse.status})`);
-                const recipients = recipientJids(await contactsResponse.json());
+                let recipients: string[];
+                if (parsed.data.testRecipient) {
+                  // Um único destinatário informado explicitamente; nunca consulta nem amplia para toda a agenda.
+                  recipients = [`${parsed.data.testRecipient}@s.whatsapp.net`];
+                } else {
+                  const contactsResponse = await fetch(`${apiUrl}/chat/findContacts/${INSTANCE}`, {
+                    method: "POST", headers: { apikey: apiKey, "Content-Type": "application/json" }, body: JSON.stringify({ where: {} }),
+                    signal: AbortSignal.timeout(15_000),
+                  });
+                  if (!contactsResponse.ok) throw new Error(`Não foi possível consultar contatos (${contactsResponse.status})`);
+                  recipients = recipientJids(await contactsResponse.json());
+                }
                 if (!recipients.length) throw new Error("Nenhum contato com número disponível na instância zapcrm");
                 const { data: created, error: createError } = await sb.from("crm_status_runs")
                   .insert({ user_id: config.user_id, media_id: selected.id, status: "running", recipients, payload: {
@@ -138,7 +148,7 @@ export const Route = createFileRoute("/api/public/evolution/status-tick")({
               if (!response.ok) throw new Error(`Evolution [${response.status}]: ${responseText.slice(0, 400)}`);
               const nextIndex = Math.min(index + BATCH_SIZE, recipients.length);
               const completed = nextIndex === recipients.length;
-              if (completed) {
+              if (completed && !parsed.data.testRecipient) {
                 const publishedAt = new Date().toISOString();
                 const [mediaResult, settingsResult] = await Promise.all([
                   sb.from("crm_status_media").update({ last_used_at: publishedAt, last_error: null }).eq("id", run.media_id).eq("user_id", config.user_id),
@@ -152,7 +162,7 @@ export const Route = createFileRoute("/api/public/evolution/status-tick")({
                 .eq("id", run.id).eq("user_id", config.user_id).eq("status", "running")
                 .eq("in_flight_at", inFlight).select("id").maybeSingle();
               if (saveError || !saved) throw new Error("O resultado foi recebido, mas não foi possível registrar o avanço");
-              if (completed) await sb.from("crm_status_publications").insert({ user_id: config.user_id, media_id: run.media_id, status: "accepted", provider_response: { runId: run.id, recipients: recipients.length } });
+              if (completed) await sb.from("crm_status_publications").insert({ user_id: config.user_id, media_id: run.media_id, status: "accepted", provider_response: { runId: run.id, recipients: recipients.length, test: Boolean(parsed.data.testRecipient) } });
               results.push({ userId: config.user_id, ok: true, completed, sent: nextIndex, total: recipients.length, mediaId: run.media_id });
             } catch (error) {
               const message = String(error instanceof Error ? error.message : error).slice(0, 800);
