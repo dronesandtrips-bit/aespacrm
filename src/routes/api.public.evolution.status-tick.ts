@@ -105,6 +105,7 @@ export const Route = createFileRoute("/api/public/evolution/status-tick")({
             if (run.in_flight_at) {
               const message = "Resposta do grupo anterior não confirmada. Verifique os contatos antes de prosseguir.";
               await sb.from("crm_status_runs").update({ status: "uncertain", error: message }).eq("id", run.id).eq("user_id", config.user_id).eq("status", "running");
+              await sb.from("crm_status_settings").update({ enabled: false, last_error: message }).eq("user_id", config.user_id);
               results.push({ userId: config.user_id, ok: false, error: message });
               continue;
             }

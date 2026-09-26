@@ -92,6 +92,11 @@ function StatusPage() {
   async function patch(body: object) { setBusy(true); try { await api("/api/public/evolution/status-library", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); await reload(); } catch (e: any) { toast.error(e.message); } finally { setBusy(false); } }
   async function move(index: number, delta: number) { const next = [...items]; const target = index + delta; if (target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; setItems(next); await patch({ action: "reorder", ids: next.map(i => i.id) }); }
   async function remove(item: StatusItem) { if (!confirm(`Excluir ${item.file_name ?? "este texto"}?`)) return; setBusy(true); try { await api(`/api/public/evolution/status-library?id=${item.id}`, { method: "DELETE" }); toast.success("Item excluído"); await reload(); } catch (e: any) { toast.error(e.message); } finally { setBusy(false); } }
+  async function resolveUncertain() {
+    if (!run || run.status !== "uncertain") return;
+    if (!confirm("Você verificou com os contatos se o último grupo recebeu o Status? Encerrar esta tentativa não envia os contatos restantes. Uma nova publicação começará do início e pode duplicar entregas anteriores.")) return;
+    await patch({ action: "resolve_uncertain", runId: run.id });
+  }
   async function publish(item?: StatusItem) {
     if (!run || run.status === "completed" || run.status === "cancelled") {
       if (!confirm("Iniciar envio para todos os contatos em grupos de 20? O primeiro grupo será enviado agora. Confirme somente se deseja publicar este Status.")) return;
@@ -123,6 +128,7 @@ function StatusPage() {
       {settings.last_error && <p className="mt-3 text-sm text-destructive">Última falha: {settings.last_error}</p>}
       {run?.status === "running" && <p className="mt-3 text-sm text-foreground">Publicação em andamento: {run.sent} de {run.total} contatos confirmados.</p>}
       {run?.status === "uncertain" && <p className="mt-3 text-sm text-destructive">Envio interrompido após {run.sent} de {run.total} contatos confirmados. Confira a entrega antes de continuar; não haverá reenvio automático.</p>}
+      {run?.status === "uncertain" && <Button variant="outline" size="sm" disabled={busy} onClick={resolveUncertain} className="mt-2">Encerrar tentativa após conferir</Button>}
     </Card>
 
     <div className="grid md:grid-cols-2 gap-4">

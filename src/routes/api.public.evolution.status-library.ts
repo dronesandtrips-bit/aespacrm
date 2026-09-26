@@ -41,6 +41,7 @@ const patchSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("caption"), id: z.string().uuid(), caption: z.string().max(1024) }),
   z.object({ action: z.literal("content"), id: z.string().uuid(), content: z.string().trim().min(1).max(700), backgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/), font: z.number().int().min(0).max(5) }),
   z.object({ action: z.literal("reorder"), ids: z.array(z.string().uuid()).min(1).max(500) }),
+  z.object({ action: z.literal("resolve_uncertain"), runId: z.string().uuid() }),
 ]);
 
 export const Route = createFileRoute("/api/public/evolution/status-library")({
@@ -111,6 +112,14 @@ export const Route = createFileRoute("/api/public/evolution/status-library")({
         const parsed = patchSchema.safeParse(await request.json());
         if (!parsed.success) return Response.json({ ok: false, error: "Alteração inválida" }, { status: 400 });
         const sb = getSupabaseAdmin();
+        if (parsed.data.action === "resolve_uncertain") {
+          const { data: resolved, error } = await sb.from("crm_status_runs")
+            .update({ status: "cancelled", completed_at: new Date().toISOString() })
+            .eq("id", parsed.data.runId).eq("user_id", userId).eq("status", "uncertain")
+            .select("id").maybeSingle();
+          if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
+          return resolved ? Response.json({ ok: true }) : Response.json({ ok: false, error: "Publicação não encontrada" }, { status: 409 });
+        }
         if (parsed.data.action === "settings") {
           if (parsed.data.enabled) {
             const { data: unresolved, error: runError } = await sb.from("crm_status_runs").select("id")
