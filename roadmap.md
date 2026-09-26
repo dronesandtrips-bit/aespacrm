@@ -4,5 +4,6 @@
 - [x] Verificar por que o erro vermelho da Evolution ainda aparece na fila do Status, sem publicar mídia de teste.
 - [ ] Identificar a causa interna do 524 no sendStatus da Evolution na VPS; depende dos registros do serviço/proxy durante uma tentativa.
 - [x] Dividir a publicação de Status em grupos persistentes, sem repetição automática após resposta incerta, e mostrar o andamento.
-- [ ] Validar a migração e um teste controlado antes de habilitar o rodízio geral; SQL aplicado pelo usuário, aguarda confirmação visual do envio restrito por contato de confiança.
+- [ ] Validar o envio restrito em grupo antes de habilitar o rodízio geral; teste individual confirmado pelo usuário, teste em grupo ainda não realizado.
 - [x] Oferecer teste restrito de Status para um contato de confiança, sem publicar para toda a agenda nem ativar o rodízio.
+- [x] Oferecer teste restrito para 2 a 5 contatos escolhidos, com confirmação explícita e sem consultar a lista geral.

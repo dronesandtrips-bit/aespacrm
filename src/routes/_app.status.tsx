@@ -54,6 +54,7 @@ function StatusPage() {
   const [font, setFont] = useState(1);
   const [caption, setCaption] = useState("");
   const [testNumber, setTestNumber] = useState("");
+  const [testGroup, setTestGroup] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reload = useCallback(async () => {
@@ -129,6 +130,24 @@ function StatusPage() {
     finally { setBusy(false); }
   }
 
+  const groupNumbers = testGroup.split(/[\n,;]+/).map(value => value.replace(/\D/g, "")).filter(Boolean);
+  const validGroup = groupNumbers.length >= 2 && groupNumbers.length <= 5 && groupNumbers.every(value => /^55\d{10,11}$/.test(value)) && new Set(groupNumbers).size === groupNumbers.length;
+
+  async function publishGroupTest() {
+    if (!validGroup || settings.enabled || run?.status === "running" || run?.status === "uncertain") return;
+    if (!confirm(`Publicar o próximo Status somente para estes ${groupNumbers.length} números?\n${groupNumbers.join("\n")}\n\nÉ um envio real. Não repita se a resposta ficar incerta.`)) return;
+    setBusy(true);
+    try {
+      const data = await api("/api/public/evolution/status-tick", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ force: true, testRecipients: groupNumbers }) });
+      const result = data.results?.[0];
+      if (!result?.ok) throw new Error(result?.error ?? "Envio não confirmado");
+      toast.success(`Evolution aceitou o Status para ${result.total} contatos. Confirme com eles se apareceu.`);
+      setTestGroup("");
+      await reload();
+    } catch (e: any) { toast.error("Envio não confirmado", { description: `${e.message} Confira com os contatos antes de tentar novamente.` }); await reload(); }
+    finally { setBusy(false); }
+  }
+
   const nextItem = items.filter(i => i.is_active).sort((a,b) => (a.last_used_at ?? "").localeCompare(b.last_used_at ?? "") || a.position-b.position)[0];
   return <div className="max-w-[1200px] space-y-5">
     <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
@@ -154,6 +173,15 @@ function StatusPage() {
       <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
         <div className="w-full sm:max-w-64"><Label htmlFor="status-test-number">Número de confiança</Label><Input id="status-test-number" type="tel" inputMode="numeric" autoComplete="off" placeholder="55 + DDD + telefone" value={testNumber} onChange={(e) => setTestNumber(e.target.value)} /></div>
         <Button variant="outline" onClick={publishTest} disabled={busy || loading || settings.enabled || run?.status === "running" || run?.status === "uncertain" || !nextItem || !/^55\d{10,11}$/.test(testNumber.replace(/\D/g, ""))} className="gap-2"><Send className="size-4"/>Enviar apenas para este contato</Button>
+      </div>
+    </section>
+
+    <section className="space-y-3 border-t pt-4">
+      <h2 className="font-semibold">Teste com grupo de confiança</h2>
+      <p className="text-sm text-muted-foreground">Informe de 2 a 5 números (55 + DDD + telefone), separados por linha. O envio será somente para esses contatos; mantenha a automação pausada.</p>
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+        <div className="w-full sm:max-w-72"><Label htmlFor="status-test-group">Números de confiança</Label><Textarea id="status-test-group" inputMode="numeric" placeholder={"55 + DDD + telefone\n55 + DDD + telefone"} value={testGroup} onChange={(e) => setTestGroup(e.target.value)} rows={3} maxLength={100} /></div>
+        <Button variant="outline" onClick={publishGroupTest} disabled={busy || loading || settings.enabled || run?.status === "running" || run?.status === "uncertain" || !nextItem || !validGroup} className="gap-2"><Send className="size-4"/>Enviar apenas para este grupo</Button>
       </div>
     </section>
 
