@@ -106,7 +106,7 @@ function StatusPage() {
       const data = await api("/api/public/evolution/status-tick", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ force: true, itemId: item?.id }) });
       const result = data.results?.[0];
       if (!result?.ok) throw new Error(result?.error ?? "Publicação não concluída");
-      toast.success(result.completed ? "Envio concluído" : `Grupo confirmado: ${result.sent} de ${result.total} contatos`);
+      toast.success(result.completed ? "Envio aceito pela Evolution" : `Evolution aceitou ${result.sent} de ${result.total} destinatários`);
       await reload();
     } catch (e: any) { toast.error("Falha ao publicar", { description: e.message }); await reload(); }
     finally { setBusy(false); }
@@ -126,8 +126,8 @@ function StatusPage() {
         <div className="text-xs text-muted-foreground md:text-right"><Clock3 className="size-4 inline mr-1"/>{settings.last_published_at ? `Último: ${new Date(settings.last_published_at).toLocaleString("pt-BR")}` : "Ainda não publicou"}</div>
       </div>
       {settings.last_error && <p className="mt-3 text-sm text-destructive">Última falha: {settings.last_error}</p>}
-      {run?.status === "running" && <p className="mt-3 text-sm text-foreground">Publicação em andamento: {run.sent} de {run.total} contatos confirmados.</p>}
-      {run?.status === "uncertain" && <p className="mt-3 text-sm text-destructive">Envio interrompido após {run.sent} de {run.total} contatos confirmados. Confira a entrega antes de continuar; não haverá reenvio automático.</p>}
+      {run?.status === "running" && <p className="mt-3 text-sm text-foreground">Publicação em andamento: {run.sent} de {run.total} destinatários aceitos pela Evolution.</p>}
+      {run?.status === "uncertain" && <p className="mt-3 text-sm text-destructive">Envio interrompido após {run.sent} de {run.total} destinatários aceitos pela Evolution. Confira a entrega antes de continuar; não haverá reenvio automático.</p>}
       {run?.status === "uncertain" && <Button variant="outline" size="sm" disabled={busy} onClick={resolveUncertain} className="mt-2">Encerrar tentativa após conferir</Button>}
     </Card>
 
