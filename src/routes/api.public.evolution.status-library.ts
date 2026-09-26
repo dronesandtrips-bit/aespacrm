@@ -50,12 +50,14 @@ export const Route = createFileRoute("/api/public/evolution/status-library")({
         const userId = await authorized(request);
         if (!userId) return Response.json({ ok: false, error: "Não autorizado" }, { status: 401 });
         const sb = getSupabaseAdmin();
-        const [{ data: items, error }, { data: settings }, { data: history }] = await Promise.all([
+        const [{ data: items, error }, { data: settings }, { data: history }, { data: runs, error: runsError }] = await Promise.all([
           sb.from("crm_status_media").select("id,type,content,storage_path,mime_type,file_name,caption,background_color,font,position,is_active,last_used_at,last_error,created_at").eq("user_id", userId).order("position"),
           sb.from("crm_status_settings").select("enabled,interval_minutes,last_published_at,last_error,processing_started_at").eq("user_id", userId).maybeSingle(),
           sb.from("crm_status_publications").select("id,media_id,status,error,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
+          sb.from("crm_status_runs").select("id,media_id,status,next_index,recipients,error,created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(1),
         ]);
         if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
+        if (runsError) return Response.json({ ok: false, error: runsError.message }, { status: 500 });
         if (!settings) {
           await sb.from("crm_status_settings").upsert({ user_id: userId, enabled: false, interval_minutes: 180 }, { onConflict: "user_id" });
         }
@@ -65,7 +67,11 @@ export const Route = createFileRoute("/api/public/evolution/status-library")({
           const { data } = await sb.storage.from(BUCKET).createSignedUrl(item.storage_path, 900);
           return { ...item, preview_url: data?.signedUrl ?? null };
         }));
-        return Response.json({ ok: true, items: withUrls, settings: settings ?? { enabled: false, interval_minutes: 180 }, history: history ?? [] });
+        const recentRun = runs?.[0];
+        return Response.json({ ok: true, items: withUrls, settings: settings ?? { enabled: false, interval_minutes: 180 }, history: history ?? [],
+          run: recentRun ? { id: recentRun.id, mediaId: recentRun.media_id, status: recentRun.status,
+            sent: recentRun.next_index, total: Array.isArray(recentRun.recipients) ? recentRun.recipients.length : 0,
+            error: recentRun.error, createdAt: recentRun.created_at } : null });
       },
       POST: async ({ request }) => {
         const userId = await authorized(request);
@@ -106,6 +112,12 @@ export const Route = createFileRoute("/api/public/evolution/status-library")({
         if (!parsed.success) return Response.json({ ok: false, error: "Alteração inválida" }, { status: 400 });
         const sb = getSupabaseAdmin();
         if (parsed.data.action === "settings") {
+          if (parsed.data.enabled) {
+            const { data: unresolved, error: runError } = await sb.from("crm_status_runs").select("id")
+              .eq("user_id", userId).eq("status", "uncertain").limit(1).maybeSingle();
+            if (runError) return Response.json({ ok: false, error: runError.message }, { status: 500 });
+            if (unresolved) return Response.json({ ok: false, error: "Há uma publicação sem confirmação. Verifique a entrega antes de ativar o rodízio." }, { status: 409 });
+          }
           const { error } = await sb.from("crm_status_settings").upsert({ user_id: userId, enabled: parsed.data.enabled, interval_minutes: parsed.data.intervalMinutes, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
           return error ? Response.json({ ok: false, error: error.message }, { status: 500 }) : Response.json({ ok: true });
         }
