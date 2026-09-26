@@ -3,6 +3,14 @@ import { useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({
+  head: () => ({ meta: [
+    { title: "ZapCRM | Gestão de clientes e WhatsApp" },
+    { name: "description", content: "Acesse o ZapCRM para gerenciar conversas, contatos e atendimentos da Aespa." },
+    { property: "og:title", content: "ZapCRM | Gestão de clientes e WhatsApp" },
+    { property: "og:description", content: "Acesse o ZapCRM para gerenciar conversas, contatos e atendimentos da Aespa." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: Index,
 });
 
