@@ -6,3 +6,4 @@
 - [x] Dividir a publicação de Status em grupos persistentes, sem repetição automática após resposta incerta, e mostrar o andamento.
 - [ ] Validar a migração e um teste controlado antes de habilitar o rodízio geral; SQL aplicado pelo usuário, aguarda confirmação visual do envio restrito por contato de confiança.
 - [x] Oferecer teste restrito de Status para um contato de confiança, sem publicar para toda a agenda nem ativar o rodízio.
+- [ ] Oferecer teste restrito para 2 a 5 contatos escolhidos, com confirmação explícita e sem consultar a lista geral.
