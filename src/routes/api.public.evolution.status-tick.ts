@@ -103,6 +103,10 @@ export const Route = createFileRoute("/api/public/evolution/status-tick")({
             const index = Number(run.next_index);
             if (!Array.isArray(recipients) || !recipients.length || !Number.isSafeInteger(index) || index < 0 || index >= recipients.length) throw new Error("Progresso inválido; publicação interrompida");
             if (run.in_flight_at) {
+              if (Date.now() - new Date(run.in_flight_at).getTime() < 60_000) {
+                results.push({ userId: config.user_id, skipped: "busy" });
+                continue;
+              }
               const message = "Resposta do grupo anterior não confirmada. Verifique os contatos antes de prosseguir.";
               await sb.from("crm_status_runs").update({ status: "uncertain", error: message }).eq("id", run.id).eq("user_id", config.user_id).eq("status", "running");
               await sb.from("crm_status_settings").update({ enabled: false, last_error: message }).eq("user_id", config.user_id);
