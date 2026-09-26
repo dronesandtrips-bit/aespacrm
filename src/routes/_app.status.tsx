@@ -130,7 +130,7 @@ function StatusPage() {
     finally { setBusy(false); }
   }
 
-  const groupNumbers = testGroup.split(/[\s,;]+/).map(value => value.replace(/\D/g, "")).filter(Boolean);
+  const groupNumbers = testGroup.split(/[\n,;]+/).map(value => value.replace(/\D/g, "")).filter(Boolean);
   const validGroup = groupNumbers.length >= 2 && groupNumbers.length <= 5 && groupNumbers.every(value => /^55\d{10,11}$/.test(value)) && new Set(groupNumbers).size === groupNumbers.length;
 
   async function publishGroupTest() {
