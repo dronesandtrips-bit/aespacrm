@@ -134,20 +134,21 @@ export const Route = createFileRoute("/api/public/evolution/status-tick")({
               if (!response.ok) throw new Error(`Evolution [${response.status}]: ${responseText.slice(0, 400)}`);
               const nextIndex = Math.min(index + BATCH_SIZE, recipients.length);
               const completed = nextIndex === recipients.length;
+              if (completed) {
+                const publishedAt = new Date().toISOString();
+                const [mediaResult, settingsResult] = await Promise.all([
+                  sb.from("crm_status_media").update({ last_used_at: publishedAt, last_error: null }).eq("id", run.media_id).eq("user_id", config.user_id),
+                  sb.from("crm_status_settings").update({ last_published_at: publishedAt, last_error: null }).eq("user_id", config.user_id),
+                ]);
+                if (mediaResult.error || settingsResult.error) throw new Error("O último grupo foi aceito, mas o registro de conclusão falhou");
+              }
               const { data: saved, error: saveError } = await sb.from("crm_status_runs")
                 .update({ next_index: nextIndex, in_flight_at: null, status: completed ? "completed" : "running",
                   completed_at: completed ? new Date().toISOString() : null, error: null })
                 .eq("id", run.id).eq("user_id", config.user_id).eq("status", "running")
                 .eq("in_flight_at", inFlight).select("id").maybeSingle();
               if (saveError || !saved) throw new Error("O resultado foi recebido, mas não foi possível registrar o avanço");
-              if (completed) {
-                const publishedAt = new Date().toISOString();
-                await Promise.all([
-                  sb.from("crm_status_media").update({ last_used_at: publishedAt, last_error: null }).eq("id", run.media_id).eq("user_id", config.user_id),
-                  sb.from("crm_status_settings").update({ last_published_at: publishedAt, last_error: null }).eq("user_id", config.user_id),
-                  sb.from("crm_status_publications").insert({ user_id: config.user_id, media_id: run.media_id, status: "accepted", provider_response: { runId: run.id, recipients: recipients.length } }),
-                ]);
-              }
+              if (completed) await sb.from("crm_status_publications").insert({ user_id: config.user_id, media_id: run.media_id, status: "accepted", provider_response: { runId: run.id, recipients: recipients.length } });
               results.push({ userId: config.user_id, ok: true, completed, sent: nextIndex, total: recipients.length, mediaId: run.media_id });
             } catch (error) {
               const message = String(error instanceof Error ? error.message : error).slice(0, 800);
