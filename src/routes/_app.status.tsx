@@ -53,6 +53,7 @@ function StatusPage() {
   const [backgroundColor, setBackgroundColor] = useState("#075E54");
   const [font, setFont] = useState(1);
   const [caption, setCaption] = useState("");
+  const [testNumber, setTestNumber] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reload = useCallback(async () => {
@@ -112,6 +113,22 @@ function StatusPage() {
     finally { setBusy(false); }
   }
 
+  async function publishTest() {
+    const digits = testNumber.replace(/\D/g, "");
+    if (!/^55\d{10,11}$/.test(digits)) { toast.error("Informe 55 + DDD + telefone, somente números."); return; }
+    if (!confirm(`Enviar o próximo Status somente para ${digits}? Esta ação publica de verdade uma única vez; não será repetida automaticamente.`)) return;
+    setBusy(true);
+    try {
+      const data = await api("/api/public/evolution/status-tick", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ force: true, testRecipient: digits }) });
+      const result = data.results?.[0];
+      if (!result?.ok) throw new Error(result?.error ?? "Envio não confirmado");
+      toast.success("Evolution aceitou o Status para o número informado. Peça ao contato para confirmar se apareceu.");
+      setTestNumber("");
+      await reload();
+    } catch (e: any) { toast.error("Envio não confirmado", { description: `${e.message} Confira com o contato antes de tentar novamente.` }); await reload(); }
+    finally { setBusy(false); }
+  }
+
   const nextItem = items.filter(i => i.is_active).sort((a,b) => (a.last_used_at ?? "").localeCompare(b.last_used_at ?? "") || a.position-b.position)[0];
   return <div className="max-w-[1200px] space-y-5">
     <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
@@ -130,6 +147,15 @@ function StatusPage() {
       {run?.status === "uncertain" && <p className="mt-3 text-sm text-destructive">Envio interrompido após {run.sent} de {run.total} destinatários aceitos pela Evolution. Confira a entrega antes de continuar; não haverá reenvio automático.</p>}
       {run?.status === "uncertain" && <Button variant="outline" size="sm" disabled={busy} onClick={resolveUncertain} className="mt-2">Encerrar tentativa após conferir</Button>}
     </Card>
+
+    <section className="space-y-3 border-t pt-4">
+      <h2 className="font-semibold">Teste com um contato</h2>
+      <p className="text-sm text-muted-foreground">Envia o próximo conteúdo somente para o número informado. Mantenha a automação pausada e confirme com o contato antes de qualquer envio geral.</p>
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+        <div className="w-full sm:max-w-64"><Label htmlFor="status-test-number">Número de confiança</Label><Input id="status-test-number" type="tel" inputMode="numeric" autoComplete="off" placeholder="55 + DDD + telefone" value={testNumber} onChange={(e) => setTestNumber(e.target.value)} /></div>
+        <Button variant="outline" onClick={publishTest} disabled={busy || loading || settings.enabled || run?.status === "running" || run?.status === "uncertain" || !nextItem || !/^55\d{10,11}$/.test(testNumber.replace(/\D/g, ""))} className="gap-2"><Send className="size-4"/>Enviar apenas para este contato</Button>
+      </div>
+    </section>
 
     <div className="grid md:grid-cols-2 gap-4">
       <Card className="p-4 space-y-3"><div><h2 className="font-semibold flex items-center gap-2"><Image className="size-4"/>Adicionar mídias</h2><p className="text-xs text-muted-foreground">Imagens, vídeos ou áudios de até 20 MB. Você pode escolher vários arquivos.</p></div><Input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm" disabled={busy} onChange={(e) => upload(e.target.files)}/><Input value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Legenda para os próximos arquivos (opcional)" maxLength={1024}/></Card>
