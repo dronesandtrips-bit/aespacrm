@@ -12,7 +12,7 @@
 | `tailwindcss`/`@tailwindcss/vite` ^4.2.1, `tw-animate-css` ^1.3.4 | Tema/UI em `src/styles.css`, build | Sim; remoção afeta estilos. |
 | `@radix-ui/react-*` (versões individuais em `package.json`), `class-variance-authority` ^0.7.1, `clsx` ^2.1.1, `tailwind-merge` ^3.5.0 | Primitivos `src/components/ui/*`/variantes | Sim por componente; testar menus, diálogos, acessibilidade. |
 | `lucide-react` ^0.575.0, `sonner` ^2.0.7 | Ícones e notificações | Sim; mudança visual/feedback. |
-| `@dnd-kit/core` ^6.3.1, `sortable` ^10.0.0, `utilities` ^3.2.2 | Arrastar/ordenar pipeline e listas | Sim onde usado; testar touch. |
+| `@dnd-kit/core` ^6.3.1, `@dnd-kit/sortable` ^10.0.0, `@dnd-kit/utilities` ^3.2.2 | Arrastar/ordenar pipeline e listas | Sim onde usado; testar touch. |
 | `recharts` ^3.8.1 | Gráficos do painel | Sim na tela; dados/legendas podem mudar. |
 | `date-fns` ^4.1.0, `react-day-picker` ^9.14.0 | Datas e agenda | Sim; cuidado com fuso São Paulo. |
 | `react-hook-form` ^7.71.2, `@hookform/resolvers` ^5.2.2 | Forms/validação | Sim onde usados. |
