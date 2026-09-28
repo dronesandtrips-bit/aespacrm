@@ -7,3 +7,4 @@
 - [ ] Validar o envio restrito em grupo antes de habilitar o rodízio geral; teste individual confirmado pelo usuário, teste em grupo ainda não realizado.
 - [x] Oferecer teste restrito de Status para um contato de confiança, sem publicar para toda a agenda nem ativar o rodízio.
 - [x] Oferecer teste restrito para 2 a 5 contatos escolhidos, com confirmação explícita e sem consultar a lista geral.
+- [ ] Auditar código/configurações e documentar operação e reconstrução em docs/, sem modificar serviços ou dados; validação do estado real da VPS/banco depende de acesso administrativo somente leitura.
