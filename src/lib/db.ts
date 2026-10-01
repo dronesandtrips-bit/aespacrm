@@ -108,6 +108,8 @@ export type Sequence = {
   windowDays: number[];
   stopOnStageIds: string[];
   autoResumeAfterDays: number;
+  clientIntervalSeconds: number;
+  intervalAvailable: boolean;
   createdAt: string;
 };
 
@@ -1342,12 +1344,11 @@ function rowToSeq(r: any): Sequence {
     windowDays: r.window_days ?? [1, 2, 3, 4, 5],
     stopOnStageIds: r.stop_on_stage_ids ?? [],
     autoResumeAfterDays: r.auto_resume_after_days ?? 0,
+    clientIntervalSeconds: r.client_interval_seconds ?? 60,
+    intervalAvailable: r.client_interval_seconds !== undefined,
     createdAt: r.created_at,
   };
 }
-
-const SEQ_COLS =
-  "id,name,description,is_active,trigger_type,trigger_value,window_start_hour,window_end_hour,window_days,stop_on_stage_ids,auto_resume_after_days,created_at";
 
 function rowToMedia(r: any): TemplateMedia | null {
   if (!r?.media_base64 || !r?.media_type) return null;
@@ -1395,7 +1396,7 @@ export const sequencesDb = {
     const c = await client();
     const { data, error } = await c
       .from("crm_sequences")
-      .select(SEQ_COLS)
+      .select("*")
       .order("created_at", { ascending: false });
     if (error) throw error;
     return (data ?? []).map(rowToSeq);
@@ -1419,7 +1420,7 @@ export const sequencesDb = {
         trigger_value: input.triggerValue ?? null,
         is_active: true,
       })
-      .select(SEQ_COLS)
+      .select("*")
       .single();
     if (error) throw error;
     return rowToSeq(data);
@@ -1438,6 +1439,7 @@ export const sequencesDb = {
       windowDays: number[];
       stopOnStageIds: string[];
       autoResumeAfterDays: number;
+      clientIntervalSeconds: number;
     }>,
   ) {
     const c = await client();
@@ -1453,6 +1455,11 @@ export const sequencesDb = {
     if (patch.stopOnStageIds !== undefined) dbPatch.stop_on_stage_ids = patch.stopOnStageIds;
     if (patch.autoResumeAfterDays !== undefined)
       dbPatch.auto_resume_after_days = patch.autoResumeAfterDays;
+    if (patch.clientIntervalSeconds !== undefined) {
+      if (!Number.isInteger(patch.clientIntervalSeconds) || patch.clientIntervalSeconds < 60 || patch.clientIntervalSeconds > 300)
+        throw new Error("O intervalo deve ser de 60 a 300 segundos");
+      dbPatch.client_interval_seconds = patch.clientIntervalSeconds;
+    }
     const { error } = await c.from("crm_sequences").update(dbPatch).eq("id", id);
     if (error) throw error;
   },

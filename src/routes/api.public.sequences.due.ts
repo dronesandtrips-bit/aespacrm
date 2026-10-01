@@ -110,11 +110,11 @@ export const Route = createFileRoute("/api/public/sequences/due")({
           const seqIds = [...new Set(due.map((d: any) => d.sequence_id))];
           const contactIds = [...new Set(due.map((d: any) => d.contact_id))];
 
-          const [seqsRes, stepsRes, contactsRes] = await Promise.all([
+           let [seqsRes, stepsRes, contactsRes] = await Promise.all([
             admin
               .from("crm_sequences")
               .select(
-                "id,name,is_active,window_start_hour,window_end_hour,window_days",
+                 "id,name,is_active,window_start_hour,window_end_hour,window_days,client_interval_seconds",
               )
               .in("id", seqIds),
           admin
@@ -126,6 +126,11 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               .select("id,name,phone,email,category_id,is_ignored")
               .in("id", contactIds),
           ]);
+           if (seqsRes.error && /client_interval_seconds/i.test(seqsRes.error.message)) {
+             seqsRes = await admin.from("crm_sequences")
+               .select("id,name,is_active,window_start_hour,window_end_hour,window_days")
+               .in("id", seqIds);
+           }
           if (seqsRes.error) throw seqsRes.error;
           if (stepsRes.error) throw stepsRes.error;
           if (contactsRes.error) throw contactsRes.error;
@@ -191,6 +196,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
                 user_id: d.user_id,
                 sequence_id: d.sequence_id,
                 sequence_name: seq.name,
+                 client_interval_seconds: Math.max(60, Math.min(300, Number(seq.client_interval_seconds ?? 60))),
                 step_order: d.current_step,
                 contact: {
                   id: contact.id,

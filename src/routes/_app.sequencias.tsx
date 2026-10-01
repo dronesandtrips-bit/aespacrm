@@ -82,6 +82,14 @@ import { getSupabaseClient } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_app/sequencias")({
   component: SequenciasPage,
+  head: () => ({ meta: [
+    { title: "Sequências | ZapCRM" },
+    { name: "description", content: "Gerencie sequências de mensagens e o intervalo de envio entre clientes no ZapCRM." },
+    { property: "og:title", content: "Sequências | ZapCRM" },
+    { property: "og:description", content: "Gerencie sequências de mensagens e o intervalo de envio entre clientes no ZapCRM." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 const MAX_STEPS = 10;
@@ -141,7 +149,9 @@ function SequenciasPage() {
   const reload = async () => {
     setLoading(true);
     try {
-      setSeqs(await sequencesDb.list());
+      const refreshed = await sequencesDb.list();
+      setSeqs(refreshed);
+      setSelected((current) => current ? refreshed.find((item) => item.id === current.id) ?? null : null);
     } catch (e: any) {
       toast.error(`Erro: ${e.message ?? e}`);
     } finally {
@@ -205,6 +215,7 @@ function SequenciasPage() {
                     <CalendarClock className="size-3" />
                     {s.windowStartHour}h–{s.windowEndHour}h ·{" "}
                     {formatDays(s.windowDays)}
+                      {s.intervalAvailable && <> · {s.clientIntervalSeconds}s entre clientes (após ativação)</>}
                   </p>
                 </div>
                 <Button variant="outline" size="sm">
@@ -306,6 +317,8 @@ function SequenceEditorDialog({
   const [endHour, setEndHour] = useState<number>(sequence.windowEndHour);
   const [days, setDays] = useState<number[]>(sequence.windowDays);
   const [savingWindow, setSavingWindow] = useState(false);
+  const [clientInterval, setClientInterval] = useState(sequence.clientIntervalSeconds);
+  const [savingInterval, setSavingInterval] = useState(false);
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [stopStageIds, setStopStageIds] = useState<string[]>(sequence.stopOnStageIds);
   const [autoResumeDays, setAutoResumeDays] = useState<number>(sequence.autoResumeAfterDays);
@@ -648,6 +661,27 @@ function SequenceEditorDialog({
     JSON.stringify([...days].sort()) !==
       JSON.stringify([...sequence.windowDays].sort());
 
+  const saveClientInterval = async () => {
+    if (!sequence.intervalAvailable) {
+      toast.error("A configuração ainda não está disponível. Aguarde a ativação.");
+      return;
+    }
+    if (!Number.isInteger(clientInterval) || clientInterval < 60 || clientInterval > 300) {
+      toast.error("Use um intervalo de 60 a 300 segundos");
+      return;
+    }
+    setSavingInterval(true);
+    try {
+      await sequencesDb.update(sequence.id, { clientIntervalSeconds: clientInterval });
+      toast.success("Intervalo entre clientes salvo");
+      onChange();
+    } catch (e: any) {
+      toast.error(`Erro: ${e.message ?? e}`);
+    } finally {
+      setSavingInterval(false);
+    }
+  };
+
   const toggleStopStage = (id: string) => {
     setStopStageIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -754,7 +788,28 @@ function SequenceEditorDialog({
               </Button>
             )}
 
-            <Card className="p-3 space-y-3">
+             <div className="border-y py-4 space-y-3">
+               <div className="text-sm font-medium flex items-center gap-2">
+                 <Clock className="size-3.5" /> Intervalo entre clientes
+               </div>
+               <div className="flex items-end gap-3 flex-wrap">
+                 <div>
+                   <Label htmlFor="client-interval" className="text-xs">Segundos entre um cliente e o próximo</Label>
+                    <Input id="client-interval" type="number" min={60} max={300} step={1}
+                      disabled={!sequence.intervalAvailable}
+                     value={clientInterval} onChange={(e) => setClientInterval(Number(e.target.value))}
+                     className="w-32 mt-1" />
+                 </div>
+                  <Button size="sm" onClick={saveClientInterval}
+                    disabled={!sequence.intervalAvailable || savingInterval || clientInterval === sequence.clientIntervalSeconds || !Number.isInteger(clientInterval) || clientInterval < 60 || clientInterval > 300}>
+                   {savingInterval && <Loader2 className="size-4 mr-1 animate-spin" />}
+                   Salvar intervalo
+                 </Button>
+               </div>
+                 <p className="text-xs text-muted-foreground">{sequence.intervalAvailable ? "Mínimo 60 e máximo 300 segundos. A configuração só terá efeito após a ativação do novo disparador; o atual continua no ritmo anterior." : "Aguardando ativação. O envio atual permanece inalterado."}</p>
+             </div>
+
+             <Card className="p-3 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium flex items-center gap-2">
                   <CalendarClock className="size-3.5" /> Janela de envio
