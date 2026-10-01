@@ -1395,15 +1395,17 @@ function rowToContactSeq(r: any): ContactSequence {
 export const sequencesDb = {
   async list(): Promise<Sequence[]> {
     const c = await client();
-    let { data, error } = await c
+    const { data, error } = await c
       .from("crm_sequences")
       .select(SEQ_COLS)
       .order("created_at", { ascending: false });
     // Durante a ativação, a lista continua funcionando no banco ainda sem a nova coluna.
     if (error && /client_interval_seconds/i.test(error.message)) {
-      ({ data, error } = await c.from("crm_sequences")
+      const fallback = await c.from("crm_sequences")
         .select(SEQ_COLS.replace(",client_interval_seconds", ""))
-        .order("created_at", { ascending: false }));
+        .order("created_at", { ascending: false });
+      if (fallback.error) throw fallback.error;
+      return (fallback.data ?? []).map(rowToSeq);
     }
     if (error) throw error;
     return (data ?? []).map(rowToSeq);
