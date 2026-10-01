@@ -27,6 +27,9 @@ export const Route = createFileRoute("/api/public/sequences/dispatch")({
           console.error("[sequences/dispatch]", error);
           return jsonResponse({ error: "Dispatch checkpoint unavailable" }, 503);
         }
+        if (parsed.data.action === "acknowledge" && !data?.ok) {
+          return jsonResponse(data ?? { error: "Dispatch not acknowledged" }, 409);
+        }
         return jsonResponse(data);
       },
     },
