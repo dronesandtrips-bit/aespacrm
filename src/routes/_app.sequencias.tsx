@@ -213,7 +213,7 @@ function SequenciasPage() {
                     <CalendarClock className="size-3" />
                     {s.windowStartHour}h–{s.windowEndHour}h ·{" "}
                     {formatDays(s.windowDays)}
-                      {" · "}{s.clientIntervalSeconds}s entre clientes (após ativação)
+                      {s.intervalAvailable && <> · {s.clientIntervalSeconds}s entre clientes (após ativação)</>}
                   </p>
                 </div>
                 <Button variant="outline" size="sm">
@@ -660,6 +660,10 @@ function SequenceEditorDialog({
       JSON.stringify([...sequence.windowDays].sort());
 
   const saveClientInterval = async () => {
+    if (!sequence.intervalAvailable) {
+      toast.error("A configuração ainda não está disponível. Aguarde a ativação.");
+      return;
+    }
     if (!Number.isInteger(clientInterval) || clientInterval < 60 || clientInterval > 300) {
       toast.error("Use um intervalo de 60 a 300 segundos");
       return;
@@ -793,13 +797,13 @@ function SequenceEditorDialog({
                      value={clientInterval} onChange={(e) => setClientInterval(Number(e.target.value))}
                      className="w-32 mt-1" />
                  </div>
-                 <Button size="sm" onClick={saveClientInterval}
-                   disabled={savingInterval || clientInterval === sequence.clientIntervalSeconds || !Number.isInteger(clientInterval) || clientInterval < 60 || clientInterval > 300}>
+                  <Button size="sm" onClick={saveClientInterval}
+                    disabled={!sequence.intervalAvailable || savingInterval || clientInterval === sequence.clientIntervalSeconds || !Number.isInteger(clientInterval) || clientInterval < 60 || clientInterval > 300}>
                    {savingInterval && <Loader2 className="size-4 mr-1 animate-spin" />}
                    Salvar intervalo
                  </Button>
                </div>
-                <p className="text-xs text-muted-foreground">Mínimo 60 e máximo 300 segundos. A configuração só terá efeito após a ativação do novo disparador; o atual continua no ritmo anterior.</p>
+                 <p className="text-xs text-muted-foreground">{sequence.intervalAvailable ? "Mínimo 60 e máximo 300 segundos. A configuração só terá efeito após a ativação do novo disparador; o atual continua no ritmo anterior." : "Aguardando ativação. O envio atual permanece inalterado."}</p>
              </div>
 
              <Card className="p-3 space-y-3">

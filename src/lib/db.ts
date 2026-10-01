@@ -109,6 +109,7 @@ export type Sequence = {
   stopOnStageIds: string[];
   autoResumeAfterDays: number;
   clientIntervalSeconds: number;
+  intervalAvailable: boolean;
   createdAt: string;
 };
 
