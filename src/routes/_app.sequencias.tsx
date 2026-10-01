@@ -215,7 +215,7 @@ function SequenciasPage() {
                     <CalendarClock className="size-3" />
                     {s.windowStartHour}h–{s.windowEndHour}h ·{" "}
                     {formatDays(s.windowDays)}
-                      {s.intervalAvailable && <> · {s.clientIntervalSeconds}s entre clientes (após ativação)</>}
+                      {s.intervalAvailable && <> · {s.clientIntervalSeconds}s entre clientes (aguardando ajuste do disparador)</>}
                   </p>
                 </div>
                 <Button variant="outline" size="sm">
@@ -806,7 +806,7 @@ function SequenceEditorDialog({
                    Salvar intervalo
                  </Button>
                </div>
-                 <p className="text-xs text-muted-foreground">{sequence.intervalAvailable ? "Mínimo 60 e máximo 300 segundos. A configuração só terá efeito após a ativação do novo disparador; o atual continua no ritmo anterior." : "Aguardando ativação. O envio atual permanece inalterado."}</p>
+                  <p className="text-xs text-muted-foreground">{sequence.intervalAvailable ? "Mínimo 60 e máximo 300 segundos. O valor só terá efeito após o ajuste do disparador atual; os envios permanecem no ritmo anterior." : "Aguardando ativação. O envio atual permanece inalterado."}</p>
              </div>
 
              <Card className="p-3 space-y-3">
