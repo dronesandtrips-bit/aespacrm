@@ -1344,6 +1344,7 @@ function rowToSeq(r: any): Sequence {
     stopOnStageIds: r.stop_on_stage_ids ?? [],
     autoResumeAfterDays: r.auto_resume_after_days ?? 0,
     clientIntervalSeconds: r.client_interval_seconds ?? 60,
+    intervalAvailable: r.client_interval_seconds !== undefined,
     createdAt: r.created_at,
   };
 }
@@ -1397,16 +1398,8 @@ export const sequencesDb = {
     const c = await client();
     const { data, error } = await c
       .from("crm_sequences")
-      .select(SEQ_COLS)
+      .select("*")
       .order("created_at", { ascending: false });
-    // Durante a ativação, a lista continua funcionando no banco ainda sem a nova coluna.
-    if (error && /client_interval_seconds/i.test(error.message)) {
-      const fallback = await c.from("crm_sequences")
-        .select(SEQ_COLS.replace(",client_interval_seconds", ""))
-        .order("created_at", { ascending: false });
-      if (fallback.error) throw fallback.error;
-      return (fallback.data ?? []).map(rowToSeq);
-    }
     if (error) throw error;
     return (data ?? []).map(rowToSeq);
   },
