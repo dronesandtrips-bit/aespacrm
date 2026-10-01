@@ -45,6 +45,7 @@ import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.
 import { Route as ApiPublicSequencesInspectRouteImport } from './routes/api.public.sequences.inspect'
 import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.public.sequences.inbound'
 import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.sequences.due'
+import { Route as ApiPublicSequencesDispatchRouteImport } from './routes/api.public.sequences.dispatch'
 import { Route as ApiPublicOptoutShortReverseRouteImport } from './routes/api.public.optout.short-reverse'
 import { Route as ApiPublicOptoutShortInfoRouteImport } from './routes/api.public.optout.short-info'
 import { Route as ApiPublicOptoutShortConfirmRouteImport } from './routes/api.public.optout.short-confirm'
@@ -283,6 +284,12 @@ const ApiPublicSequencesDueRoute = ApiPublicSequencesDueRouteImport.update({
   path: '/api/public/sequences/due',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSequencesDispatchRoute =
+  ApiPublicSequencesDispatchRouteImport.update({
+    id: '/api/public/sequences/dispatch',
+    path: '/api/public/sequences/dispatch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicOptoutShortReverseRoute =
   ApiPublicOptoutShortReverseRouteImport.update({
     id: '/api/public/optout/short-reverse',
@@ -671,6 +678,7 @@ export interface FileRoutesByFullPath {
   '/api/public/optout/short-confirm': typeof ApiPublicOptoutShortConfirmRoute
   '/api/public/optout/short-info': typeof ApiPublicOptoutShortInfoRoute
   '/api/public/optout/short-reverse': typeof ApiPublicOptoutShortReverseRoute
+  '/api/public/sequences/dispatch': typeof ApiPublicSequencesDispatchRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/inspect': typeof ApiPublicSequencesInspectRoute
@@ -762,6 +770,7 @@ export interface FileRoutesByTo {
   '/api/public/optout/short-confirm': typeof ApiPublicOptoutShortConfirmRoute
   '/api/public/optout/short-info': typeof ApiPublicOptoutShortInfoRoute
   '/api/public/optout/short-reverse': typeof ApiPublicOptoutShortReverseRoute
+  '/api/public/sequences/dispatch': typeof ApiPublicSequencesDispatchRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/inspect': typeof ApiPublicSequencesInspectRoute
@@ -855,6 +864,7 @@ export interface FileRoutesById {
   '/api/public/optout/short-confirm': typeof ApiPublicOptoutShortConfirmRoute
   '/api/public/optout/short-info': typeof ApiPublicOptoutShortInfoRoute
   '/api/public/optout/short-reverse': typeof ApiPublicOptoutShortReverseRoute
+  '/api/public/sequences/dispatch': typeof ApiPublicSequencesDispatchRoute
   '/api/public/sequences/due': typeof ApiPublicSequencesDueRoute
   '/api/public/sequences/inbound': typeof ApiPublicSequencesInboundRoute
   '/api/public/sequences/inspect': typeof ApiPublicSequencesInspectRoute
@@ -948,6 +958,7 @@ export interface FileRouteTypes {
     | '/api/public/optout/short-confirm'
     | '/api/public/optout/short-info'
     | '/api/public/optout/short-reverse'
+    | '/api/public/sequences/dispatch'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/inspect'
@@ -1039,6 +1050,7 @@ export interface FileRouteTypes {
     | '/api/public/optout/short-confirm'
     | '/api/public/optout/short-info'
     | '/api/public/optout/short-reverse'
+    | '/api/public/sequences/dispatch'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/inspect'
@@ -1131,6 +1143,7 @@ export interface FileRouteTypes {
     | '/api/public/optout/short-confirm'
     | '/api/public/optout/short-info'
     | '/api/public/optout/short-reverse'
+    | '/api/public/sequences/dispatch'
     | '/api/public/sequences/due'
     | '/api/public/sequences/inbound'
     | '/api/public/sequences/inspect'
@@ -1206,6 +1219,7 @@ export interface RootRouteChildren {
   ApiPublicOptoutShortConfirmRoute: typeof ApiPublicOptoutShortConfirmRoute
   ApiPublicOptoutShortInfoRoute: typeof ApiPublicOptoutShortInfoRoute
   ApiPublicOptoutShortReverseRoute: typeof ApiPublicOptoutShortReverseRoute
+  ApiPublicSequencesDispatchRoute: typeof ApiPublicSequencesDispatchRoute
   ApiPublicSequencesDueRoute: typeof ApiPublicSequencesDueRoute
   ApiPublicSequencesInboundRoute: typeof ApiPublicSequencesInboundRoute
   ApiPublicSequencesInspectRoute: typeof ApiPublicSequencesInspectRoute
@@ -1470,6 +1484,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/sequences/due'
       fullPath: '/api/public/sequences/due'
       preLoaderRoute: typeof ApiPublicSequencesDueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sequences/dispatch': {
+      id: '/api/public/sequences/dispatch'
+      path: '/api/public/sequences/dispatch'
+      fullPath: '/api/public/sequences/dispatch'
+      preLoaderRoute: typeof ApiPublicSequencesDispatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/optout/short-reverse': {
@@ -1962,6 +1983,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicOptoutShortConfirmRoute: ApiPublicOptoutShortConfirmRoute,
   ApiPublicOptoutShortInfoRoute: ApiPublicOptoutShortInfoRoute,
   ApiPublicOptoutShortReverseRoute: ApiPublicOptoutShortReverseRoute,
+  ApiPublicSequencesDispatchRoute: ApiPublicSequencesDispatchRoute,
   ApiPublicSequencesDueRoute: ApiPublicSequencesDueRoute,
   ApiPublicSequencesInboundRoute: ApiPublicSequencesInboundRoute,
   ApiPublicSequencesInspectRoute: ApiPublicSequencesInspectRoute,
