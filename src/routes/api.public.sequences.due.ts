@@ -110,7 +110,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
           const seqIds = [...new Set(due.map((d: any) => d.sequence_id))];
           const contactIds = [...new Set(due.map((d: any) => d.contact_id))];
 
-          const [seqsRes, stepsRes, contactsRes] = await Promise.all([
+           let [seqsRes, stepsRes, contactsRes] = await Promise.all([
             admin
               .from("crm_sequences")
               .select(
@@ -126,6 +126,11 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               .select("id,name,phone,email,category_id,is_ignored")
               .in("id", contactIds),
           ]);
+           if (seqsRes.error && /client_interval_seconds/i.test(seqsRes.error.message)) {
+             seqsRes = await admin.from("crm_sequences")
+               .select("id,name,is_active,window_start_hour,window_end_hour,window_days")
+               .in("id", seqIds);
+           }
           if (seqsRes.error) throw seqsRes.error;
           if (stepsRes.error) throw stepsRes.error;
           if (contactsRes.error) throw contactsRes.error;
