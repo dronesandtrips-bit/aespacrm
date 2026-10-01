@@ -10,3 +10,4 @@
 - [x] Auditar código/configurações e documentar operação e reconstrução em docs/, sem modificar serviços ou dados.
 - [ ] Completar auditoria do estado real da VPS/banco/Storage/n8n e ensaio de restauração; depende de acesso administrativo somente leitura e janela aprovada.
 - [x] Recuperar automaticamente a tela quando uma navegação for interrompida durante a atualização do servidor e verificar a abertura das páginas.
+- [ ] Ajustar intervalo por sequência entre clientes (60–300 s) e ativar no disparador; depende da migração SQL no banco dedicado antes de modificar o disparador ativo.

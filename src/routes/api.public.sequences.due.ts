@@ -114,7 +114,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
             admin
               .from("crm_sequences")
               .select(
-                "id,name,is_active,window_start_hour,window_end_hour,window_days",
+                 "id,name,is_active,window_start_hour,window_end_hour,window_days,client_interval_seconds",
               )
               .in("id", seqIds),
           admin
@@ -191,6 +191,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
                 user_id: d.user_id,
                 sequence_id: d.sequence_id,
                 sequence_name: seq.name,
+                 client_interval_seconds: Math.max(60, Math.min(300, Number(seq.client_interval_seconds ?? 60))),
                 step_order: d.current_step,
                 contact: {
                   id: contact.id,
