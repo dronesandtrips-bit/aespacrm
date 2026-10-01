@@ -1,8 +1,23 @@
+import { useEffect } from "react";
 import { createRouter, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
 function DefaultErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
+
+  useEffect(() => {
+    // A conexão pode ser encerrada durante uma atualização do servidor de prévia.
+    // Tentar só uma vez evita deixar a tela vazia sem criar um ciclo de recargas.
+    if (!(error instanceof Error) || !/\baborted\b/i.test(error.message)) return;
+    const key = "zapcrm:aborted-navigation-retry";
+    const lastRetry = Number(sessionStorage.getItem(key) || 0);
+    if (Date.now() - lastRetry < 15_000) return;
+    sessionStorage.setItem(key, String(Date.now()));
+    const timer = window.setTimeout(() => {
+      void router.invalidate().then(() => reset());
+    }, 750);
+    return () => window.clearTimeout(timer);
+  }, [error, reset, router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">

@@ -9,3 +9,4 @@
 - [x] Oferecer teste restrito para 2 a 5 contatos escolhidos, com confirmação explícita e sem consultar a lista geral.
 - [x] Auditar código/configurações e documentar operação e reconstrução em docs/, sem modificar serviços ou dados.
 - [ ] Completar auditoria do estado real da VPS/banco/Storage/n8n e ensaio de restauração; depende de acesso administrativo somente leitura e janela aprovada.
+- [ ] Recuperar automaticamente a tela quando uma navegação for interrompida durante a atualização do servidor e verificar a abertura das páginas.
