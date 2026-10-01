@@ -213,7 +213,7 @@ function SequenciasPage() {
                     <CalendarClock className="size-3" />
                     {s.windowStartHour}h–{s.windowEndHour}h ·{" "}
                     {formatDays(s.windowDays)}
-                     {" · "}{s.clientIntervalSeconds}s entre clientes
+                      {" · "}{s.clientIntervalSeconds}s configurados entre clientes
                   </p>
                 </div>
                 <Button variant="outline" size="sm">
@@ -799,7 +799,7 @@ function SequenceEditorDialog({
                    Salvar intervalo
                  </Button>
                </div>
-               <p className="text-xs text-muted-foreground">Mínimo 60 e máximo 300 segundos. Não altera a espera entre passos.</p>
+                <p className="text-xs text-muted-foreground">Mínimo 60 e máximo 300 segundos. A configuração só terá efeito após a ativação do novo disparador; o atual continua no ritmo anterior.</p>
              </div>
 
              <Card className="p-3 space-y-3">
