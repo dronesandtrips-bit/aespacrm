@@ -9,105 +9,104 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as UTokenRouteImport } from './routes/u.$token'
-import { Route as MQRouteImport } from './routes/m.$q'
-import { Route as DCodeRouteImport } from './routes/d.$code'
-import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
-import { Route as AppTemplatesRouteImport } from './routes/_app.templates'
-import { Route as AppStatusRouteImport } from './routes/_app.status'
-import { Route as AppSequenciasDashboardRouteImport } from './routes/_app.sequencias-dashboard'
-import { Route as AppSequenciasRouteImport } from './routes/_app.sequencias'
-import { Route as AppRedactRouteImport } from './routes/_app.redact'
-import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
-import { Route as AppLogsRouteImport } from './routes/_app.logs'
-import { Route as AppInboxRouteImport } from './routes/_app.inbox'
-import { Route as AppHistoricoIaRouteImport } from './routes/_app.historico-ia'
-import { Route as AppExplorarRouteImport } from './routes/_app.explorar'
-import { Route as AppDisparosRouteImport } from './routes/_app.disparos'
-import { Route as AppDetectorRouteImport } from './routes/_app.detector'
-import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
-import { Route as AppContatosRouteImport } from './routes/_app.contatos'
-import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
-import { Route as AppBlingRouteImport } from './routes/_app.bling'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AppAgendaRouteImport } from './routes/_app.agenda'
-import { Route as WidgetFormIdRouteImport } from './routes/widget.form.$id'
+import { Route as AppBlingRouteImport } from './routes/_app.bling'
+import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
+import { Route as AppContatosRouteImport } from './routes/_app.contatos'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppDetectorRouteImport } from './routes/_app.detector'
+import { Route as AppDisparosRouteImport } from './routes/_app.disparos'
+import { Route as AppExplorarRouteImport } from './routes/_app.explorar'
+import { Route as AppHistoricoIaRouteImport } from './routes/_app.historico-ia'
+import { Route as AppInboxRouteImport } from './routes/_app.inbox'
+import { Route as AppLogsRouteImport } from './routes/_app.logs'
+import { Route as AppPipelineRouteImport } from './routes/_app.pipeline'
+import { Route as AppRedactRouteImport } from './routes/_app.redact'
+import { Route as AppSequenciasRouteImport } from './routes/_app.sequencias'
+import { Route as AppSequenciasDashboardRouteImport } from './routes/_app.sequencias-dashboard'
+import { Route as AppStatusRouteImport } from './routes/_app.status'
+import { Route as AppTemplatesRouteImport } from './routes/_app.templates'
+import { Route as AppWhatsappRouteImport } from './routes/_app.whatsapp'
+import { Route as DCodeRouteImport } from './routes/d.$code'
+import { Route as MQRouteImport } from './routes/m.$q'
+import { Route as UTokenRouteImport } from './routes/u.$token'
 import { Route as ApiPublicLinkPreviewRouteImport } from './routes/api.public.link-preview'
-import { Route as ApiPublicWidgetSubmitRouteImport } from './routes/api.public.widget.submit'
-import { Route as ApiPublicSettingsSecretRouteImport } from './routes/api.public.settings.secret'
-import { Route as ApiPublicSequencesTestSendRouteImport } from './routes/api.public.sequences.test-send'
-import { Route as ApiPublicSequencesTestRunRouteImport } from './routes/api.public.sequences.test-run'
-import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.sequences.sent'
-import { Route as ApiPublicSequencesInspectRouteImport } from './routes/api.public.sequences.inspect'
-import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.public.sequences.inbound'
-import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.sequences.due'
-import { Route as ApiPublicOptoutShortReverseRouteImport } from './routes/api.public.optout.short-reverse'
-import { Route as ApiPublicOptoutShortInfoRouteImport } from './routes/api.public.optout.short-info'
-import { Route as ApiPublicOptoutShortConfirmRouteImport } from './routes/api.public.optout.short-confirm'
-import { Route as ApiPublicOptoutReverseRouteImport } from './routes/api.public.optout.reverse'
-import { Route as ApiPublicOptoutInfoRouteImport } from './routes/api.public.optout.info'
-import { Route as ApiPublicOptoutConfirmRouteImport } from './routes/api.public.optout.confirm'
-import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api.public.evolution.webhook'
-import { Route as ApiPublicEvolutionTestRouteImport } from './routes/api.public.evolution.test'
-import { Route as ApiPublicEvolutionSyncMessagesRouteImport } from './routes/api.public.evolution.sync-messages'
-import { Route as ApiPublicEvolutionSyncGroupsRouteImport } from './routes/api.public.evolution.sync-groups'
-import { Route as ApiPublicEvolutionSyncContactsRouteImport } from './routes/api.public.evolution.sync-contacts'
-import { Route as ApiPublicEvolutionStatusTickRouteImport } from './routes/api.public.evolution.status-tick'
-import { Route as ApiPublicEvolutionStatusLibraryRouteImport } from './routes/api.public.evolution.status-library'
-import { Route as ApiPublicEvolutionStatusRouteImport } from './routes/api.public.evolution.status'
-import { Route as ApiPublicEvolutionSendMediaAndLogRouteImport } from './routes/api.public.evolution.send-media-and-log'
-import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.public.evolution.send-media'
-import { Route as ApiPublicEvolutionSendAndLogRouteImport } from './routes/api.public.evolution.send-and-log'
-import { Route as ApiPublicEvolutionSendRouteImport } from './routes/api.public.evolution.send'
-import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.evolution.qr'
-import { Route as ApiPublicEvolutionMediaRouteImport } from './routes/api.public.evolution.media'
-import { Route as ApiPublicEvolutionForwardMessageRouteImport } from './routes/api.public.evolution.forward-message'
-import { Route as ApiPublicEvolutionForwardMediaRouteImport } from './routes/api.public.evolution.forward-media'
-import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
-import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
-import { Route as ApiPublicEvolutionCheckNumberRouteImport } from './routes/api.public.evolution.check-number'
-import { Route as ApiPublicEvolutionBulkTickRouteImport } from './routes/api.public.evolution.bulk-tick'
-import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api.public.evolution.bulk-dispatch'
-import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
-import { Route as ApiPublicContactsBlacklistToggleRouteImport } from './routes/api.public.contacts.blacklist-toggle'
-import { Route as ApiPublicCleanupGroupsRouteImport } from './routes/api.public.cleanup.groups'
-import { Route as ApiPublicCalendarUpdateEventRouteImport } from './routes/api.public.calendar.update-event'
-import { Route as ApiPublicCalendarRemindersTickRouteImport } from './routes/api.public.calendar.reminders-tick'
-import { Route as ApiPublicCalendarEventsRouteImport } from './routes/api.public.calendar.events'
-import { Route as ApiPublicCalendarDetectTestRouteImport } from './routes/api.public.calendar.detect-test'
-import { Route as ApiPublicCalendarDeleteEventRouteImport } from './routes/api.public.calendar.delete-event'
-import { Route as ApiPublicCalendarCreateEventRouteImport } from './routes/api.public.calendar.create-event'
-import { Route as ApiPublicCalendarConfirmBookingRouteImport } from './routes/api.public.calendar.confirm-booking'
-import { Route as ApiPublicCalendarAvailabilityRouteImport } from './routes/api.public.calendar.availability'
-import { Route as ApiPublicCalendarAutoBookRouteImport } from './routes/api.public.calendar.auto-book'
-import { Route as ApiPublicBlingProposalsRouteImport } from './routes/api.public.bling.proposals'
-import { Route as ApiPublicBlingProposalRawRouteImport } from './routes/api.public.bling.proposal-raw'
-import { Route as ApiPublicBlingContactsRouteImport } from './routes/api.public.bling.contacts'
-import { Route as ApiPublicBlingConfigRouteImport } from './routes/api.public.bling.config'
-import { Route as ApiPublicBlingCallbackRouteImport } from './routes/api.public.bling.callback'
-import { Route as ApiPublicBlingAutoTickRouteImport } from './routes/api.public.bling.auto-tick'
-import { Route as ApiPublicBlingAutoConfigRouteImport } from './routes/api.public.bling.auto-config'
-import { Route as ApiPublicAvatarsRefreshRouteImport } from './routes/api.public.avatars.refresh'
-import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
-import { Route as ApiPublicAiInterestTermsRouteImport } from './routes/api.public.ai.interest-terms'
-import { Route as ApiPublicAiExistingCategoriesRouteImport } from './routes/api.public.ai.existing-categories'
-import { Route as ApiPublicAiContactEnrichFailureRouteImport } from './routes/api.public.ai.contact-enrich-failure'
+import { Route as WidgetFormIdRouteImport } from './routes/widget.form.$id'
 import { Route as ApiPublicAiContactEnrichRouteImport } from './routes/api.public.ai.contact-enrich'
-import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
+import { Route as ApiPublicAiContactEnrichFailureRouteImport } from './routes/api.public.ai.contact-enrich-failure'
+import { Route as ApiPublicAiExistingCategoriesRouteImport } from './routes/api.public.ai.existing-categories'
+import { Route as ApiPublicAiInterestTermsRouteImport } from './routes/api.public.ai.interest-terms'
+import { Route as ApiPublicAiLovableProxyRouteImport } from './routes/api.public.ai.lovable-proxy'
+import { Route as ApiPublicAvatarsRefreshRouteImport } from './routes/api.public.avatars.refresh'
+import { Route as ApiPublicBlingAutoConfigRouteImport } from './routes/api.public.bling.auto-config'
+import { Route as ApiPublicBlingAutoTickRouteImport } from './routes/api.public.bling.auto-tick'
+import { Route as ApiPublicBlingCallbackRouteImport } from './routes/api.public.bling.callback'
+import { Route as ApiPublicBlingConfigRouteImport } from './routes/api.public.bling.config'
+import { Route as ApiPublicBlingContactsRouteImport } from './routes/api.public.bling.contacts'
+import { Route as ApiPublicBlingProposalRawRouteImport } from './routes/api.public.bling.proposal-raw'
+import { Route as ApiPublicBlingProposalsRouteImport } from './routes/api.public.bling.proposals'
+import { Route as ApiPublicCalendarAutoBookRouteImport } from './routes/api.public.calendar.auto-book'
+import { Route as ApiPublicCalendarAvailabilityRouteImport } from './routes/api.public.calendar.availability'
+import { Route as ApiPublicCalendarConfirmBookingRouteImport } from './routes/api.public.calendar.confirm-booking'
+import { Route as ApiPublicCalendarCreateEventRouteImport } from './routes/api.public.calendar.create-event'
+import { Route as ApiPublicCalendarDeleteEventRouteImport } from './routes/api.public.calendar.delete-event'
+import { Route as ApiPublicCalendarDetectTestRouteImport } from './routes/api.public.calendar.detect-test'
+import { Route as ApiPublicCalendarEventsRouteImport } from './routes/api.public.calendar.events'
+import { Route as ApiPublicCalendarRemindersTickRouteImport } from './routes/api.public.calendar.reminders-tick'
+import { Route as ApiPublicCalendarUpdateEventRouteImport } from './routes/api.public.calendar.update-event'
+import { Route as ApiPublicCleanupGroupsRouteImport } from './routes/api.public.cleanup.groups'
+import { Route as ApiPublicContactsBlacklistToggleRouteImport } from './routes/api.public.contacts.blacklist-toggle'
+import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
+import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api.public.evolution.bulk-dispatch'
+import { Route as ApiPublicEvolutionBulkTickRouteImport } from './routes/api.public.evolution.bulk-tick'
+import { Route as ApiPublicEvolutionCheckNumberRouteImport } from './routes/api.public.evolution.check-number'
+import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
+import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
+import { Route as ApiPublicEvolutionForwardMediaRouteImport } from './routes/api.public.evolution.forward-media'
+import { Route as ApiPublicEvolutionForwardMessageRouteImport } from './routes/api.public.evolution.forward-message'
+import { Route as ApiPublicEvolutionMediaRouteImport } from './routes/api.public.evolution.media'
+import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.evolution.qr'
+import { Route as ApiPublicEvolutionSendRouteImport } from './routes/api.public.evolution.send'
+import { Route as ApiPublicEvolutionSendAndLogRouteImport } from './routes/api.public.evolution.send-and-log'
+import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.public.evolution.send-media'
+import { Route as ApiPublicEvolutionSendMediaAndLogRouteImport } from './routes/api.public.evolution.send-media-and-log'
+import { Route as ApiPublicEvolutionStatusRouteImport } from './routes/api.public.evolution.status'
+import { Route as ApiPublicEvolutionStatusLibraryRouteImport } from './routes/api.public.evolution.status-library'
+import { Route as ApiPublicEvolutionStatusTickRouteImport } from './routes/api.public.evolution.status-tick'
+import { Route as ApiPublicEvolutionSyncContactsRouteImport } from './routes/api.public.evolution.sync-contacts'
+import { Route as ApiPublicEvolutionSyncGroupsRouteImport } from './routes/api.public.evolution.sync-groups'
+import { Route as ApiPublicEvolutionSyncMessagesRouteImport } from './routes/api.public.evolution.sync-messages'
+import { Route as ApiPublicEvolutionTestRouteImport } from './routes/api.public.evolution.test'
+import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api.public.evolution.webhook'
+import { Route as ApiPublicOptoutConfirmRouteImport } from './routes/api.public.optout.confirm'
+import { Route as ApiPublicOptoutInfoRouteImport } from './routes/api.public.optout.info'
+import { Route as ApiPublicOptoutReverseRouteImport } from './routes/api.public.optout.reverse'
+import { Route as ApiPublicOptoutShortConfirmRouteImport } from './routes/api.public.optout.short-confirm'
+import { Route as ApiPublicOptoutShortInfoRouteImport } from './routes/api.public.optout.short-info'
+import { Route as ApiPublicOptoutShortReverseRouteImport } from './routes/api.public.optout.short-reverse'
+import { Route as ApiPublicSequencesDueRouteImport } from './routes/api.public.sequences.due'
+import { Route as ApiPublicSequencesInboundRouteImport } from './routes/api.public.sequences.inbound'
+import { Route as ApiPublicSequencesInspectRouteImport } from './routes/api.public.sequences.inspect'
+import { Route as ApiPublicSequencesSentRouteImport } from './routes/api.public.sequences.sent'
+import { Route as ApiPublicSequencesTestRunRouteImport } from './routes/api.public.sequences.test-run'
+import { Route as ApiPublicSequencesTestSendRouteImport } from './routes/api.public.sequences.test-send'
+import { Route as ApiPublicSettingsSecretRouteImport } from './routes/api.public.settings.secret'
+import { Route as ApiPublicWidgetSubmitRouteImport } from './routes/api.public.widget.submit'
 import { Route as ApiPublicWidgetConfigIdRouteImport } from './routes/api.public.widget.config.$id'
+import { Route as ApiPublicWidgetEmbedIdDotjsRouteImport } from './routes/api.public.widget.embed.$id[.]js'
 
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -115,108 +114,19 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UTokenRoute = UTokenRouteImport.update({
-  id: '/u/$token',
-  path: '/u/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MQRoute = MQRouteImport.update({
-  id: '/m/$q',
-  path: '/m/$q',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DCodeRoute = DCodeRouteImport.update({
-  id: '/d/$code',
-  path: '/d/$code',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppWhatsappRoute = AppWhatsappRouteImport.update({
-  id: '/whatsapp',
-  path: '/whatsapp',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppTemplatesRoute = AppTemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppStatusRoute = AppStatusRouteImport.update({
-  id: '/status',
-  path: '/status',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSequenciasDashboardRoute = AppSequenciasDashboardRouteImport.update({
-  id: '/sequencias-dashboard',
-  path: '/sequencias-dashboard',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSequenciasRoute = AppSequenciasRouteImport.update({
-  id: '/sequencias',
-  path: '/sequencias',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppRedactRoute = AppRedactRouteImport.update({
-  id: '/redact',
-  path: '/redact',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPipelineRoute = AppPipelineRouteImport.update({
-  id: '/pipeline',
-  path: '/pipeline',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppLogsRoute = AppLogsRouteImport.update({
-  id: '/logs',
-  path: '/logs',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppInboxRoute = AppInboxRouteImport.update({
-  id: '/inbox',
-  path: '/inbox',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppHistoricoIaRoute = AppHistoricoIaRouteImport.update({
-  id: '/historico-ia',
-  path: '/historico-ia',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppExplorarRoute = AppExplorarRouteImport.update({
-  id: '/explorar',
-  path: '/explorar',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDisparosRoute = AppDisparosRouteImport.update({
-  id: '/disparos',
-  path: '/disparos',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDetectorRoute = AppDetectorRouteImport.update({
-  id: '/detector',
-  path: '/detector',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppContatosRoute = AppContatosRouteImport.update({
-  id: '/contatos',
-  path: '/contatos',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
+const AppAgendaRoute = AppAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
   getParentRoute: () => AppRoute,
 } as any)
 const AppBlingRoute = AppBlingRouteImport.update({
@@ -224,14 +134,99 @@ const AppBlingRoute = AppBlingRouteImport.update({
   path: '/bling',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAgendaRoute = AppAgendaRouteImport.update({
-  id: '/agenda',
-  path: '/agenda',
+const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
   getParentRoute: () => AppRoute,
 } as any)
-const WidgetFormIdRoute = WidgetFormIdRouteImport.update({
-  id: '/widget/form/$id',
-  path: '/widget/form/$id',
+const AppContatosRoute = AppContatosRouteImport.update({
+  id: '/contatos',
+  path: '/contatos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDetectorRoute = AppDetectorRouteImport.update({
+  id: '/detector',
+  path: '/detector',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDisparosRoute = AppDisparosRouteImport.update({
+  id: '/disparos',
+  path: '/disparos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExplorarRoute = AppExplorarRouteImport.update({
+  id: '/explorar',
+  path: '/explorar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHistoricoIaRoute = AppHistoricoIaRouteImport.update({
+  id: '/historico-ia',
+  path: '/historico-ia',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInboxRoute = AppInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLogsRoute = AppLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPipelineRoute = AppPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRedactRoute = AppRedactRouteImport.update({
+  id: '/redact',
+  path: '/redact',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSequenciasRoute = AppSequenciasRouteImport.update({
+  id: '/sequencias',
+  path: '/sequencias',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSequenciasDashboardRoute = AppSequenciasDashboardRouteImport.update({
+  id: '/sequencias-dashboard',
+  path: '/sequencias-dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStatusRoute = AppStatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTemplatesRoute = AppTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWhatsappRoute = AppWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => AppRoute,
+} as any)
+const DCodeRoute = DCodeRouteImport.update({
+  id: '/d/$code',
+  path: '/d/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MQRoute = MQRouteImport.update({
+  id: '/m/$q',
+  path: '/m/$q',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UTokenRoute = UTokenRouteImport.update({
+  id: '/u/$token',
+  path: '/u/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicLinkPreviewRoute = ApiPublicLinkPreviewRouteImport.update({
@@ -239,332 +234,15 @@ const ApiPublicLinkPreviewRoute = ApiPublicLinkPreviewRouteImport.update({
   path: '/api/public/link-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicWidgetSubmitRoute = ApiPublicWidgetSubmitRouteImport.update({
-  id: '/api/public/widget/submit',
-  path: '/api/public/widget/submit',
+const WidgetFormIdRoute = WidgetFormIdRouteImport.update({
+  id: '/widget/form/$id',
+  path: '/widget/form/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicSettingsSecretRoute = ApiPublicSettingsSecretRouteImport.update({
-  id: '/api/public/settings/secret',
-  path: '/api/public/settings/secret',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicSequencesTestSendRoute =
-  ApiPublicSequencesTestSendRouteImport.update({
-    id: '/api/public/sequences/test-send',
-    path: '/api/public/sequences/test-send',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicSequencesTestRunRoute =
-  ApiPublicSequencesTestRunRouteImport.update({
-    id: '/api/public/sequences/test-run',
-    path: '/api/public/sequences/test-run',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicSequencesSentRoute = ApiPublicSequencesSentRouteImport.update({
-  id: '/api/public/sequences/sent',
-  path: '/api/public/sequences/sent',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicSequencesInspectRoute =
-  ApiPublicSequencesInspectRouteImport.update({
-    id: '/api/public/sequences/inspect',
-    path: '/api/public/sequences/inspect',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicSequencesInboundRoute =
-  ApiPublicSequencesInboundRouteImport.update({
-    id: '/api/public/sequences/inbound',
-    path: '/api/public/sequences/inbound',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicSequencesDueRoute = ApiPublicSequencesDueRouteImport.update({
-  id: '/api/public/sequences/due',
-  path: '/api/public/sequences/due',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicOptoutShortReverseRoute =
-  ApiPublicOptoutShortReverseRouteImport.update({
-    id: '/api/public/optout/short-reverse',
-    path: '/api/public/optout/short-reverse',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicOptoutShortInfoRoute =
-  ApiPublicOptoutShortInfoRouteImport.update({
-    id: '/api/public/optout/short-info',
-    path: '/api/public/optout/short-info',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicOptoutShortConfirmRoute =
-  ApiPublicOptoutShortConfirmRouteImport.update({
-    id: '/api/public/optout/short-confirm',
-    path: '/api/public/optout/short-confirm',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicOptoutReverseRoute = ApiPublicOptoutReverseRouteImport.update({
-  id: '/api/public/optout/reverse',
-  path: '/api/public/optout/reverse',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicOptoutInfoRoute = ApiPublicOptoutInfoRouteImport.update({
-  id: '/api/public/optout/info',
-  path: '/api/public/optout/info',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicOptoutConfirmRoute = ApiPublicOptoutConfirmRouteImport.update({
-  id: '/api/public/optout/confirm',
-  path: '/api/public/optout/confirm',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicEvolutionWebhookRoute =
-  ApiPublicEvolutionWebhookRouteImport.update({
-    id: '/api/public/evolution/webhook',
-    path: '/api/public/evolution/webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionTestRoute = ApiPublicEvolutionTestRouteImport.update({
-  id: '/api/public/evolution/test',
-  path: '/api/public/evolution/test',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicEvolutionSyncMessagesRoute =
-  ApiPublicEvolutionSyncMessagesRouteImport.update({
-    id: '/api/public/evolution/sync-messages',
-    path: '/api/public/evolution/sync-messages',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionSyncGroupsRoute =
-  ApiPublicEvolutionSyncGroupsRouteImport.update({
-    id: '/api/public/evolution/sync-groups',
-    path: '/api/public/evolution/sync-groups',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionSyncContactsRoute =
-  ApiPublicEvolutionSyncContactsRouteImport.update({
-    id: '/api/public/evolution/sync-contacts',
-    path: '/api/public/evolution/sync-contacts',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionStatusTickRoute =
-  ApiPublicEvolutionStatusTickRouteImport.update({
-    id: '/api/public/evolution/status-tick',
-    path: '/api/public/evolution/status-tick',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionStatusLibraryRoute =
-  ApiPublicEvolutionStatusLibraryRouteImport.update({
-    id: '/api/public/evolution/status-library',
-    path: '/api/public/evolution/status-library',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionStatusRoute =
-  ApiPublicEvolutionStatusRouteImport.update({
-    id: '/api/public/evolution/status',
-    path: '/api/public/evolution/status',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionSendMediaAndLogRoute =
-  ApiPublicEvolutionSendMediaAndLogRouteImport.update({
-    id: '/api/public/evolution/send-media-and-log',
-    path: '/api/public/evolution/send-media-and-log',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionSendMediaRoute =
-  ApiPublicEvolutionSendMediaRouteImport.update({
-    id: '/api/public/evolution/send-media',
-    path: '/api/public/evolution/send-media',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionSendAndLogRoute =
-  ApiPublicEvolutionSendAndLogRouteImport.update({
-    id: '/api/public/evolution/send-and-log',
-    path: '/api/public/evolution/send-and-log',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionSendRoute = ApiPublicEvolutionSendRouteImport.update({
-  id: '/api/public/evolution/send',
-  path: '/api/public/evolution/send',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicEvolutionQrRoute = ApiPublicEvolutionQrRouteImport.update({
-  id: '/api/public/evolution/qr',
-  path: '/api/public/evolution/qr',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicEvolutionMediaRoute = ApiPublicEvolutionMediaRouteImport.update({
-  id: '/api/public/evolution/media',
-  path: '/api/public/evolution/media',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicEvolutionForwardMessageRoute =
-  ApiPublicEvolutionForwardMessageRouteImport.update({
-    id: '/api/public/evolution/forward-message',
-    path: '/api/public/evolution/forward-message',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionForwardMediaRoute =
-  ApiPublicEvolutionForwardMediaRouteImport.update({
-    id: '/api/public/evolution/forward-media',
-    path: '/api/public/evolution/forward-media',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionCreateRoute =
-  ApiPublicEvolutionCreateRouteImport.update({
-    id: '/api/public/evolution/create',
-    path: '/api/public/evolution/create',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionConfigureWebhookRoute =
-  ApiPublicEvolutionConfigureWebhookRouteImport.update({
-    id: '/api/public/evolution/configure-webhook',
-    path: '/api/public/evolution/configure-webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionCheckNumberRoute =
-  ApiPublicEvolutionCheckNumberRouteImport.update({
-    id: '/api/public/evolution/check-number',
-    path: '/api/public/evolution/check-number',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionBulkTickRoute =
-  ApiPublicEvolutionBulkTickRouteImport.update({
-    id: '/api/public/evolution/bulk-tick',
-    path: '/api/public/evolution/bulk-tick',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEvolutionBulkDispatchRoute =
-  ApiPublicEvolutionBulkDispatchRouteImport.update({
-    id: '/api/public/evolution/bulk-dispatch',
-    path: '/api/public/evolution/bulk-dispatch',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicContactsCleanupRoute =
-  ApiPublicContactsCleanupRouteImport.update({
-    id: '/api/public/contacts/cleanup',
-    path: '/api/public/contacts/cleanup',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicContactsBlacklistToggleRoute =
-  ApiPublicContactsBlacklistToggleRouteImport.update({
-    id: '/api/public/contacts/blacklist-toggle',
-    path: '/api/public/contacts/blacklist-toggle',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCleanupGroupsRoute = ApiPublicCleanupGroupsRouteImport.update({
-  id: '/api/public/cleanup/groups',
-  path: '/api/public/cleanup/groups',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicCalendarUpdateEventRoute =
-  ApiPublicCalendarUpdateEventRouteImport.update({
-    id: '/api/public/calendar/update-event',
-    path: '/api/public/calendar/update-event',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCalendarRemindersTickRoute =
-  ApiPublicCalendarRemindersTickRouteImport.update({
-    id: '/api/public/calendar/reminders-tick',
-    path: '/api/public/calendar/reminders-tick',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCalendarEventsRoute = ApiPublicCalendarEventsRouteImport.update({
-  id: '/api/public/calendar/events',
-  path: '/api/public/calendar/events',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicCalendarDetectTestRoute =
-  ApiPublicCalendarDetectTestRouteImport.update({
-    id: '/api/public/calendar/detect-test',
-    path: '/api/public/calendar/detect-test',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCalendarDeleteEventRoute =
-  ApiPublicCalendarDeleteEventRouteImport.update({
-    id: '/api/public/calendar/delete-event',
-    path: '/api/public/calendar/delete-event',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCalendarCreateEventRoute =
-  ApiPublicCalendarCreateEventRouteImport.update({
-    id: '/api/public/calendar/create-event',
-    path: '/api/public/calendar/create-event',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCalendarConfirmBookingRoute =
-  ApiPublicCalendarConfirmBookingRouteImport.update({
-    id: '/api/public/calendar/confirm-booking',
-    path: '/api/public/calendar/confirm-booking',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCalendarAvailabilityRoute =
-  ApiPublicCalendarAvailabilityRouteImport.update({
-    id: '/api/public/calendar/availability',
-    path: '/api/public/calendar/availability',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCalendarAutoBookRoute =
-  ApiPublicCalendarAutoBookRouteImport.update({
-    id: '/api/public/calendar/auto-book',
-    path: '/api/public/calendar/auto-book',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicBlingProposalsRoute = ApiPublicBlingProposalsRouteImport.update({
-  id: '/api/public/bling/proposals',
-  path: '/api/public/bling/proposals',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicBlingProposalRawRoute =
-  ApiPublicBlingProposalRawRouteImport.update({
-    id: '/api/public/bling/proposal-raw',
-    path: '/api/public/bling/proposal-raw',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicBlingContactsRoute = ApiPublicBlingContactsRouteImport.update({
-  id: '/api/public/bling/contacts',
-  path: '/api/public/bling/contacts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicBlingConfigRoute = ApiPublicBlingConfigRouteImport.update({
-  id: '/api/public/bling/config',
-  path: '/api/public/bling/config',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicBlingCallbackRoute = ApiPublicBlingCallbackRouteImport.update({
-  id: '/api/public/bling/callback',
-  path: '/api/public/bling/callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicBlingAutoTickRoute = ApiPublicBlingAutoTickRouteImport.update({
-  id: '/api/public/bling/auto-tick',
-  path: '/api/public/bling/auto-tick',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicBlingAutoConfigRoute =
-  ApiPublicBlingAutoConfigRouteImport.update({
-    id: '/api/public/bling/auto-config',
-    path: '/api/public/bling/auto-config',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicAvatarsRefreshRoute = ApiPublicAvatarsRefreshRouteImport.update({
-  id: '/api/public/avatars/refresh',
-  path: '/api/public/avatars/refresh',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAiLovableProxyRoute = ApiPublicAiLovableProxyRouteImport.update({
-  id: '/api/public/ai/lovable-proxy',
-  path: '/api/public/ai/lovable-proxy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAiInterestTermsRoute =
-  ApiPublicAiInterestTermsRouteImport.update({
-    id: '/api/public/ai/interest-terms',
-    path: '/api/public/ai/interest-terms',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicAiExistingCategoriesRoute =
-  ApiPublicAiExistingCategoriesRouteImport.update({
-    id: '/api/public/ai/existing-categories',
-    path: '/api/public/ai/existing-categories',
+const ApiPublicAiContactEnrichRoute =
+  ApiPublicAiContactEnrichRouteImport.update({
+    id: '/api/public/ai/contact-enrich',
+    path: '/api/public/ai/contact-enrich',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicAiContactEnrichFailureRoute =
@@ -573,23 +251,345 @@ const ApiPublicAiContactEnrichFailureRoute =
     path: '/api/public/ai/contact-enrich-failure',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicAiContactEnrichRoute =
-  ApiPublicAiContactEnrichRouteImport.update({
-    id: '/api/public/ai/contact-enrich',
-    path: '/api/public/ai/contact-enrich',
+const ApiPublicAiExistingCategoriesRoute =
+  ApiPublicAiExistingCategoriesRouteImport.update({
+    id: '/api/public/ai/existing-categories',
+    path: '/api/public/ai/existing-categories',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicAiInterestTermsRoute =
+  ApiPublicAiInterestTermsRouteImport.update({
+    id: '/api/public/ai/interest-terms',
+    path: '/api/public/ai/interest-terms',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicAiLovableProxyRoute = ApiPublicAiLovableProxyRouteImport.update({
+  id: '/api/public/ai/lovable-proxy',
+  path: '/api/public/ai/lovable-proxy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAvatarsRefreshRoute = ApiPublicAvatarsRefreshRouteImport.update({
+  id: '/api/public/avatars/refresh',
+  path: '/api/public/avatars/refresh',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBlingAutoConfigRoute =
+  ApiPublicBlingAutoConfigRouteImport.update({
+    id: '/api/public/bling/auto-config',
+    path: '/api/public/bling/auto-config',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBlingAutoTickRoute = ApiPublicBlingAutoTickRouteImport.update({
+  id: '/api/public/bling/auto-tick',
+  path: '/api/public/bling/auto-tick',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBlingCallbackRoute = ApiPublicBlingCallbackRouteImport.update({
+  id: '/api/public/bling/callback',
+  path: '/api/public/bling/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBlingConfigRoute = ApiPublicBlingConfigRouteImport.update({
+  id: '/api/public/bling/config',
+  path: '/api/public/bling/config',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBlingContactsRoute = ApiPublicBlingContactsRouteImport.update({
+  id: '/api/public/bling/contacts',
+  path: '/api/public/bling/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBlingProposalRawRoute =
+  ApiPublicBlingProposalRawRouteImport.update({
+    id: '/api/public/bling/proposal-raw',
+    path: '/api/public/bling/proposal-raw',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBlingProposalsRoute = ApiPublicBlingProposalsRouteImport.update({
+  id: '/api/public/bling/proposals',
+  path: '/api/public/bling/proposals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCalendarAutoBookRoute =
+  ApiPublicCalendarAutoBookRouteImport.update({
+    id: '/api/public/calendar/auto-book',
+    path: '/api/public/calendar/auto-book',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCalendarAvailabilityRoute =
+  ApiPublicCalendarAvailabilityRouteImport.update({
+    id: '/api/public/calendar/availability',
+    path: '/api/public/calendar/availability',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCalendarConfirmBookingRoute =
+  ApiPublicCalendarConfirmBookingRouteImport.update({
+    id: '/api/public/calendar/confirm-booking',
+    path: '/api/public/calendar/confirm-booking',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCalendarCreateEventRoute =
+  ApiPublicCalendarCreateEventRouteImport.update({
+    id: '/api/public/calendar/create-event',
+    path: '/api/public/calendar/create-event',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCalendarDeleteEventRoute =
+  ApiPublicCalendarDeleteEventRouteImport.update({
+    id: '/api/public/calendar/delete-event',
+    path: '/api/public/calendar/delete-event',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCalendarDetectTestRoute =
+  ApiPublicCalendarDetectTestRouteImport.update({
+    id: '/api/public/calendar/detect-test',
+    path: '/api/public/calendar/detect-test',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCalendarEventsRoute = ApiPublicCalendarEventsRouteImport.update({
+  id: '/api/public/calendar/events',
+  path: '/api/public/calendar/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCalendarRemindersTickRoute =
+  ApiPublicCalendarRemindersTickRouteImport.update({
+    id: '/api/public/calendar/reminders-tick',
+    path: '/api/public/calendar/reminders-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCalendarUpdateEventRoute =
+  ApiPublicCalendarUpdateEventRouteImport.update({
+    id: '/api/public/calendar/update-event',
+    path: '/api/public/calendar/update-event',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCleanupGroupsRoute = ApiPublicCleanupGroupsRouteImport.update({
+  id: '/api/public/cleanup/groups',
+  path: '/api/public/cleanup/groups',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicContactsBlacklistToggleRoute =
+  ApiPublicContactsBlacklistToggleRouteImport.update({
+    id: '/api/public/contacts/blacklist-toggle',
+    path: '/api/public/contacts/blacklist-toggle',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicContactsCleanupRoute =
+  ApiPublicContactsCleanupRouteImport.update({
+    id: '/api/public/contacts/cleanup',
+    path: '/api/public/contacts/cleanup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionBulkDispatchRoute =
+  ApiPublicEvolutionBulkDispatchRouteImport.update({
+    id: '/api/public/evolution/bulk-dispatch',
+    path: '/api/public/evolution/bulk-dispatch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionBulkTickRoute =
+  ApiPublicEvolutionBulkTickRouteImport.update({
+    id: '/api/public/evolution/bulk-tick',
+    path: '/api/public/evolution/bulk-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionCheckNumberRoute =
+  ApiPublicEvolutionCheckNumberRouteImport.update({
+    id: '/api/public/evolution/check-number',
+    path: '/api/public/evolution/check-number',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionConfigureWebhookRoute =
+  ApiPublicEvolutionConfigureWebhookRouteImport.update({
+    id: '/api/public/evolution/configure-webhook',
+    path: '/api/public/evolution/configure-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionCreateRoute =
+  ApiPublicEvolutionCreateRouteImport.update({
+    id: '/api/public/evolution/create',
+    path: '/api/public/evolution/create',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionForwardMediaRoute =
+  ApiPublicEvolutionForwardMediaRouteImport.update({
+    id: '/api/public/evolution/forward-media',
+    path: '/api/public/evolution/forward-media',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionForwardMessageRoute =
+  ApiPublicEvolutionForwardMessageRouteImport.update({
+    id: '/api/public/evolution/forward-message',
+    path: '/api/public/evolution/forward-message',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionMediaRoute = ApiPublicEvolutionMediaRouteImport.update({
+  id: '/api/public/evolution/media',
+  path: '/api/public/evolution/media',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEvolutionQrRoute = ApiPublicEvolutionQrRouteImport.update({
+  id: '/api/public/evolution/qr',
+  path: '/api/public/evolution/qr',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEvolutionSendRoute = ApiPublicEvolutionSendRouteImport.update({
+  id: '/api/public/evolution/send',
+  path: '/api/public/evolution/send',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEvolutionSendAndLogRoute =
+  ApiPublicEvolutionSendAndLogRouteImport.update({
+    id: '/api/public/evolution/send-and-log',
+    path: '/api/public/evolution/send-and-log',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionSendMediaRoute =
+  ApiPublicEvolutionSendMediaRouteImport.update({
+    id: '/api/public/evolution/send-media',
+    path: '/api/public/evolution/send-media',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionSendMediaAndLogRoute =
+  ApiPublicEvolutionSendMediaAndLogRouteImport.update({
+    id: '/api/public/evolution/send-media-and-log',
+    path: '/api/public/evolution/send-media-and-log',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionStatusRoute =
+  ApiPublicEvolutionStatusRouteImport.update({
+    id: '/api/public/evolution/status',
+    path: '/api/public/evolution/status',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionStatusLibraryRoute =
+  ApiPublicEvolutionStatusLibraryRouteImport.update({
+    id: '/api/public/evolution/status-library',
+    path: '/api/public/evolution/status-library',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionStatusTickRoute =
+  ApiPublicEvolutionStatusTickRouteImport.update({
+    id: '/api/public/evolution/status-tick',
+    path: '/api/public/evolution/status-tick',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionSyncContactsRoute =
+  ApiPublicEvolutionSyncContactsRouteImport.update({
+    id: '/api/public/evolution/sync-contacts',
+    path: '/api/public/evolution/sync-contacts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionSyncGroupsRoute =
+  ApiPublicEvolutionSyncGroupsRouteImport.update({
+    id: '/api/public/evolution/sync-groups',
+    path: '/api/public/evolution/sync-groups',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionSyncMessagesRoute =
+  ApiPublicEvolutionSyncMessagesRouteImport.update({
+    id: '/api/public/evolution/sync-messages',
+    path: '/api/public/evolution/sync-messages',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicEvolutionTestRoute = ApiPublicEvolutionTestRouteImport.update({
+  id: '/api/public/evolution/test',
+  path: '/api/public/evolution/test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEvolutionWebhookRoute =
+  ApiPublicEvolutionWebhookRouteImport.update({
+    id: '/api/public/evolution/webhook',
+    path: '/api/public/evolution/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicOptoutConfirmRoute = ApiPublicOptoutConfirmRouteImport.update({
+  id: '/api/public/optout/confirm',
+  path: '/api/public/optout/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOptoutInfoRoute = ApiPublicOptoutInfoRouteImport.update({
+  id: '/api/public/optout/info',
+  path: '/api/public/optout/info',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOptoutReverseRoute = ApiPublicOptoutReverseRouteImport.update({
+  id: '/api/public/optout/reverse',
+  path: '/api/public/optout/reverse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicOptoutShortConfirmRoute =
+  ApiPublicOptoutShortConfirmRouteImport.update({
+    id: '/api/public/optout/short-confirm',
+    path: '/api/public/optout/short-confirm',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicOptoutShortInfoRoute =
+  ApiPublicOptoutShortInfoRouteImport.update({
+    id: '/api/public/optout/short-info',
+    path: '/api/public/optout/short-info',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicOptoutShortReverseRoute =
+  ApiPublicOptoutShortReverseRouteImport.update({
+    id: '/api/public/optout/short-reverse',
+    path: '/api/public/optout/short-reverse',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSequencesDueRoute = ApiPublicSequencesDueRouteImport.update({
+  id: '/api/public/sequences/due',
+  path: '/api/public/sequences/due',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSequencesInboundRoute =
+  ApiPublicSequencesInboundRouteImport.update({
+    id: '/api/public/sequences/inbound',
+    path: '/api/public/sequences/inbound',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSequencesInspectRoute =
+  ApiPublicSequencesInspectRouteImport.update({
+    id: '/api/public/sequences/inspect',
+    path: '/api/public/sequences/inspect',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSequencesSentRoute = ApiPublicSequencesSentRouteImport.update({
+  id: '/api/public/sequences/sent',
+  path: '/api/public/sequences/sent',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSequencesTestRunRoute =
+  ApiPublicSequencesTestRunRouteImport.update({
+    id: '/api/public/sequences/test-run',
+    path: '/api/public/sequences/test-run',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSequencesTestSendRoute =
+  ApiPublicSequencesTestSendRouteImport.update({
+    id: '/api/public/sequences/test-send',
+    path: '/api/public/sequences/test-send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSettingsSecretRoute = ApiPublicSettingsSecretRouteImport.update({
+  id: '/api/public/settings/secret',
+  path: '/api/public/settings/secret',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWidgetSubmitRoute = ApiPublicWidgetSubmitRouteImport.update({
+  id: '/api/public/widget/submit',
+  path: '/api/public/widget/submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWidgetConfigIdRoute = ApiPublicWidgetConfigIdRouteImport.update({
+  id: '/api/public/widget/config/$id',
+  path: '/api/public/widget/config/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWidgetEmbedIdDotjsRoute =
   ApiPublicWidgetEmbedIdDotjsRouteImport.update({
     id: '/api/public/widget/embed/$id.js',
     path: '/api/public/widget/embed/$id.js',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicWidgetConfigIdRoute = ApiPublicWidgetConfigIdRouteImport.update({
-  id: '/api/public/widget/config/$id',
-  path: '/api/public/widget/config/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -1220,25 +1220,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/forgot-password': {
-      id: '/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof ForgotPasswordRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app': {
@@ -1248,144 +1234,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/u/$token': {
-      id: '/u/$token'
-      path: '/u/$token'
-      fullPath: '/u/$token'
-      preLoaderRoute: typeof UTokenRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/m/$q': {
-      id: '/m/$q'
-      path: '/m/$q'
-      fullPath: '/m/$q'
-      preLoaderRoute: typeof MQRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/d/$code': {
-      id: '/d/$code'
-      path: '/d/$code'
-      fullPath: '/d/$code'
-      preLoaderRoute: typeof DCodeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app/whatsapp': {
-      id: '/_app/whatsapp'
-      path: '/whatsapp'
-      fullPath: '/whatsapp'
-      preLoaderRoute: typeof AppWhatsappRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/templates': {
-      id: '/_app/templates'
-      path: '/templates'
-      fullPath: '/templates'
-      preLoaderRoute: typeof AppTemplatesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/status': {
-      id: '/_app/status'
-      path: '/status'
-      fullPath: '/status'
-      preLoaderRoute: typeof AppStatusRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/sequencias-dashboard': {
-      id: '/_app/sequencias-dashboard'
-      path: '/sequencias-dashboard'
-      fullPath: '/sequencias-dashboard'
-      preLoaderRoute: typeof AppSequenciasDashboardRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/sequencias': {
-      id: '/_app/sequencias'
-      path: '/sequencias'
-      fullPath: '/sequencias'
-      preLoaderRoute: typeof AppSequenciasRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/redact': {
-      id: '/_app/redact'
-      path: '/redact'
-      fullPath: '/redact'
-      preLoaderRoute: typeof AppRedactRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/pipeline': {
-      id: '/_app/pipeline'
-      path: '/pipeline'
-      fullPath: '/pipeline'
-      preLoaderRoute: typeof AppPipelineRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/logs': {
-      id: '/_app/logs'
-      path: '/logs'
-      fullPath: '/logs'
-      preLoaderRoute: typeof AppLogsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/inbox': {
-      id: '/_app/inbox'
-      path: '/inbox'
-      fullPath: '/inbox'
-      preLoaderRoute: typeof AppInboxRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/historico-ia': {
-      id: '/_app/historico-ia'
-      path: '/historico-ia'
-      fullPath: '/historico-ia'
-      preLoaderRoute: typeof AppHistoricoIaRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/explorar': {
-      id: '/_app/explorar'
-      path: '/explorar'
-      fullPath: '/explorar'
-      preLoaderRoute: typeof AppExplorarRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/disparos': {
-      id: '/_app/disparos'
-      path: '/disparos'
-      fullPath: '/disparos'
-      preLoaderRoute: typeof AppDisparosRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/detector': {
-      id: '/_app/detector'
-      path: '/detector'
-      fullPath: '/detector'
-      preLoaderRoute: typeof AppDetectorRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/dashboard': {
-      id: '/_app/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AppDashboardRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/contatos': {
-      id: '/_app/contatos'
-      path: '/contatos'
-      fullPath: '/contatos'
-      preLoaderRoute: typeof AppContatosRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/configuracoes': {
-      id: '/_app/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof AppConfiguracoesRouteImport
+    '/_app/agenda': {
+      id: '/_app/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AppAgendaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/bling': {
@@ -1395,18 +1269,137 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppBlingRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/agenda': {
-      id: '/_app/agenda'
-      path: '/agenda'
-      fullPath: '/agenda'
-      preLoaderRoute: typeof AppAgendaRouteImport
+    '/_app/configuracoes': {
+      id: '/_app/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AppConfiguracoesRouteImport
       parentRoute: typeof AppRoute
     }
-    '/widget/form/$id': {
-      id: '/widget/form/$id'
-      path: '/widget/form/$id'
-      fullPath: '/widget/form/$id'
-      preLoaderRoute: typeof WidgetFormIdRouteImport
+    '/_app/contatos': {
+      id: '/_app/contatos'
+      path: '/contatos'
+      fullPath: '/contatos'
+      preLoaderRoute: typeof AppContatosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/detector': {
+      id: '/_app/detector'
+      path: '/detector'
+      fullPath: '/detector'
+      preLoaderRoute: typeof AppDetectorRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/disparos': {
+      id: '/_app/disparos'
+      path: '/disparos'
+      fullPath: '/disparos'
+      preLoaderRoute: typeof AppDisparosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/explorar': {
+      id: '/_app/explorar'
+      path: '/explorar'
+      fullPath: '/explorar'
+      preLoaderRoute: typeof AppExplorarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/historico-ia': {
+      id: '/_app/historico-ia'
+      path: '/historico-ia'
+      fullPath: '/historico-ia'
+      preLoaderRoute: typeof AppHistoricoIaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/inbox': {
+      id: '/_app/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AppInboxRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/logs': {
+      id: '/_app/logs'
+      path: '/logs'
+      fullPath: '/logs'
+      preLoaderRoute: typeof AppLogsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pipeline': {
+      id: '/_app/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof AppPipelineRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/redact': {
+      id: '/_app/redact'
+      path: '/redact'
+      fullPath: '/redact'
+      preLoaderRoute: typeof AppRedactRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sequencias': {
+      id: '/_app/sequencias'
+      path: '/sequencias'
+      fullPath: '/sequencias'
+      preLoaderRoute: typeof AppSequenciasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/sequencias-dashboard': {
+      id: '/_app/sequencias-dashboard'
+      path: '/sequencias-dashboard'
+      fullPath: '/sequencias-dashboard'
+      preLoaderRoute: typeof AppSequenciasDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/status': {
+      id: '/_app/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof AppStatusRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/templates': {
+      id: '/_app/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof AppTemplatesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/whatsapp': {
+      id: '/_app/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof AppWhatsappRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/d/$code': {
+      id: '/d/$code'
+      path: '/d/$code'
+      fullPath: '/d/$code'
+      preLoaderRoute: typeof DCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/m/$q': {
+      id: '/m/$q'
+      path: '/m/$q'
+      fullPath: '/m/$q'
+      preLoaderRoute: typeof MQRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/u/$token': {
+      id: '/u/$token'
+      path: '/u/$token'
+      fullPath: '/u/$token'
+      preLoaderRoute: typeof UTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/link-preview': {
@@ -1416,417 +1409,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicLinkPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/widget/submit': {
-      id: '/api/public/widget/submit'
-      path: '/api/public/widget/submit'
-      fullPath: '/api/public/widget/submit'
-      preLoaderRoute: typeof ApiPublicWidgetSubmitRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/settings/secret': {
-      id: '/api/public/settings/secret'
-      path: '/api/public/settings/secret'
-      fullPath: '/api/public/settings/secret'
-      preLoaderRoute: typeof ApiPublicSettingsSecretRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/sequences/test-send': {
-      id: '/api/public/sequences/test-send'
-      path: '/api/public/sequences/test-send'
-      fullPath: '/api/public/sequences/test-send'
-      preLoaderRoute: typeof ApiPublicSequencesTestSendRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/sequences/test-run': {
-      id: '/api/public/sequences/test-run'
-      path: '/api/public/sequences/test-run'
-      fullPath: '/api/public/sequences/test-run'
-      preLoaderRoute: typeof ApiPublicSequencesTestRunRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/sequences/sent': {
-      id: '/api/public/sequences/sent'
-      path: '/api/public/sequences/sent'
-      fullPath: '/api/public/sequences/sent'
-      preLoaderRoute: typeof ApiPublicSequencesSentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/sequences/inspect': {
-      id: '/api/public/sequences/inspect'
-      path: '/api/public/sequences/inspect'
-      fullPath: '/api/public/sequences/inspect'
-      preLoaderRoute: typeof ApiPublicSequencesInspectRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/sequences/inbound': {
-      id: '/api/public/sequences/inbound'
-      path: '/api/public/sequences/inbound'
-      fullPath: '/api/public/sequences/inbound'
-      preLoaderRoute: typeof ApiPublicSequencesInboundRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/sequences/due': {
-      id: '/api/public/sequences/due'
-      path: '/api/public/sequences/due'
-      fullPath: '/api/public/sequences/due'
-      preLoaderRoute: typeof ApiPublicSequencesDueRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/optout/short-reverse': {
-      id: '/api/public/optout/short-reverse'
-      path: '/api/public/optout/short-reverse'
-      fullPath: '/api/public/optout/short-reverse'
-      preLoaderRoute: typeof ApiPublicOptoutShortReverseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/optout/short-info': {
-      id: '/api/public/optout/short-info'
-      path: '/api/public/optout/short-info'
-      fullPath: '/api/public/optout/short-info'
-      preLoaderRoute: typeof ApiPublicOptoutShortInfoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/optout/short-confirm': {
-      id: '/api/public/optout/short-confirm'
-      path: '/api/public/optout/short-confirm'
-      fullPath: '/api/public/optout/short-confirm'
-      preLoaderRoute: typeof ApiPublicOptoutShortConfirmRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/optout/reverse': {
-      id: '/api/public/optout/reverse'
-      path: '/api/public/optout/reverse'
-      fullPath: '/api/public/optout/reverse'
-      preLoaderRoute: typeof ApiPublicOptoutReverseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/optout/info': {
-      id: '/api/public/optout/info'
-      path: '/api/public/optout/info'
-      fullPath: '/api/public/optout/info'
-      preLoaderRoute: typeof ApiPublicOptoutInfoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/optout/confirm': {
-      id: '/api/public/optout/confirm'
-      path: '/api/public/optout/confirm'
-      fullPath: '/api/public/optout/confirm'
-      preLoaderRoute: typeof ApiPublicOptoutConfirmRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/webhook': {
-      id: '/api/public/evolution/webhook'
-      path: '/api/public/evolution/webhook'
-      fullPath: '/api/public/evolution/webhook'
-      preLoaderRoute: typeof ApiPublicEvolutionWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/test': {
-      id: '/api/public/evolution/test'
-      path: '/api/public/evolution/test'
-      fullPath: '/api/public/evolution/test'
-      preLoaderRoute: typeof ApiPublicEvolutionTestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/sync-messages': {
-      id: '/api/public/evolution/sync-messages'
-      path: '/api/public/evolution/sync-messages'
-      fullPath: '/api/public/evolution/sync-messages'
-      preLoaderRoute: typeof ApiPublicEvolutionSyncMessagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/sync-groups': {
-      id: '/api/public/evolution/sync-groups'
-      path: '/api/public/evolution/sync-groups'
-      fullPath: '/api/public/evolution/sync-groups'
-      preLoaderRoute: typeof ApiPublicEvolutionSyncGroupsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/sync-contacts': {
-      id: '/api/public/evolution/sync-contacts'
-      path: '/api/public/evolution/sync-contacts'
-      fullPath: '/api/public/evolution/sync-contacts'
-      preLoaderRoute: typeof ApiPublicEvolutionSyncContactsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/status-tick': {
-      id: '/api/public/evolution/status-tick'
-      path: '/api/public/evolution/status-tick'
-      fullPath: '/api/public/evolution/status-tick'
-      preLoaderRoute: typeof ApiPublicEvolutionStatusTickRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/status-library': {
-      id: '/api/public/evolution/status-library'
-      path: '/api/public/evolution/status-library'
-      fullPath: '/api/public/evolution/status-library'
-      preLoaderRoute: typeof ApiPublicEvolutionStatusLibraryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/status': {
-      id: '/api/public/evolution/status'
-      path: '/api/public/evolution/status'
-      fullPath: '/api/public/evolution/status'
-      preLoaderRoute: typeof ApiPublicEvolutionStatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/send-media-and-log': {
-      id: '/api/public/evolution/send-media-and-log'
-      path: '/api/public/evolution/send-media-and-log'
-      fullPath: '/api/public/evolution/send-media-and-log'
-      preLoaderRoute: typeof ApiPublicEvolutionSendMediaAndLogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/send-media': {
-      id: '/api/public/evolution/send-media'
-      path: '/api/public/evolution/send-media'
-      fullPath: '/api/public/evolution/send-media'
-      preLoaderRoute: typeof ApiPublicEvolutionSendMediaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/send-and-log': {
-      id: '/api/public/evolution/send-and-log'
-      path: '/api/public/evolution/send-and-log'
-      fullPath: '/api/public/evolution/send-and-log'
-      preLoaderRoute: typeof ApiPublicEvolutionSendAndLogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/send': {
-      id: '/api/public/evolution/send'
-      path: '/api/public/evolution/send'
-      fullPath: '/api/public/evolution/send'
-      preLoaderRoute: typeof ApiPublicEvolutionSendRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/qr': {
-      id: '/api/public/evolution/qr'
-      path: '/api/public/evolution/qr'
-      fullPath: '/api/public/evolution/qr'
-      preLoaderRoute: typeof ApiPublicEvolutionQrRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/media': {
-      id: '/api/public/evolution/media'
-      path: '/api/public/evolution/media'
-      fullPath: '/api/public/evolution/media'
-      preLoaderRoute: typeof ApiPublicEvolutionMediaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/forward-message': {
-      id: '/api/public/evolution/forward-message'
-      path: '/api/public/evolution/forward-message'
-      fullPath: '/api/public/evolution/forward-message'
-      preLoaderRoute: typeof ApiPublicEvolutionForwardMessageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/forward-media': {
-      id: '/api/public/evolution/forward-media'
-      path: '/api/public/evolution/forward-media'
-      fullPath: '/api/public/evolution/forward-media'
-      preLoaderRoute: typeof ApiPublicEvolutionForwardMediaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/create': {
-      id: '/api/public/evolution/create'
-      path: '/api/public/evolution/create'
-      fullPath: '/api/public/evolution/create'
-      preLoaderRoute: typeof ApiPublicEvolutionCreateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/configure-webhook': {
-      id: '/api/public/evolution/configure-webhook'
-      path: '/api/public/evolution/configure-webhook'
-      fullPath: '/api/public/evolution/configure-webhook'
-      preLoaderRoute: typeof ApiPublicEvolutionConfigureWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/check-number': {
-      id: '/api/public/evolution/check-number'
-      path: '/api/public/evolution/check-number'
-      fullPath: '/api/public/evolution/check-number'
-      preLoaderRoute: typeof ApiPublicEvolutionCheckNumberRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/bulk-tick': {
-      id: '/api/public/evolution/bulk-tick'
-      path: '/api/public/evolution/bulk-tick'
-      fullPath: '/api/public/evolution/bulk-tick'
-      preLoaderRoute: typeof ApiPublicEvolutionBulkTickRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/evolution/bulk-dispatch': {
-      id: '/api/public/evolution/bulk-dispatch'
-      path: '/api/public/evolution/bulk-dispatch'
-      fullPath: '/api/public/evolution/bulk-dispatch'
-      preLoaderRoute: typeof ApiPublicEvolutionBulkDispatchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/contacts/cleanup': {
-      id: '/api/public/contacts/cleanup'
-      path: '/api/public/contacts/cleanup'
-      fullPath: '/api/public/contacts/cleanup'
-      preLoaderRoute: typeof ApiPublicContactsCleanupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/contacts/blacklist-toggle': {
-      id: '/api/public/contacts/blacklist-toggle'
-      path: '/api/public/contacts/blacklist-toggle'
-      fullPath: '/api/public/contacts/blacklist-toggle'
-      preLoaderRoute: typeof ApiPublicContactsBlacklistToggleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cleanup/groups': {
-      id: '/api/public/cleanup/groups'
-      path: '/api/public/cleanup/groups'
-      fullPath: '/api/public/cleanup/groups'
-      preLoaderRoute: typeof ApiPublicCleanupGroupsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/calendar/update-event': {
-      id: '/api/public/calendar/update-event'
-      path: '/api/public/calendar/update-event'
-      fullPath: '/api/public/calendar/update-event'
-      preLoaderRoute: typeof ApiPublicCalendarUpdateEventRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/calendar/reminders-tick': {
-      id: '/api/public/calendar/reminders-tick'
-      path: '/api/public/calendar/reminders-tick'
-      fullPath: '/api/public/calendar/reminders-tick'
-      preLoaderRoute: typeof ApiPublicCalendarRemindersTickRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/calendar/events': {
-      id: '/api/public/calendar/events'
-      path: '/api/public/calendar/events'
-      fullPath: '/api/public/calendar/events'
-      preLoaderRoute: typeof ApiPublicCalendarEventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/calendar/detect-test': {
-      id: '/api/public/calendar/detect-test'
-      path: '/api/public/calendar/detect-test'
-      fullPath: '/api/public/calendar/detect-test'
-      preLoaderRoute: typeof ApiPublicCalendarDetectTestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/calendar/delete-event': {
-      id: '/api/public/calendar/delete-event'
-      path: '/api/public/calendar/delete-event'
-      fullPath: '/api/public/calendar/delete-event'
-      preLoaderRoute: typeof ApiPublicCalendarDeleteEventRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/calendar/create-event': {
-      id: '/api/public/calendar/create-event'
-      path: '/api/public/calendar/create-event'
-      fullPath: '/api/public/calendar/create-event'
-      preLoaderRoute: typeof ApiPublicCalendarCreateEventRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/calendar/confirm-booking': {
-      id: '/api/public/calendar/confirm-booking'
-      path: '/api/public/calendar/confirm-booking'
-      fullPath: '/api/public/calendar/confirm-booking'
-      preLoaderRoute: typeof ApiPublicCalendarConfirmBookingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/calendar/availability': {
-      id: '/api/public/calendar/availability'
-      path: '/api/public/calendar/availability'
-      fullPath: '/api/public/calendar/availability'
-      preLoaderRoute: typeof ApiPublicCalendarAvailabilityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/calendar/auto-book': {
-      id: '/api/public/calendar/auto-book'
-      path: '/api/public/calendar/auto-book'
-      fullPath: '/api/public/calendar/auto-book'
-      preLoaderRoute: typeof ApiPublicCalendarAutoBookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/bling/proposals': {
-      id: '/api/public/bling/proposals'
-      path: '/api/public/bling/proposals'
-      fullPath: '/api/public/bling/proposals'
-      preLoaderRoute: typeof ApiPublicBlingProposalsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/bling/proposal-raw': {
-      id: '/api/public/bling/proposal-raw'
-      path: '/api/public/bling/proposal-raw'
-      fullPath: '/api/public/bling/proposal-raw'
-      preLoaderRoute: typeof ApiPublicBlingProposalRawRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/bling/contacts': {
-      id: '/api/public/bling/contacts'
-      path: '/api/public/bling/contacts'
-      fullPath: '/api/public/bling/contacts'
-      preLoaderRoute: typeof ApiPublicBlingContactsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/bling/config': {
-      id: '/api/public/bling/config'
-      path: '/api/public/bling/config'
-      fullPath: '/api/public/bling/config'
-      preLoaderRoute: typeof ApiPublicBlingConfigRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/bling/callback': {
-      id: '/api/public/bling/callback'
-      path: '/api/public/bling/callback'
-      fullPath: '/api/public/bling/callback'
-      preLoaderRoute: typeof ApiPublicBlingCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/bling/auto-tick': {
-      id: '/api/public/bling/auto-tick'
-      path: '/api/public/bling/auto-tick'
-      fullPath: '/api/public/bling/auto-tick'
-      preLoaderRoute: typeof ApiPublicBlingAutoTickRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/bling/auto-config': {
-      id: '/api/public/bling/auto-config'
-      path: '/api/public/bling/auto-config'
-      fullPath: '/api/public/bling/auto-config'
-      preLoaderRoute: typeof ApiPublicBlingAutoConfigRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/avatars/refresh': {
-      id: '/api/public/avatars/refresh'
-      path: '/api/public/avatars/refresh'
-      fullPath: '/api/public/avatars/refresh'
-      preLoaderRoute: typeof ApiPublicAvatarsRefreshRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/ai/lovable-proxy': {
-      id: '/api/public/ai/lovable-proxy'
-      path: '/api/public/ai/lovable-proxy'
-      fullPath: '/api/public/ai/lovable-proxy'
-      preLoaderRoute: typeof ApiPublicAiLovableProxyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/ai/interest-terms': {
-      id: '/api/public/ai/interest-terms'
-      path: '/api/public/ai/interest-terms'
-      fullPath: '/api/public/ai/interest-terms'
-      preLoaderRoute: typeof ApiPublicAiInterestTermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/ai/existing-categories': {
-      id: '/api/public/ai/existing-categories'
-      path: '/api/public/ai/existing-categories'
-      fullPath: '/api/public/ai/existing-categories'
-      preLoaderRoute: typeof ApiPublicAiExistingCategoriesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/ai/contact-enrich-failure': {
-      id: '/api/public/ai/contact-enrich-failure'
-      path: '/api/public/ai/contact-enrich-failure'
-      fullPath: '/api/public/ai/contact-enrich-failure'
-      preLoaderRoute: typeof ApiPublicAiContactEnrichFailureRouteImport
+    '/widget/form/$id': {
+      id: '/widget/form/$id'
+      path: '/widget/form/$id'
+      fullPath: '/widget/form/$id'
+      preLoaderRoute: typeof WidgetFormIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/ai/contact-enrich': {
@@ -1836,11 +1423,417 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAiContactEnrichRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/widget/embed/$id.js': {
-      id: '/api/public/widget/embed/$id.js'
-      path: '/api/public/widget/embed/$id.js'
-      fullPath: '/api/public/widget/embed/$id.js'
-      preLoaderRoute: typeof ApiPublicWidgetEmbedIdDotjsRouteImport
+    '/api/public/ai/contact-enrich-failure': {
+      id: '/api/public/ai/contact-enrich-failure'
+      path: '/api/public/ai/contact-enrich-failure'
+      fullPath: '/api/public/ai/contact-enrich-failure'
+      preLoaderRoute: typeof ApiPublicAiContactEnrichFailureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ai/existing-categories': {
+      id: '/api/public/ai/existing-categories'
+      path: '/api/public/ai/existing-categories'
+      fullPath: '/api/public/ai/existing-categories'
+      preLoaderRoute: typeof ApiPublicAiExistingCategoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ai/interest-terms': {
+      id: '/api/public/ai/interest-terms'
+      path: '/api/public/ai/interest-terms'
+      fullPath: '/api/public/ai/interest-terms'
+      preLoaderRoute: typeof ApiPublicAiInterestTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/ai/lovable-proxy': {
+      id: '/api/public/ai/lovable-proxy'
+      path: '/api/public/ai/lovable-proxy'
+      fullPath: '/api/public/ai/lovable-proxy'
+      preLoaderRoute: typeof ApiPublicAiLovableProxyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/avatars/refresh': {
+      id: '/api/public/avatars/refresh'
+      path: '/api/public/avatars/refresh'
+      fullPath: '/api/public/avatars/refresh'
+      preLoaderRoute: typeof ApiPublicAvatarsRefreshRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bling/auto-config': {
+      id: '/api/public/bling/auto-config'
+      path: '/api/public/bling/auto-config'
+      fullPath: '/api/public/bling/auto-config'
+      preLoaderRoute: typeof ApiPublicBlingAutoConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bling/auto-tick': {
+      id: '/api/public/bling/auto-tick'
+      path: '/api/public/bling/auto-tick'
+      fullPath: '/api/public/bling/auto-tick'
+      preLoaderRoute: typeof ApiPublicBlingAutoTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bling/callback': {
+      id: '/api/public/bling/callback'
+      path: '/api/public/bling/callback'
+      fullPath: '/api/public/bling/callback'
+      preLoaderRoute: typeof ApiPublicBlingCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bling/config': {
+      id: '/api/public/bling/config'
+      path: '/api/public/bling/config'
+      fullPath: '/api/public/bling/config'
+      preLoaderRoute: typeof ApiPublicBlingConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bling/contacts': {
+      id: '/api/public/bling/contacts'
+      path: '/api/public/bling/contacts'
+      fullPath: '/api/public/bling/contacts'
+      preLoaderRoute: typeof ApiPublicBlingContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bling/proposal-raw': {
+      id: '/api/public/bling/proposal-raw'
+      path: '/api/public/bling/proposal-raw'
+      fullPath: '/api/public/bling/proposal-raw'
+      preLoaderRoute: typeof ApiPublicBlingProposalRawRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bling/proposals': {
+      id: '/api/public/bling/proposals'
+      path: '/api/public/bling/proposals'
+      fullPath: '/api/public/bling/proposals'
+      preLoaderRoute: typeof ApiPublicBlingProposalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/auto-book': {
+      id: '/api/public/calendar/auto-book'
+      path: '/api/public/calendar/auto-book'
+      fullPath: '/api/public/calendar/auto-book'
+      preLoaderRoute: typeof ApiPublicCalendarAutoBookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/availability': {
+      id: '/api/public/calendar/availability'
+      path: '/api/public/calendar/availability'
+      fullPath: '/api/public/calendar/availability'
+      preLoaderRoute: typeof ApiPublicCalendarAvailabilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/confirm-booking': {
+      id: '/api/public/calendar/confirm-booking'
+      path: '/api/public/calendar/confirm-booking'
+      fullPath: '/api/public/calendar/confirm-booking'
+      preLoaderRoute: typeof ApiPublicCalendarConfirmBookingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/create-event': {
+      id: '/api/public/calendar/create-event'
+      path: '/api/public/calendar/create-event'
+      fullPath: '/api/public/calendar/create-event'
+      preLoaderRoute: typeof ApiPublicCalendarCreateEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/delete-event': {
+      id: '/api/public/calendar/delete-event'
+      path: '/api/public/calendar/delete-event'
+      fullPath: '/api/public/calendar/delete-event'
+      preLoaderRoute: typeof ApiPublicCalendarDeleteEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/detect-test': {
+      id: '/api/public/calendar/detect-test'
+      path: '/api/public/calendar/detect-test'
+      fullPath: '/api/public/calendar/detect-test'
+      preLoaderRoute: typeof ApiPublicCalendarDetectTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/events': {
+      id: '/api/public/calendar/events'
+      path: '/api/public/calendar/events'
+      fullPath: '/api/public/calendar/events'
+      preLoaderRoute: typeof ApiPublicCalendarEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/reminders-tick': {
+      id: '/api/public/calendar/reminders-tick'
+      path: '/api/public/calendar/reminders-tick'
+      fullPath: '/api/public/calendar/reminders-tick'
+      preLoaderRoute: typeof ApiPublicCalendarRemindersTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/update-event': {
+      id: '/api/public/calendar/update-event'
+      path: '/api/public/calendar/update-event'
+      fullPath: '/api/public/calendar/update-event'
+      preLoaderRoute: typeof ApiPublicCalendarUpdateEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cleanup/groups': {
+      id: '/api/public/cleanup/groups'
+      path: '/api/public/cleanup/groups'
+      fullPath: '/api/public/cleanup/groups'
+      preLoaderRoute: typeof ApiPublicCleanupGroupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/contacts/blacklist-toggle': {
+      id: '/api/public/contacts/blacklist-toggle'
+      path: '/api/public/contacts/blacklist-toggle'
+      fullPath: '/api/public/contacts/blacklist-toggle'
+      preLoaderRoute: typeof ApiPublicContactsBlacklistToggleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/contacts/cleanup': {
+      id: '/api/public/contacts/cleanup'
+      path: '/api/public/contacts/cleanup'
+      fullPath: '/api/public/contacts/cleanup'
+      preLoaderRoute: typeof ApiPublicContactsCleanupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/bulk-dispatch': {
+      id: '/api/public/evolution/bulk-dispatch'
+      path: '/api/public/evolution/bulk-dispatch'
+      fullPath: '/api/public/evolution/bulk-dispatch'
+      preLoaderRoute: typeof ApiPublicEvolutionBulkDispatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/bulk-tick': {
+      id: '/api/public/evolution/bulk-tick'
+      path: '/api/public/evolution/bulk-tick'
+      fullPath: '/api/public/evolution/bulk-tick'
+      preLoaderRoute: typeof ApiPublicEvolutionBulkTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/check-number': {
+      id: '/api/public/evolution/check-number'
+      path: '/api/public/evolution/check-number'
+      fullPath: '/api/public/evolution/check-number'
+      preLoaderRoute: typeof ApiPublicEvolutionCheckNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/configure-webhook': {
+      id: '/api/public/evolution/configure-webhook'
+      path: '/api/public/evolution/configure-webhook'
+      fullPath: '/api/public/evolution/configure-webhook'
+      preLoaderRoute: typeof ApiPublicEvolutionConfigureWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/create': {
+      id: '/api/public/evolution/create'
+      path: '/api/public/evolution/create'
+      fullPath: '/api/public/evolution/create'
+      preLoaderRoute: typeof ApiPublicEvolutionCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/forward-media': {
+      id: '/api/public/evolution/forward-media'
+      path: '/api/public/evolution/forward-media'
+      fullPath: '/api/public/evolution/forward-media'
+      preLoaderRoute: typeof ApiPublicEvolutionForwardMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/forward-message': {
+      id: '/api/public/evolution/forward-message'
+      path: '/api/public/evolution/forward-message'
+      fullPath: '/api/public/evolution/forward-message'
+      preLoaderRoute: typeof ApiPublicEvolutionForwardMessageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/media': {
+      id: '/api/public/evolution/media'
+      path: '/api/public/evolution/media'
+      fullPath: '/api/public/evolution/media'
+      preLoaderRoute: typeof ApiPublicEvolutionMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/qr': {
+      id: '/api/public/evolution/qr'
+      path: '/api/public/evolution/qr'
+      fullPath: '/api/public/evolution/qr'
+      preLoaderRoute: typeof ApiPublicEvolutionQrRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/send': {
+      id: '/api/public/evolution/send'
+      path: '/api/public/evolution/send'
+      fullPath: '/api/public/evolution/send'
+      preLoaderRoute: typeof ApiPublicEvolutionSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/send-and-log': {
+      id: '/api/public/evolution/send-and-log'
+      path: '/api/public/evolution/send-and-log'
+      fullPath: '/api/public/evolution/send-and-log'
+      preLoaderRoute: typeof ApiPublicEvolutionSendAndLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/send-media': {
+      id: '/api/public/evolution/send-media'
+      path: '/api/public/evolution/send-media'
+      fullPath: '/api/public/evolution/send-media'
+      preLoaderRoute: typeof ApiPublicEvolutionSendMediaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/send-media-and-log': {
+      id: '/api/public/evolution/send-media-and-log'
+      path: '/api/public/evolution/send-media-and-log'
+      fullPath: '/api/public/evolution/send-media-and-log'
+      preLoaderRoute: typeof ApiPublicEvolutionSendMediaAndLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/status': {
+      id: '/api/public/evolution/status'
+      path: '/api/public/evolution/status'
+      fullPath: '/api/public/evolution/status'
+      preLoaderRoute: typeof ApiPublicEvolutionStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/status-library': {
+      id: '/api/public/evolution/status-library'
+      path: '/api/public/evolution/status-library'
+      fullPath: '/api/public/evolution/status-library'
+      preLoaderRoute: typeof ApiPublicEvolutionStatusLibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/status-tick': {
+      id: '/api/public/evolution/status-tick'
+      path: '/api/public/evolution/status-tick'
+      fullPath: '/api/public/evolution/status-tick'
+      preLoaderRoute: typeof ApiPublicEvolutionStatusTickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/sync-contacts': {
+      id: '/api/public/evolution/sync-contacts'
+      path: '/api/public/evolution/sync-contacts'
+      fullPath: '/api/public/evolution/sync-contacts'
+      preLoaderRoute: typeof ApiPublicEvolutionSyncContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/sync-groups': {
+      id: '/api/public/evolution/sync-groups'
+      path: '/api/public/evolution/sync-groups'
+      fullPath: '/api/public/evolution/sync-groups'
+      preLoaderRoute: typeof ApiPublicEvolutionSyncGroupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/sync-messages': {
+      id: '/api/public/evolution/sync-messages'
+      path: '/api/public/evolution/sync-messages'
+      fullPath: '/api/public/evolution/sync-messages'
+      preLoaderRoute: typeof ApiPublicEvolutionSyncMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/test': {
+      id: '/api/public/evolution/test'
+      path: '/api/public/evolution/test'
+      fullPath: '/api/public/evolution/test'
+      preLoaderRoute: typeof ApiPublicEvolutionTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/webhook': {
+      id: '/api/public/evolution/webhook'
+      path: '/api/public/evolution/webhook'
+      fullPath: '/api/public/evolution/webhook'
+      preLoaderRoute: typeof ApiPublicEvolutionWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/confirm': {
+      id: '/api/public/optout/confirm'
+      path: '/api/public/optout/confirm'
+      fullPath: '/api/public/optout/confirm'
+      preLoaderRoute: typeof ApiPublicOptoutConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/info': {
+      id: '/api/public/optout/info'
+      path: '/api/public/optout/info'
+      fullPath: '/api/public/optout/info'
+      preLoaderRoute: typeof ApiPublicOptoutInfoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/reverse': {
+      id: '/api/public/optout/reverse'
+      path: '/api/public/optout/reverse'
+      fullPath: '/api/public/optout/reverse'
+      preLoaderRoute: typeof ApiPublicOptoutReverseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/short-confirm': {
+      id: '/api/public/optout/short-confirm'
+      path: '/api/public/optout/short-confirm'
+      fullPath: '/api/public/optout/short-confirm'
+      preLoaderRoute: typeof ApiPublicOptoutShortConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/short-info': {
+      id: '/api/public/optout/short-info'
+      path: '/api/public/optout/short-info'
+      fullPath: '/api/public/optout/short-info'
+      preLoaderRoute: typeof ApiPublicOptoutShortInfoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/optout/short-reverse': {
+      id: '/api/public/optout/short-reverse'
+      path: '/api/public/optout/short-reverse'
+      fullPath: '/api/public/optout/short-reverse'
+      preLoaderRoute: typeof ApiPublicOptoutShortReverseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sequences/due': {
+      id: '/api/public/sequences/due'
+      path: '/api/public/sequences/due'
+      fullPath: '/api/public/sequences/due'
+      preLoaderRoute: typeof ApiPublicSequencesDueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sequences/inbound': {
+      id: '/api/public/sequences/inbound'
+      path: '/api/public/sequences/inbound'
+      fullPath: '/api/public/sequences/inbound'
+      preLoaderRoute: typeof ApiPublicSequencesInboundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sequences/inspect': {
+      id: '/api/public/sequences/inspect'
+      path: '/api/public/sequences/inspect'
+      fullPath: '/api/public/sequences/inspect'
+      preLoaderRoute: typeof ApiPublicSequencesInspectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sequences/sent': {
+      id: '/api/public/sequences/sent'
+      path: '/api/public/sequences/sent'
+      fullPath: '/api/public/sequences/sent'
+      preLoaderRoute: typeof ApiPublicSequencesSentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sequences/test-run': {
+      id: '/api/public/sequences/test-run'
+      path: '/api/public/sequences/test-run'
+      fullPath: '/api/public/sequences/test-run'
+      preLoaderRoute: typeof ApiPublicSequencesTestRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sequences/test-send': {
+      id: '/api/public/sequences/test-send'
+      path: '/api/public/sequences/test-send'
+      fullPath: '/api/public/sequences/test-send'
+      preLoaderRoute: typeof ApiPublicSequencesTestSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/settings/secret': {
+      id: '/api/public/settings/secret'
+      path: '/api/public/settings/secret'
+      fullPath: '/api/public/settings/secret'
+      preLoaderRoute: typeof ApiPublicSettingsSecretRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/widget/submit': {
+      id: '/api/public/widget/submit'
+      path: '/api/public/widget/submit'
+      fullPath: '/api/public/widget/submit'
+      preLoaderRoute: typeof ApiPublicWidgetSubmitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/widget/config/$id': {
@@ -1848,6 +1841,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/widget/config/$id'
       fullPath: '/api/public/widget/config/$id'
       preLoaderRoute: typeof ApiPublicWidgetConfigIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/widget/embed/$id.js': {
+      id: '/api/public/widget/embed/$id.js'
+      path: '/api/public/widget/embed/$id.js'
+      fullPath: '/api/public/widget/embed/$id.js'
+      preLoaderRoute: typeof ApiPublicWidgetEmbedIdDotjsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
