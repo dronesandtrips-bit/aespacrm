@@ -213,7 +213,7 @@ function SequenciasPage() {
                     <CalendarClock className="size-3" />
                     {s.windowStartHour}h–{s.windowEndHour}h ·{" "}
                     {formatDays(s.windowDays)}
-                      {" · "}{s.clientIntervalSeconds}s configurados entre clientes
+                      {" · "}{s.clientIntervalSeconds}s entre clientes (após ativação)
                   </p>
                 </div>
                 <Button variant="outline" size="sm">
