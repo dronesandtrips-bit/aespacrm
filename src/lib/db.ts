@@ -1429,15 +1429,8 @@ export const sequencesDb = {
         trigger_value: input.triggerValue ?? null,
         is_active: true,
       })
-      .select(SEQ_COLS)
+      .select("*")
       .single();
-    if (error && /client_interval_seconds/i.test(error.message)) {
-      const fallback = await c.from("crm_sequences")
-        .select(SEQ_COLS.replace(",client_interval_seconds", ""))
-        .eq("id", id).single();
-      if (fallback.error) throw fallback.error;
-      return rowToSeq(fallback.data);
-    }
     if (error) throw error;
     return rowToSeq(data);
   },
