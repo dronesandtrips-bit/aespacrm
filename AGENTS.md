@@ -1,3 +1,3 @@
 Use only the self-hosted Supabase `aespacrm` schema and `crm_*` tables for ZapCRM persistence; the VPS is shared with other projects.
 Keep Status distribution checkpoints in the database and never retry an ambiguous Evolution response automatically; WhatsApp sends are not idempotent.
-Store each sequence's client interval in aespacrm.crm_sequences and apply it after each acknowledged client in the dedicated n8n runner; this keeps the step delay separate from recipient pacing.
+Store each sequence's client interval in aespacrm.crm_sequences and apply it after each acknowledged client in the existing official [ZapCRM] Sequences Runner; this keeps the step delay separate from recipient pacing without running a second dispatcher.
