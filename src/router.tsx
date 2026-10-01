@@ -1,8 +1,23 @@
-import { createRouter, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { createRouter, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 
-function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function DefaultErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
+
+  useEffect(() => {
+    // A conexão pode ser encerrada durante uma atualização do servidor de prévia.
+    // Tentar só uma vez evita deixar a tela vazia sem criar um ciclo de recargas.
+    if (!(error instanceof Error) || !/\baborted\b/i.test(error.message)) return;
+    const key = "zapcrm:aborted-navigation-retry";
+    const lastRetry = Number(sessionStorage.getItem(key) || 0);
+    if (Date.now() - lastRetry < 15_000) return;
+    sessionStorage.setItem(key, String(Date.now()));
+    const timer = window.setTimeout(() => {
+      void router.invalidate().then(() => reset());
+    }, 750);
+    return () => window.clearTimeout(timer);
+  }, [error, reset, router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -27,7 +42,7 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
         <p className="mt-2 text-sm text-muted-foreground">
           An unexpected error occurred. Please try again.
         </p>
-        {import.meta.env.DEV && error.message && (
+        {import.meta.env.DEV && error instanceof Error && error.message && (
           <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted p-3 text-left font-mono text-xs text-destructive">
             {error.message}
           </pre>
