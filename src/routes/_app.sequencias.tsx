@@ -149,7 +149,9 @@ function SequenciasPage() {
   const reload = async () => {
     setLoading(true);
     try {
-      setSeqs(await sequencesDb.list());
+      const refreshed = await sequencesDb.list();
+      setSeqs(refreshed);
+      setSelected((current) => current ? refreshed.find((item) => item.id === current.id) ?? null : null);
     } catch (e: any) {
       toast.error(`Erro: ${e.message ?? e}`);
     } finally {
@@ -793,7 +795,8 @@ function SequenceEditorDialog({
                <div className="flex items-end gap-3 flex-wrap">
                  <div>
                    <Label htmlFor="client-interval" className="text-xs">Segundos entre um cliente e o próximo</Label>
-                   <Input id="client-interval" type="number" min={60} max={300} step={1}
+                    <Input id="client-interval" type="number" min={60} max={300} step={1}
+                      disabled={!sequence.intervalAvailable}
                      value={clientInterval} onChange={(e) => setClientInterval(Number(e.target.value))}
                      className="w-32 mt-1" />
                  </div>

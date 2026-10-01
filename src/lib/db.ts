@@ -1350,9 +1350,6 @@ function rowToSeq(r: any): Sequence {
   };
 }
 
-const SEQ_COLS =
-  "id,name,description,is_active,trigger_type,trigger_value,window_start_hour,window_end_hour,window_days,stop_on_stage_ids,auto_resume_after_days,client_interval_seconds,created_at";
-
 function rowToMedia(r: any): TemplateMedia | null {
   if (!r?.media_base64 || !r?.media_type) return null;
   return {
