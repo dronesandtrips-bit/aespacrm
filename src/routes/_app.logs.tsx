@@ -35,6 +35,14 @@ import { ptBR } from "date-fns/locale";
 
 export const Route = createFileRoute("/_app/logs")({
   component: LogsPage,
+  head: () => ({ meta: [
+    { title: "Histórico de sequências | ZapCRM" },
+    { name: "description", content: "Consulte envios e falhas das sequências do ZapCRM." },
+    { property: "og:title", content: "Histórico de sequências | ZapCRM" },
+    { property: "og:description", content: "Consulte envios e falhas das sequências do ZapCRM." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 type SendLogRow = {
