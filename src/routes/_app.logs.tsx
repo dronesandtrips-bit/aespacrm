@@ -35,6 +35,14 @@ import { ptBR } from "date-fns/locale";
 
 export const Route = createFileRoute("/_app/logs")({
   component: LogsPage,
+  head: () => ({ meta: [
+    { title: "Histórico de sequências | ZapCRM" },
+    { name: "description", content: "Consulte envios e falhas das sequências do ZapCRM." },
+    { property: "og:title", content: "Histórico de sequências | ZapCRM" },
+    { property: "og:description", content: "Consulte envios e falhas das sequências do ZapCRM." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 type SendLogRow = {
@@ -483,10 +491,13 @@ function ContactsTab({ sequenceFilter }: { sequenceFilter: string }) {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                {r.status === "paused" && (
+                {r.status === "paused" && r.pause_reason !== "invalid_whatsapp_number" && (
                   <Button size="sm" variant="outline" onClick={() => resume(r.id)}>
                     <Play className="size-3.5 mr-1" /> Retomar
                   </Button>
+                )}
+                {r.pause_reason === "invalid_whatsapp_number" && (
+                  <span className="text-xs text-destructive">Número recusado pelo WhatsApp</span>
                 )}
                 {r.status === "active" && (
                   <Button size="sm" variant="outline" onClick={() => pause(r.id)}>

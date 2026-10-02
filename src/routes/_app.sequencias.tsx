@@ -38,6 +38,7 @@ import {
   Sparkles,
   Paperclip,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import {
   sequencesDb,
@@ -92,6 +93,15 @@ export const Route = createFileRoute("/_app/sequencias")({
   ] }),
 });
 
+type SequenceFailure = {
+  id: string;
+  error: string | null;
+  contact_sequences: {
+    sequence_id: string;
+    crm_contacts: { name: string; phone: string } | null;
+  } | null;
+};
+
 const MAX_STEPS = 10;
 const MAX_MEDIA_BYTES = 5 * 1024 * 1024; // 5MB
 const DAY_LABELS = ["D", "S", "T", "Q", "Q", "S", "S"];
@@ -143,6 +153,7 @@ const newUid = () => `s_${Date.now()}_${++_uidCounter}`;
 
 function SequenciasPage() {
   const [seqs, setSeqs] = useState<Sequence[]>([]);
+  const [failures, setFailures] = useState<SequenceFailure[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Sequence | null>(null);
 
@@ -161,6 +172,21 @@ function SequenciasPage() {
 
   useEffect(() => {
     reload();
+    let active = true;
+    const loadFailures = async () => {
+      const sb = await getSupabaseClient();
+      if (!sb) return;
+      const { data, error } = await sb.schema("aespacrm" as any)
+        .from("crm_sequence_send_log")
+        .select("id,error,contact_sequences:crm_contact_sequences!inner(sequence_id,crm_contacts(name,phone))")
+        .eq("status", "failed")
+        .order("sent_at", { ascending: false })
+        .limit(50);
+      if (active && !error) setFailures((data ?? []) as unknown as SequenceFailure[]);
+    };
+    loadFailures();
+    const timer = window.setInterval(loadFailures, 60_000);
+    return () => { active = false; window.clearInterval(timer); };
   }, []);
 
   return (
@@ -176,6 +202,22 @@ function SequenciasPage() {
         </div>
         <NewSequenceDialog onCreated={reload} />
       </div>
+
+      {failures.length > 0 && (
+        <div role="status" className="border border-destructive/40 bg-destructive/5 p-4 space-y-2">
+          <p className="flex items-center gap-2 text-sm font-medium text-destructive">
+            <AlertTriangle className="size-4" /> Contatos com envio recusado
+          </p>
+          {failures.map((failure) => (
+            <p key={failure.id} className="text-sm text-foreground break-words">
+              <span className="font-medium">{failure.contact_sequences?.crm_contacts?.name ?? "Contato removido"}</span>
+              {failure.contact_sequences?.crm_contacts?.phone && ` · ${failure.contact_sequences.crm_contacts.phone}`}
+              {` · ${seqs.find((s) => s.id === failure.contact_sequences?.sequence_id)?.name ?? "Sequência"}`}
+              {failure.error && ` — ${failure.error}`}
+            </p>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12">
