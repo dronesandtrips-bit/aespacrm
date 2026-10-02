@@ -491,10 +491,13 @@ function ContactsTab({ sequenceFilter }: { sequenceFilter: string }) {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                {r.status === "paused" && (
+                {r.status === "paused" && r.pause_reason !== "invalid_whatsapp_number" && (
                   <Button size="sm" variant="outline" onClick={() => resume(r.id)}>
                     <Play className="size-3.5 mr-1" /> Retomar
                   </Button>
+                )}
+                {r.pause_reason === "invalid_whatsapp_number" && (
+                  <span className="text-xs text-destructive">Número recusado pelo WhatsApp</span>
                 )}
                 {r.status === "active" && (
                   <Button size="sm" variant="outline" onClick={() => pause(r.id)}>
