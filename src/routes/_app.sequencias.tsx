@@ -81,6 +81,7 @@ import {
 } from "@/components/ui/popover";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 import { nextWeeklyRound, formatWeeklyRound, exceedsWindow } from "@/lib/sequence-schedule";
+import weeklyInstallationSql from "../../public/updates/sequencias-semanais.sql?raw";
 
 export const Route = createFileRoute("/_app/sequencias")({
   component: SequenciasPage,
@@ -138,6 +139,18 @@ function formatDays(days: number[]): string {
     sorted.length === 5 && sorted.every((d, i) => d === i + 1);
   if (isWeekdays) return "Seg–Sex";
   return sorted.map((d) => DAY_FULL[d]).join(", ");
+}
+
+function downloadWeeklyInstallation() {
+  const blob = new Blob([weeklyInstallationSql], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "ZapCRM_instalacao_repeticao_semanal.sql";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 type DraftStep = {
@@ -203,8 +216,8 @@ function SequenciasPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {!loading && seqs.some((s) => !s.recurrenceEnabled) && (
-            <Button variant="outline" size="sm" asChild>
-              <a href="/updates/sequencias-semanais.sql" download="ZapCRM_sequencias_semanais.sql"><FileText className="size-4 mr-1" /> Baixar atualização semanal</a>
+            <Button variant="outline" size="sm" onClick={downloadWeeklyInstallation}>
+              <FileText className="size-4 mr-1" /> Baixar instalação da repetição semanal
             </Button>
           )}
           <NewSequenceDialog onCreated={reload} />
