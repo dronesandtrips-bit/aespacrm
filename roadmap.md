@@ -1,5 +1,6 @@
-- [ ] Implementar repetição semanal para sequências existentes e novas nos dias e horários salvos, preservando pausas, exclusões, intervalos e proteção contra duplicação; aprovar alteração do disparador oficial antes de ativar.
-- [ ] Verificar os avisos e continuação automática após contatos definitivamente inválidos, sem realizar envios reais de teste.
+- [x] Preparar repetição semanal com rodadas independentes, reservas por rodada, confirmação atômica, programação e aviso de capacidade; testes sintéticos PostgreSQL e 6 testes de datas/falhas passaram sem envios reais.
+- [ ] Ativar repetição semanal em produção: depende do usuário aplicar SUPABASE_MIGRATION_SEQUENCE_WEEKLY_ROUNDS.sql e publicar o CRM; então adaptar os três payloads do runner oficial já inspecionado (GET recurring=1, reserve occurrence_id, sent claim_id), validar e aplicar SUPABASE_ACTIVATE_SEQUENCE_WEEKLY_ROUNDS.sql com runner pausado. Banco de produção ainda não contém recurrence_enabled; não há reservas pendentes na consulta somente leitura. Não modificar runner antecipadamente.
+- [x] Verificar avisos e continuação automática para contatos definitivamente inválidos: caminho ativo do runner confirmado por leitura; testes sintéticos confirmam log, pausa só do contato, liberação e intervalo. Erros incertos permanecem reservados.
 - [x] Diagnosticar o tempo esgotado no envio de mensagens pelo WhatsApp sem disparar mensagens de teste.
 - [x] Corrigir a orientação exibida quando o envio não é confirmado, preservando o rascunho e evitando reenvio às cegas.
 - [ ] Confirmar a causa da demora no processamento de sendText na Evolution na VPS; depende dos registros e recursos daquele serviço.

@@ -110,6 +110,8 @@ export type Sequence = {
   autoResumeAfterDays: number;
   clientIntervalSeconds: number;
   intervalAvailable: boolean;
+  recurrenceEnabled: boolean;
+  recurrenceActivatedAt: string | null;
   createdAt: string;
 };
 
@@ -1346,6 +1348,8 @@ function rowToSeq(r: any): Sequence {
     autoResumeAfterDays: r.auto_resume_after_days ?? 0,
     clientIntervalSeconds: r.client_interval_seconds ?? 60,
     intervalAvailable: r.client_interval_seconds !== undefined,
+    recurrenceEnabled: r.recurrence_enabled ?? false,
+    recurrenceActivatedAt: r.recurrence_activated_at ?? null,
     createdAt: r.created_at,
   };
 }

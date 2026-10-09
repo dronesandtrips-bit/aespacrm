@@ -2,3 +2,5 @@ Use only the self-hosted Supabase `aespacrm` schema and `crm_*` tables for ZapCR
 Keep Status distribution checkpoints in the database and never retry an ambiguous Evolution response automatically; WhatsApp sends are not idempotent.
 Store each sequence's client interval in aespacrm.crm_sequences and apply it after each acknowledged client in the existing official [ZapCRM] Sequences Runner; this keeps the step delay separate from recipient pacing without running a second dispatcher.
 Reject definitive invalid WhatsApp numbers atomically in the aespacrm dispatch checkpoint and retain all ambiguous outcomes as reserved; WhatsApp sends cannot safely be retried.
+Recurring sequences use independent date-based crm_sequence_occurrences and occurrence-scoped claims, with atomic log/progress confirmation; this preserves overlapping multi-step rounds without duplicate dispatch or lost enrollment pauses.
+Enable recurrence only after the database migration, published endpoints and official runner payloads are verified; a separate activation script prevents mixed-version sends and historical replay.

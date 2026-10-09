@@ -80,6 +80,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { nextWeeklyRound, formatWeeklyRound, exceedsWindow } from "@/lib/sequence-schedule";
 
 export const Route = createFileRoute("/_app/sequencias")({
   component: SequenciasPage,
@@ -200,7 +201,14 @@ function SequenciasPage() {
             Follow-up automático: configure passos com delay e mensagens.
           </p>
         </div>
-        <NewSequenceDialog onCreated={reload} />
+        <div className="flex items-center gap-2 flex-wrap">
+          {!loading && seqs.some((s) => !s.recurrenceEnabled) && (
+            <Button variant="outline" size="sm" asChild>
+              <a href="/updates/sequencias-semanais.sql" download="ZapCRM_sequencias_semanais.sql"><FileText className="size-4 mr-1" /> Baixar atualização semanal</a>
+            </Button>
+          )}
+          <NewSequenceDialog onCreated={reload} />
+        </div>
       </div>
 
       {failures.length > 0 && (
@@ -256,9 +264,10 @@ function SequenciasPage() {
                   <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
                     <CalendarClock className="size-3" />
                     {s.windowStartHour}h–{s.windowEndHour}h ·{" "}
-                    {formatDays(s.windowDays)}
+                    {s.recurrenceEnabled ? "Semanal · " : ""}{formatDays(s.windowDays)}
                       {s.intervalAvailable && <> · {s.clientIntervalSeconds}s entre clientes</>}
                   </p>
+                  {s.recurrenceEnabled && <p className="text-xs text-muted-foreground mt-1">{s.isActive ? `Próxima rodada: ${formatWeeklyRound(nextWeeklyRound(s, new Date(), s.recurrenceActivatedAt))}` : "Repetição pausada"}</p>}
                 </div>
                 <Button variant="outline" size="sm">
                   Editar passos
@@ -854,12 +863,16 @@ function SequenceEditorDialog({
              <Card className="p-3 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium flex items-center gap-2">
-                  <CalendarClock className="size-3.5" /> Janela de envio
+                  <CalendarClock className="size-3.5" /> {sequence.recurrenceEnabled ? "Programação semanal" : "Janela de envio"}
                 </div>
                 <span className="text-[11px] text-muted-foreground">
                   Horário de Brasília (UTC-3)
                 </span>
               </div>
+
+              {sequence.recurrenceEnabled && exceedsWindow(enrolled.filter((cs) => ["active", "completed"].includes(cs.status) && !contacts.find((c) => c.id === cs.contactId)?.isIgnored).length, clientInterval, { windowDays: days, windowStartHour: startHour, windowEndHour: endHour }) && (
+                <p role="alert" className="text-xs text-destructive">Os contatos e o intervalo excedem a janela disponível. Nem todos cabem no mesmo dia.</p>
+              )}
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -1225,7 +1238,7 @@ function SequenceEditorDialog({
                         : cs.status === "paused"
                           ? { label: "pausado", variant: "secondary" as const }
                           : cs.status === "completed"
-                            ? { label: "concluído", variant: "outline" as const }
+                            ? { label: sequence.recurrenceEnabled ? "inscrito · semanal" : "concluído", variant: "outline" as const }
                             : { label: "cancelado", variant: "outline" as const };
                     return (
                       <div
@@ -1247,8 +1260,10 @@ function SequenceEditorDialog({
                             )}
                           </div>
                           <div className="text-[10px] text-muted-foreground">
-                            passo {cs.currentStep + 1}
-                            {cs.nextSendAt && cs.status === "active"
+                            {sequence.recurrenceEnabled && ["active", "completed"].includes(cs.status)
+                              ? `Próxima rodada: ${formatWeeklyRound(nextWeeklyRound(sequence, new Date(), sequence.recurrenceActivatedAt))}`
+                              : `passo ${cs.currentStep + 1}`}
+                            {!sequence.recurrenceEnabled && cs.nextSendAt && cs.status === "active"
                               ? ` · próx: ${new Date(cs.nextSendAt).toLocaleString("pt-BR")}`
                               : ""}
                           </div>
@@ -1256,7 +1271,7 @@ function SequenceEditorDialog({
                         <Badge variant={statusBadge.variant} className="text-[10px]">
                           {statusBadge.label}
                         </Badge>
-                        {cs.status === "active" ? (
+                        {cs.status === "active" || (sequence.recurrenceEnabled && cs.status === "completed") ? (
                           <Button
                             variant="ghost"
                             size="sm"

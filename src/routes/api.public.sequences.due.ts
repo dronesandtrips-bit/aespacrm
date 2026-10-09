@@ -58,7 +58,9 @@ export const Route = createFileRoute("/api/public/sequences/due")({
         try {
           const url = new URL(request.url);
           const userId = url.searchParams.get("user_id");
-          const limit = Math.min(Number(url.searchParams.get("limit") ?? 50), 200);
+          const requestedLimit = Number(url.searchParams.get("limit") ?? 50);
+          const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(Math.floor(requestedLimit), 200)) : 50;
+          const recurringRunner = url.searchParams.get("recurring") === "1";
           // Modo teste: ignora janela de horário para validar o pipeline ponta-a-ponta.
           // Ex.: GET /api/public/sequences/due?bypass_window=1&limit=1
           const bypassWindow = ["1", "true", "yes"].includes(
@@ -66,6 +68,12 @@ export const Route = createFileRoute("/api/public/sequences/due")({
           );
 
           const admin = getSupabaseAdmin();
+          let recurringDue: any[] = [];
+          if (recurringRunner) {
+            const { data, error: recurringError } = await admin.rpc("crm_sequence_recurring_due", { p_user_id: userId || null, p_limit: limit });
+            if (recurringError && recurringError.code !== "PGRST202") throw recurringError;
+            recurringDue = data ?? [];
+          }
 
           // Auto-retomar sequências pausadas por inbound_reply após auto_resume_after_days.
           // Busca sequências com auto_resume_after_days > 0 e atualiza as pausadas há tempo suficiente.
@@ -101,8 +109,9 @@ export const Route = createFileRoute("/api/public/sequences/due")({
             .order("next_send_at", { ascending: true })
             .limit(limit);
           if (userId) q = q.eq("user_id", userId);
-          const { data: due, error } = await q;
+          const { data: legacyDue, error } = await q;
           if (error) throw error;
+          const due = [...recurringDue, ...(legacyDue ?? [])];
           if (!due || due.length === 0) {
             return jsonResponse({ items: [] });
           }
@@ -114,7 +123,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
             admin
               .from("crm_sequences")
               .select(
-                 "id,name,is_active,window_start_hour,window_end_hour,window_days,client_interval_seconds",
+                 "*",
               )
               .in("id", seqIds),
           admin
@@ -151,6 +160,8 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               const seq = seqMap.get(d.sequence_id) as any;
               const contact = contactMap.get(d.contact_id) as any;
               if (!seq || !contact || !seq.is_active) return null;
+              // Old runners must never receive recurring items without round IDs.
+              if (seq.recurrence_enabled && !d.occurrence_id) return null;
               // Cinto-e-suspensório: nunca dispara para contato na blacklist.
               if (contact.is_ignored) return null;
               if (!bypassWindow && !inWindow(seq)) return null;
@@ -193,6 +204,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
                 : null;
               return {
                 contact_sequence_id: d.id,
+                ...(d.occurrence_id ? { occurrence_id: d.occurrence_id } : {}),
                 user_id: d.user_id,
                 sequence_id: d.sequence_id,
                 sequence_name: seq.name,
@@ -211,7 +223,7 @@ export const Route = createFileRoute("/api/public/sequences/due")({
               };
             }),
           );
-          const items = itemsRaw.filter(Boolean);
+          const items = itemsRaw.filter(Boolean).slice(0, limit);
 
           return jsonResponse({ items });
         } catch (err: any) {
