@@ -15,6 +15,7 @@ const Schema = z.object({
   contact_sequence_id: z.string().uuid(),
   status: z.enum(["sent", "failed"]).default("sent"),
   error: z.string().max(500).optional(),
+  claim_id: z.string().uuid().optional(),
 });
 
 export const Route = createFileRoute("/api/public/sequences/sent")({
@@ -34,6 +35,19 @@ export const Route = createFileRoute("/api/public/sequences/sent")({
           const { contact_sequence_id, status, error: errMsg } = parsed.data;
           const admin = getSupabaseAdmin();
 
+          if (parsed.data.claim_id) {
+            const { data: claim, error: claimError } = await admin.from("crm_sequence_dispatches").select("*").eq("id", parsed.data.claim_id).maybeSingle();
+            if (claimError) throw claimError;
+            if (!claim || claim.contact_sequence_id !== contact_sequence_id) return jsonResponse({ error: "Invalid claim" }, 409);
+            if (claim.occurrence_id) {
+              // An unconfirmed response must never advance or release a round.
+              if (status !== "sent") return jsonResponse({ ok: false, reason: "pending_confirmation" }, 409);
+              const { data, error } = await admin.rpc("crm_record_recurring_send", { p_claim_id: parsed.data.claim_id });
+              if (error) throw error;
+              return jsonResponse(data, data?.ok ? 200 : 409);
+            }
+          }
+
           const { data: cs, error: csErr } = await admin
             .from("crm_contact_sequences")
             .select("id,user_id,contact_id,sequence_id,current_step,status")
@@ -42,6 +56,9 @@ export const Route = createFileRoute("/api/public/sequences/sent")({
           if (csErr || !cs) {
             return jsonResponse({ error: "contact_sequence not found" }, 404);
           }
+          const { data: sequence, error: sequenceError } = await admin.from("crm_sequences").select("*").eq("id", cs.sequence_id).maybeSingle();
+          if (sequenceError) throw sequenceError;
+          if (sequence?.recurrence_enabled) return jsonResponse({ ok: false, reason: "recurring_claim_required" }, 409);
           if (cs.status !== "active") {
             return jsonResponse({ ok: true, skipped: true, reason: cs.status });
           }

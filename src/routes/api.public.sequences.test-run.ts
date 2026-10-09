@@ -61,7 +61,7 @@ export const Route = createFileRoute("/api/public/sequences/test-run")({
           // Confirma que a sequência pertence ao usuário e está ativa.
           const { data: seq, error: seqErr } = await admin
             .from("crm_sequences")
-            .select("id,name,is_active,user_id")
+            .select("*")
             .eq("id", sequence_id)
             .eq("user_id", userId)
             .maybeSingle();
@@ -69,6 +69,9 @@ export const Route = createFileRoute("/api/public/sequences/test-run")({
           if (!seq) return jsonResponse({ error: "Sequência não encontrada" }, 404);
           if (!seq.is_active)
             return jsonResponse({ error: "Ative a sequência antes de testar" }, 400);
+          // This legacy test advances the enrollment directly, not a guarded
+          // round. Keep manual message previews; never bypass recurring claims.
+          if (seq.recurrence_enabled) return jsonResponse({ error: "Sequência semanal: use o teste de mensagem do passo, sem antecipar a rodada programada." }, 409);
 
           // Escolhe 1 contact_sequence "active" com next_send_at vencido,
           // pulando contatos na blacklist (busca até 50 candidatos).
