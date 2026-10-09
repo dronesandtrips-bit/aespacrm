@@ -1,3 +1,5 @@
+- [ ] Implementar repetição semanal para sequências existentes e novas nos dias e horários salvos, preservando pausas, exclusões, intervalos e proteção contra duplicação; aprovar alteração do disparador oficial antes de ativar.
+- [ ] Verificar os avisos e continuação automática após contatos definitivamente inválidos, sem realizar envios reais de teste.
 - [x] Diagnosticar o tempo esgotado no envio de mensagens pelo WhatsApp sem disparar mensagens de teste.
 - [x] Corrigir a orientação exibida quando o envio não é confirmado, preservando o rascunho e evitando reenvio às cegas.
 - [ ] Confirmar a causa da demora no processamento de sendText na Evolution na VPS; depende dos registros e recursos daquele serviço.
