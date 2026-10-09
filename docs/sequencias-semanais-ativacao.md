@@ -18,6 +18,7 @@ Não recriar sequências, reinscrever contatos, apagar reservas nem ativar outro
 - O início de cada rodada é a abertura da janela de cada dia marcado, no fuso `America/Sao_Paulo`. Rodadas anteriores à ativação não são criadas.
 - Cada rodada tem progresso e reservas próprios. Etapas posteriores respeitam os atrasos salvos e as janelas; uma rodada não sobrescreve a outra.
 - Contatos concluídos continuam elegíveis nas próximas rodadas. Contatos pausados, cancelados ou excluídos permanecem impedidos. A retomada por resposta segue a configuração existente.
+- A ativação converte somente inscrições concluídas para ativas, sem apagar histórico. Assim, os caminhos existentes de pausa por resposta e mudança de etapa continuam protegendo quem aguarda a próxima rodada. Novos inscritos após a abertura entram na próxima data marcada.
 - Uma rodada não iniciada expira se não couber no dia. Uma rodada já iniciada preserva suas etapas pendentes; nenhuma reserva incerta é expirada ou reenviada automaticamente.
 - Número inexistente (400 com `exists:false`) é registrado, pausa só esse contato e libera o próximo após o intervalo. Erros incertos continuam reservados.
 - O teste direto de campanha antiga não antecipa rodadas semanais. Os testes individuais de mensagem/mídia continuam disponíveis.

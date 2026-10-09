@@ -63,6 +63,22 @@ drop trigger if exists crm_sequences_recurrence_default on aespacrm.crm_sequence
 create trigger crm_sequences_recurrence_default before insert on aespacrm.crm_sequences
   for each row execute function aespacrm.crm_sequence_apply_recurrence_default();
 
+-- Keep recurring enrollments active between rounds, so ALL existing inbound,
+-- pipeline and opt-out pause paths (which filter active) still apply.
+create or replace function aespacrm.crm_sequence_keep_recurring_enrollment()
+returns trigger language plpgsql security definer set search_path = aespacrm, pg_temp as $$
+begin
+  if new.status = 'completed' and exists(select 1 from aespacrm.crm_sequences s where s.id = new.sequence_id and s.recurrence_enabled) then
+    new.status := 'active';
+    new.next_send_at := null;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists crm_contact_sequences_recurring_active on aespacrm.crm_contact_sequences;
+create trigger crm_contact_sequences_recurring_active before insert or update of status on aespacrm.crm_contact_sequences
+  for each row execute function aespacrm.crm_sequence_keep_recurring_enrollment();
+
 -- Materialize ONLY today's eligible round, never yesterday's missed campaign.
 -- The sequence lock serializes materialization, reservation and completion.
 create or replace function aespacrm.crm_sequence_recurring_due(p_user_id uuid default null, p_limit integer default 50)
@@ -92,7 +108,7 @@ begin
         select cs.user_id,cs.sequence_id,cs.id,v_local::date,v_start,v_first,v_start
         from aespacrm.crm_contact_sequences cs join aespacrm.crm_contacts c on c.id = cs.contact_id and c.user_id = cs.user_id
         where cs.sequence_id = v_seq.id and cs.user_id = v_seq.user_id and cs.status in ('active','completed') and not c.is_ignored
-          and cs.started_at <= now()
+          and cs.started_at <= v_start
         on conflict (contact_sequence_id,scheduled_date) do nothing;
       end if;
     end if;
@@ -227,6 +243,7 @@ end;
 $$;
 
 revoke all on function aespacrm.crm_sequence_apply_recurrence_default() from public,anon,authenticated;
+revoke all on function aespacrm.crm_sequence_keep_recurring_enrollment() from public,anon,authenticated;
 revoke all on function aespacrm.crm_sequence_recurring_due(uuid,integer) from public,anon,authenticated;
 revoke all on function aespacrm.crm_reserve_recurring_dispatch(uuid,integer,uuid) from public,anon,authenticated;
 revoke all on function aespacrm.crm_record_recurring_send(uuid) from public,anon,authenticated;

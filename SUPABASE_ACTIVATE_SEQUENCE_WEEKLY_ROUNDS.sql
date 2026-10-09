@@ -19,5 +19,11 @@ update aespacrm.crm_sequences
 set recurrence_enabled = true,
     recurrence_activated_at = coalesce(recurrence_activated_at,now())
 where not recurrence_enabled;
+-- Existing pause paths filter active; completed means only a past round ended.
+-- Restore membership WITHOUT clearing any manual/inbound/invalid pause.
+update aespacrm.crm_contact_sequences cs
+set status = 'active',next_send_at = null
+from aespacrm.crm_sequences s
+where s.id = cs.sequence_id and s.user_id = cs.user_id and s.recurrence_enabled and cs.status = 'completed';
 notify pgrst,'reload schema';
 commit;
