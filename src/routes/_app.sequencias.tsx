@@ -201,7 +201,14 @@ function SequenciasPage() {
             Follow-up automático: configure passos com delay e mensagens.
           </p>
         </div>
-        <NewSequenceDialog onCreated={reload} />
+        <div className="flex items-center gap-2 flex-wrap">
+          {!loading && seqs.some((s) => !s.recurrenceEnabled) && (
+            <Button variant="outline" size="sm" asChild>
+              <a href="/updates/sequencias-semanais.sql" download="ZapCRM_sequencias_semanais.sql"><FileText className="size-4 mr-1" /> Baixar atualização semanal</a>
+            </Button>
+          )}
+          <NewSequenceDialog onCreated={reload} />
+        </div>
       </div>
 
       {failures.length > 0 && (
