@@ -103,9 +103,10 @@ begin
        and extract(hour from v_local) < v_seq.window_end_hour then
       v_start := (v_local::date + make_interval(hours => v_seq.window_start_hour)) at time zone 'America/Sao_Paulo';
       select min(st."order") into v_first from aespacrm.crm_sequence_steps st where st.sequence_id = v_seq.id and st.user_id = v_seq.user_id;
-      if v_first is not null and v_start >= v_seq.recurrence_activated_at then
+      -- Allow activation during today's window, without creating earlier dates.
+      if v_first is not null and (v_seq.recurrence_activated_at at time zone 'America/Sao_Paulo')::date <= v_local::date then
         insert into aespacrm.crm_sequence_occurrences(user_id,sequence_id,contact_sequence_id,scheduled_date,scheduled_at,current_step,next_send_at)
-        select cs.user_id,cs.sequence_id,cs.id,v_local::date,v_start,v_first,v_start
+        select cs.user_id,cs.sequence_id,cs.id,v_local::date,greatest(v_start,v_seq.recurrence_activated_at),v_first,greatest(v_start,v_seq.recurrence_activated_at)
         from aespacrm.crm_contact_sequences cs join aespacrm.crm_contacts c on c.id = cs.contact_id and c.user_id = cs.user_id
         where cs.sequence_id = v_seq.id and cs.user_id = v_seq.user_id and cs.status in ('active','completed') and not c.is_ignored
           and cs.started_at <= v_start

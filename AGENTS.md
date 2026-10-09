@@ -4,4 +4,5 @@ Store each sequence's client interval in aespacrm.crm_sequences and apply it aft
 Reject definitive invalid WhatsApp numbers atomically in the aespacrm dispatch checkpoint and retain all ambiguous outcomes as reserved; WhatsApp sends cannot safely be retried.
 Recurring sequences use independent date-based crm_sequence_occurrences and occurrence-scoped claims, with atomic log/progress confirmation; this preserves overlapping multi-step rounds without duplicate dispatch or lost enrollment pauses.
 Enable recurrence only after the database migration, published endpoints and official runner payloads are verified; a separate activation script prevents mixed-version sends and historical replay.
+Materialize only the current local-date recurring round, allowing activation within its open window with timestamps no earlier than activation; this permits first-day sends without historical replay or changing the enrollment cutoff.
 Bundle the weekly installation SQL as raw text for browser-generated downloads; this avoids relying on a static SQL URL that hosting may block.

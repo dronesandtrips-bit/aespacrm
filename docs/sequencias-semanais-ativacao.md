@@ -15,7 +15,7 @@ Não recriar sequências, reinscrever contatos, apagar reservas nem ativar outro
 10. Reativar somente o disparador oficial. Conferir no CRM os dias, horários, intervalo, próxima rodada e avisos de números inválidos.
 
 ## Comportamento
-- O início de cada rodada é a abertura da janela de cada dia marcado, no fuso `America/Sao_Paulo`. Rodadas anteriores à ativação não são criadas.
+- O início de cada rodada é a abertura da janela de cada dia marcado, no fuso `America/Sao_Paulo`. Se a ativação acontecer durante a janela do próprio dia, a primeira rodada pode começar após a ativação; datas anteriores não são criadas. O corte de inscrições permanece na abertura da janela.
 - Cada rodada tem progresso e reservas próprios. Etapas posteriores respeitam os atrasos salvos e as janelas; uma rodada não sobrescreve a outra.
 - Contatos concluídos continuam elegíveis nas próximas rodadas. Contatos pausados, cancelados ou excluídos permanecem impedidos. A retomada por resposta segue a configuração existente.
 - A ativação converte somente inscrições concluídas para ativas, sem apagar histórico. Assim, os caminhos existentes de pausa por resposta e mudança de etapa continuam protegendo quem aguarda a próxima rodada. Novos inscritos após a abertura entram na próxima data marcada.
@@ -25,3 +25,6 @@ Não recriar sequências, reinscrever contatos, apagar reservas nem ativar outro
 
 ## Verificação sem envio
 Consultar somente `aespacrm.crm_sequences`, `crm_sequence_occurrences`, `crm_sequence_dispatches` e `crm_sequence_send_log`, filtrando pelo dono. Não chamar endpoints Evolution nem testar workflow ativo. A preparação de rodadas é feita pelo runner; o GET sem `recurring=1` não cria rodadas e nunca fornece itens semanais ao runner antigo.
+
+## Correção da primeira rodada após ativação
+Para instalações anteriores à correção de 09/10/2026, executar somente `SUPABASE_FIX_SEQUENCE_ACTIVATION_DAY.sql` no editor SQL da VPS. O comando substitui apenas `crm_sequence_recurring_due`, mantém assinatura e permissões e não altera configurações, reservas, histórico ou outras funções. Não precisa publicar o CRM nem modificar o n8n. Depois do comando, o runner ativo poderá iniciar os envios reais durante a janela salva; não executar manualmente o workflow.
