@@ -9,7 +9,7 @@ declare
   v_owner uuid := '10000000-0000-4000-8000-000000000001';
   v_count integer;
 begin
-  v_open := v_local::date at time zone 'America/Sao_Paulo';
+  v_open := (v_local::date + interval '0 hours') at time zone 'America/Sao_Paulo';
   insert into aespacrm.crm_sequences(id,user_id,name,window_days,window_start_hour,window_end_hour,recurrence_enabled,recurrence_activated_at)
   values(v_sequence,v_owner,'Activation day',array[extract(dow from v_local)::integer],0,24,true,v_activation);
   insert into aespacrm.crm_sequence_steps(sequence_id,user_id,"order",message,delay_value,delay_unit)
