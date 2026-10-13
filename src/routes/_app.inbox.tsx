@@ -20,9 +20,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LazyEmojiPicker } from "@/components/LazyEmojiPicker";
 import { ContactDialog, EnrollDialog } from "@/components/contact-dialogs";
+import { contactEnrichmentWebhook } from "@/lib/contact-enrichment";
 
 
 export const Route = createFileRoute("/_app/inbox")({
+  head: () => ({ meta: [
+    { title: "Conversas WhatsApp | ZapCRM" },
+    { name: "description", content: "Atenda contatos e acompanhe conversas do WhatsApp no ZapCRM." },
+    { property: "og:title", content: "Conversas WhatsApp | ZapCRM" },
+    { property: "og:description", content: "Atenda contatos e acompanhe conversas do WhatsApp no ZapCRM." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: InboxPage,
 });
 
@@ -502,13 +511,9 @@ function InboxPage() {
     let webhookUrl: string | null = null;
     try {
       const s = await userSettingsDb.get();
-      webhookUrl = s.rescanWebhookUrl;
+      webhookUrl = contactEnrichmentWebhook(s.rescanWebhookUrl);
     } catch (e: any) {
       toast.error(`Erro ao ler configurações: ${e.message ?? e}`);
-      return;
-    }
-    if (!webhookUrl) {
-      toast.error("Configure a URL de varredura em Configurações → IA");
       return;
     }
     setEnriching((prev) => new Set(prev).add(c.id));

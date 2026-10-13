@@ -49,6 +49,7 @@ import { previewInvalidContacts, deleteInvalidContacts } from "@/lib/contacts-cl
 import { ContactDialog, EnrollDialog, MergeContactDialog } from "@/components/contact-dialogs";
 import { DuplicateScanDialog, findDuplicatePairs } from "@/components/DuplicateScanDialog";
 import { BlingOrphanCleanupDialog, findBlingOrphans } from "@/components/BlingOrphanCleanupDialog";
+import { contactEnrichmentWebhook } from "@/lib/contact-enrichment";
 
 const ALL = "__all__";
 const NONE = "__none__";
@@ -70,6 +71,14 @@ const searchSchema = z.object({
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export const Route = createFileRoute("/_app/contatos")({
+  head: () => ({ meta: [
+    { title: "Contatos e categorias | ZapCRM" },
+    { name: "description", content: "Organize contatos, categorias e informações de atendimento no ZapCRM." },
+    { property: "og:title", content: "Contatos e categorias | ZapCRM" },
+    { property: "og:description", content: "Organize contatos, categorias e informações de atendimento no ZapCRM." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   validateSearch: zodValidator(searchSchema),
   component: ContactsPage,
 });
@@ -252,13 +261,9 @@ function ContactsPage() {
     let webhookUrl: string | null = null;
     try {
       const s = await userSettingsDb.get();
-      webhookUrl = s.rescanWebhookUrl;
+      webhookUrl = contactEnrichmentWebhook(s.rescanWebhookUrl);
     } catch (e: any) {
       toast.error(`Erro ao ler configurações: ${e.message ?? e}`);
-      return;
-    }
-    if (!webhookUrl) {
-      toast.error("Configure a URL de varredura em Configurações → IA");
       return;
     }
     setEnriching((prev) => new Set(prev).add(c.id));
