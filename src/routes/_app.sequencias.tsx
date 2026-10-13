@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ import {
   Paperclip,
   X,
   AlertTriangle,
+  Activity,
 } from "lucide-react";
 import {
   sequencesDb,
@@ -215,6 +216,9 @@ function SequenciasPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/sequencias-dashboard"><Activity className="size-4 mr-1" /> Acompanhar envios</Link>
+          </Button>
           {!loading && seqs.some((s) => !s.recurrenceEnabled) && (
             <Button variant="outline" size="sm" onClick={downloadWeeklyInstallation}>
               <FileText className="size-4 mr-1" /> Baixar instalação da repetição semanal

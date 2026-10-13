@@ -57,7 +57,7 @@ const items = [
   { to: "/disparos", label: "Disparos", icon: Send },
   { to: "/bling", label: "Bling", icon: ShoppingBag },
   { to: "/sequencias", label: "Sequências", icon: GitBranch },
-  { to: "/sequencias-dashboard", label: "Métricas Seq.", icon: BarChart3 },
+  { to: "/sequencias-dashboard", label: "Painel Sequências", icon: BarChart3 },
   { to: "/templates", label: "Templates", icon: FileText },
   { to: "/historico-ia", label: "Histórico IA", icon: Sparkles },
   { to: "/logs", label: "Logs", icon: Activity },
