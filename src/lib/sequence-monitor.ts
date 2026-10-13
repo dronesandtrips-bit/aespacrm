@@ -64,3 +64,6 @@ export const pauseLabels: Record<string, string> = {
   inbound_reply: "Contato respondeu", invalid_whatsapp_number: "Número inválido no WhatsApp",
   blacklisted: "Contato excluído dos envios", manual: "Pausa manual", stage_changed: "Mudança de etapa",
 };
+export function pausedEnrollments(enrollments: MonitorEnrollment[], reason = "all") {
+  return enrollments.filter(e => e.status === "paused" && (reason === "all" || e.pause_reason === reason));
+}
