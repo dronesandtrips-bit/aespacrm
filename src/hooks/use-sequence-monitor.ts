@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
-import { dateBounds, emptySnapshot, type MonitorSnapshot } from "@/lib/sequence-monitor";
+import { dateBounds, emptySnapshot, spDay, type MonitorSnapshot } from "@/lib/sequence-monitor";
 
 type PageResult = { data: unknown[] | null; error: { message: string } | null };
 export async function readAllPages<T>(query: (from: number, to: number) => PromiseLike<PageResult>): Promise<T[]> {
@@ -60,7 +60,7 @@ export function useSequenceMonitor(userId: string | undefined, start: string, en
               .select("id,sequence_id,contact_sequence_id,scheduled_date,scheduled_at,current_step,next_send_at,status,completed_at")
               .eq("user_id", userId);
             // Retain unfinished older rounds even when the selected report period is today.
-            const clauses = ["status.eq.active"];
+            const clauses = ["status.eq.active", `scheduled_date.eq.${spDay()}`];
             if (start && end) clauses.push(`and(scheduled_date.gte.${start},scheduled_date.lte.${end})`);
             else if (start) clauses.push(`scheduled_date.gte.${start}`);
             else if (end) clauses.push(`scheduled_date.lte.${end}`);

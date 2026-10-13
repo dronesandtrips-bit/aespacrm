@@ -35,7 +35,7 @@ function ResultBadge({ status }: { status: string }) {
   return <Badge variant="outline" className={success ? "text-success border-success/30 bg-success/5" : failure ? "text-destructive border-destructive/30 bg-destructive/5" : "text-muted-foreground"}>{labels[status] ?? status}</Badge>;
 }
 function Metric({ label, value, icon: Icon, tone = "text-primary", hint }: { label: string; value: number | string; icon: typeof Activity; tone?: string; hint?: string }) {
-  return <Card className="rounded-lg p-4 flex items-start justify-between gap-2"><div><p className="text-xs text-muted-foreground">{label}</p><p className={`text-2xl font-semibold mt-2 tabular-nums ${tone}`}>{value}</p>{hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}</div><Icon className={`size-5 shrink-0 ${tone}`} /></Card>;
+  return <Card className="rounded-lg p-4 flex items-start justify-between gap-2"><div className="min-w-0"><p className="text-xs text-muted-foreground">{label}</p><p className={`font-semibold mt-2 tabular-nums break-words ${typeof value === "string" && value.length > 6 ? "text-sm" : "text-2xl"} ${tone}`}>{value}</p>{hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}</div><Icon className={`size-5 shrink-0 ${tone}`} /></Card>;
 }
 function SequencesDashboard() {
   const { user } = useAuth();
@@ -60,7 +60,7 @@ function SequencesDashboard() {
   const occurrences = data.occurrences.filter(o => selectedIds.has(o.sequence_id));
   const periodOccurrences = occurrences.filter(o => (!start || o.scheduled_date >= start) && (!end || o.scheduled_date <= end));
   const activeRounds = occurrences.filter(o => o.status === "active" && canProceed(enrollmentMap.get(o.contact_sequence_id), sequenceMap.get(o.sequence_id)));
-  const logs = data.logs.filter(log => selectedIds.has(log.contact_sequences?.sequence_id ?? ""));
+  const logs = data.logs.filter(log => sequenceId === "all" || selectedIds.has(log.contact_sequences?.sequence_id ?? ""));
   const sent = logs.filter(l => l.status === "sent").length;
   const failed = logs.filter(l => l.status === "failed").length;
   const pendingCount = activeRounds.length + enrollments.filter(e => !sequenceMap.get(e.sequence_id)?.recurrence_enabled && e.status === "active" && !e.crm_contacts?.is_ignored).length;
@@ -91,6 +91,7 @@ function SequencesDashboard() {
     if (!sequence.is_active) return "Pausada";
     if (!sequence.window_days.includes(local.getUTCDay()) || local.getUTCHours() < sequence.window_start_hour || local.getUTCHours() >= sequence.window_end_hour) return "Fora da janela";
     if (claims.some(c => c.sequence_id === sequence.id)) return "Aguardando confirmação";
+    if (!data.claimsAvailable) return "Confirmações indisponíveis";
     if (sequence.next_client_at && new Date(sequence.next_client_at) > now) return "Intervalo entre clientes";
     return "Janela aberta";
   };
@@ -109,7 +110,7 @@ function SequencesDashboard() {
     </div>
     {error && <div role="alert" className="border border-destructive/30 bg-destructive/5 text-destructive p-3 text-sm break-words">Falha na atualização: {error}{updatedAt && " Os dados anteriores permanecem visíveis."}</div>}
     {data.warnings.map(w => <div role="status" key={w} className="border border-warning/40 bg-warning/5 p-3 text-sm break-words"><AlertTriangle className="size-4 inline mr-2 text-warning" />{w}</div>)}
-    {loading ? <div className="py-12 flex items-center justify-center gap-2 text-muted-foreground"><Loader2 className="size-5 animate-spin" /> Carregando relatório…</div> : <>
+    {loading ? <div className="py-12 flex items-center justify-center gap-2 text-muted-foreground"><Loader2 className="size-5 animate-spin" /> Carregando relatório…</div> : !updatedAt && error ? <Empty text="Relatório indisponível. Tente atualizar novamente." /> : <>
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         <Metric label="Envios bem-sucedidos" value={sent} icon={CheckCircle2} tone="text-success" hint="Aceitos pela API" />
         <Metric label="Disparos falhados" value={failed} icon={XCircle} tone="text-destructive" />
@@ -121,7 +122,7 @@ function SequencesDashboard() {
       <p className="text-xs text-muted-foreground">Sucesso significa aceitação pela API do WhatsApp; não comprova entrega ou leitura no aparelho.</p>
       {failed > 0 && <div className="flex flex-wrap items-center justify-between gap-3 border-l-4 border-destructive bg-destructive/5 p-3"><p className="text-sm"><strong>{failed} falha(s)</strong> no período selecionado.</p><Button size="sm" variant="outline" onClick={showFailures}><XCircle className="size-4 mr-2" /> Ver falhas</Button></div>}
       <Tabs value={tab} onValueChange={setTab} className="space-y-5">
-        <TabsList className="max-w-full"><TabsTrigger value="live">Agora</TabsTrigger><TabsTrigger value="history">Histórico de envios</TabsTrigger><TabsTrigger value="rounds">Rodadas</TabsTrigger><TabsTrigger value="metrics">Métricas</TabsTrigger></TabsList>
+        <TabsList className="max-w-full h-auto flex-wrap"><TabsTrigger value="live">Agora</TabsTrigger><TabsTrigger value="history">Histórico de envios</TabsTrigger><TabsTrigger value="rounds">Rodadas</TabsTrigger><TabsTrigger value="metrics">Métricas</TabsTrigger></TabsList>
         <TabsContent value="live" className="space-y-5">
           <div><h2 className="font-semibold mb-3">Sequências e andamento de hoje</h2><div className="grid gap-3 lg:grid-cols-2">{sequences.map(s => {
             const rounds = occurrences.filter(o => o.sequence_id === s.id && o.scheduled_date === today);
@@ -132,7 +133,7 @@ function SequencesDashboard() {
             const eligibleRounds = rounds.filter(o => o.status === "active" && canProceed(enrollmentMap.get(o.contact_sequence_id), s));
             const last = seqLogs[0];
             const next = eligibleRounds.map(o => o.next_send_at).filter((v): v is string => Boolean(v)).sort()[0];
-            return <Card key={s.id} className="rounded-lg p-4 space-y-3"><div className="flex justify-between items-start gap-2"><h3 className="font-semibold break-words">{s.name}</h3><Badge variant="outline" className="shrink-0">{scheduleState(s)}</Badge></div>
+            return <Card key={s.id} className="rounded-lg p-4 space-y-3"><div className="flex flex-wrap justify-between items-start gap-2"><h3 className="font-semibold break-words">{s.name}</h3><Badge variant="outline">{scheduleState(s)}</Badge></div>
               <p className="text-xs text-muted-foreground">{s.window_days.map(d => DAYS[d]).join(" · ")} · {s.window_start_hour}h–{s.window_end_hour}h · {s.client_interval_seconds}s entre clientes · {s.recurrence_enabled ? "Semanal" : "Única"}</p>
               <div className="grid grid-cols-3 gap-2 text-sm"><div><strong>{eligible}</strong><p className="text-xs text-muted-foreground">Elegíveis agora</p></div><div><strong>{done}/{rounds.length}</strong><p className="text-xs text-muted-foreground">Rodadas concluídas hoje</p></div><div><strong>{seqEnrollments.filter(e => e.status === "paused" || e.crm_contacts?.is_ignored).length}</strong><p className="text-xs text-muted-foreground">Pausados/excluídos</p></div></div>
               <Progress value={rounds.length ? done / rounds.length * 100 : 0} aria-label={`Rodadas concluídas de ${s.name}`} />
