@@ -1,4 +1,5 @@
 import { Outlet, useNavigate, useLocation } from "@tanstack/react-router";
+import { CampaignTabs } from "@/components/CampaignTabs";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { AppSidebar } from "./AppSidebar";
@@ -38,6 +39,7 @@ export function AppShell() {
       <div className="flex-1 flex flex-col min-w-0">
         {!focusMode && <AppHeader onMenuClick={() => setMobileOpen(true)} />}
         <main className={focusMode ? "flex-1 overflow-hidden" : "flex-1 p-4 sm:p-6 overflow-auto"}>
+          {!focusMode && <CampaignTabs />}
           <Outlet />
         </main>
       </div>
