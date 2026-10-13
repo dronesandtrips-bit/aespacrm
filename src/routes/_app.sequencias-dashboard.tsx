@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
 import { useSequenceMonitor } from "@/hooks/use-sequence-monitor";
-import { canProceed, logsCsv, pauseLabels, spDay, spTime, type MonitorLog, type MonitorSequence } from "@/lib/sequence-monitor";
+import { canProceed, logsCsv, pausedEnrollments, pauseLabels, spDay, spTime, type MonitorLog, type MonitorSequence } from "@/lib/sequence-monitor";
+import { SequencePausedList } from "@/components/SequencePausedList";
 import { nextWeeklyRound, formatWeeklyRound } from "@/lib/sequence-schedule";
 
 export const Route = createFileRoute("/_app/sequencias-dashboard")({
@@ -34,8 +35,9 @@ function ResultBadge({ status }: { status: string }) {
   const labels: Record<string, string> = { sent: "Sucesso · API", failed: "Falhou", active: "Pendente", completed: "Concluída", skipped: "Pulada", expired: "Expirada", paused: "Pausado", cancelled: "Cancelado" };
   return <Badge variant="outline" className={success ? "text-success border-success/30 bg-success/5" : failure ? "text-destructive border-destructive/30 bg-destructive/5" : "text-muted-foreground"}>{labels[status] ?? status}</Badge>;
 }
-function Metric({ label, value, icon: Icon, tone = "text-primary", hint }: { label: string; value: number | string; icon: typeof Activity; tone?: string; hint?: string }) {
-  return <Card className="rounded-lg p-4 flex items-start justify-between gap-2"><div className="min-w-0"><p className="text-xs text-muted-foreground">{label}</p><p className={`font-semibold mt-2 tabular-nums break-words ${typeof value === "string" && value.length > 6 ? "text-sm" : "text-2xl"} ${tone}`}>{value}</p>{hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}</div><Icon className={`size-5 shrink-0 ${tone}`} /></Card>;
+function Metric({ label, value, icon: Icon, tone = "text-primary", hint, onClick }: { label: string; value: number | string; icon: typeof Activity; tone?: string; hint?: string; onClick?: () => void }) {
+  const content = <><div className="min-w-0"><p className="text-xs text-muted-foreground whitespace-normal">{label}</p><p className={`font-semibold mt-2 tabular-nums break-words ${typeof value === "string" && value.length > 6 ? "text-sm" : "text-2xl"} ${tone}`}>{value}</p>{hint && <p className="mt-1 text-xs text-muted-foreground whitespace-normal">{hint}</p>}</div><Icon className={`size-5 shrink-0 ${tone}`} /></>;
+  return onClick ? <Button variant="ghost" onClick={onClick} aria-label={`Listar ${label.toLocaleLowerCase("pt-BR")}`} title={`Ver lista: ${label}`} className="h-full w-full rounded-lg border bg-card text-card-foreground shadow p-4 items-start justify-between gap-2 text-left font-normal">{content}</Button> : <Card className="rounded-lg p-4 flex items-start justify-between gap-2">{content}</Card>;
 }
 function SequencesDashboard() {
   const { user } = useAuth();
@@ -49,6 +51,7 @@ function SequencesDashboard() {
   const [tab, setTab] = useState("live");
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<MonitorLog | null>(null);
+  const [pauseFilter, setPauseFilter] = useState("all");
   const { snapshot: data, loading, refreshing, error, updatedAt, refresh } = useSequenceMonitor(user?.id, start, end, live);
   const today = spDay();
   const sequences = data.sequences.filter(s => sequenceId === "all" || s.id === sequenceId);
@@ -56,6 +59,8 @@ function SequencesDashboard() {
   const enrollmentMap = new Map(data.enrollments.map(e => [e.id, e]));
   const sequenceMap = new Map(data.sequences.map(s => [s.id, s]));
   const enrollments = data.enrollments.filter(e => selectedIds.has(e.sequence_id));
+  const paused = pausedEnrollments(enrollments);
+  const replyPaused = pausedEnrollments(enrollments, "inbound_reply");
   const claims = data.claims.filter(c => selectedIds.has(c.sequence_id));
   const occurrences = data.occurrences.filter(o => selectedIds.has(o.sequence_id));
   const periodOccurrences = occurrences.filter(o => (!start || o.scheduled_date >= start) && (!end || o.scheduled_date <= end));
@@ -80,7 +85,9 @@ function SequencesDashboard() {
     setEnd(value === "all" ? "" : today);
     setStart(value === "all" ? "" : spDay(new Date(Date.now() - (Number(value) - 1) * 86400000)));
   };
-  const showFailures = () => { setStatus("failed"); setTab("history"); setPage(1); };
+  const showHistory = (result: string) => { setStatus(result); setSearch(""); setTab("history"); setPage(1); };
+  const showFailures = () => showHistory("failed");
+  const showPaused = (reason: string) => { setPauseFilter(reason); setTab("paused"); };
   const exportReport = () => {
     const url = URL.createObjectURL(new Blob([logsCsv(filteredLogs)], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a"); link.href = url; link.download = `ZapCRM_sequencias_${start || "inicio"}_${end || today}.csv`; link.click();
@@ -112,17 +119,17 @@ function SequencesDashboard() {
     {data.warnings.map(w => <div role="status" key={w} className="border border-warning/40 bg-warning/5 p-3 text-sm break-words"><AlertTriangle className="size-4 inline mr-2 text-warning" />{w}</div>)}
     {loading ? <div className="py-12 flex items-center justify-center gap-2 text-muted-foreground"><Loader2 className="size-5 animate-spin" /> Carregando relatório…</div> : !updatedAt && error ? <Empty text="Relatório indisponível. Tente atualizar novamente." /> : <>
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        <Metric label="Envios bem-sucedidos" value={sent} icon={CheckCircle2} tone="text-success" hint="Aceitos pela API" />
-        <Metric label="Disparos falhados" value={failed} icon={XCircle} tone="text-destructive" />
+        <Metric label="Envios bem-sucedidos" value={sent} icon={CheckCircle2} tone="text-success" hint="Aceitos pela API" onClick={() => showHistory("sent")} />
+        <Metric label="Disparos falhados" value={failed} icon={XCircle} tone="text-destructive" onClick={showFailures} />
         <Metric label="Rodadas/contatos pendentes" value={data.occurrencesAvailable ? pendingCount : "—"} icon={Clock} />
         <Metric label="Sem confirmação" value={data.claimsAvailable ? claims.length : "Indisponível"} icon={AlertTriangle} tone="text-warning" />
-        <Metric label="Inscrições pausadas" value={enrollments.filter(e => e.status === "paused").length} icon={Users} tone="text-muted-foreground" />
-        <Metric label="Pausados por resposta" value={enrollments.filter(e => e.pause_reason === "inbound_reply" && e.status === "paused").length} icon={MessageSquareReply} tone="text-accent" />
+        <Metric label="Inscrições pausadas" value={paused.length} icon={Users} tone="text-muted-foreground" onClick={() => showPaused("all")} />
+        <Metric label="Pausados por resposta" value={replyPaused.length} icon={MessageSquareReply} tone="text-accent" onClick={() => showPaused("inbound_reply")} />
       </div>
       <p className="text-xs text-muted-foreground">Sucesso significa aceitação pela API do WhatsApp; não comprova entrega ou leitura no aparelho.</p>
       {failed > 0 && <div className="flex flex-wrap items-center justify-between gap-3 border-l-4 border-destructive bg-destructive/5 p-3"><p className="text-sm"><strong>{failed} falha(s)</strong> no período selecionado.</p><Button size="sm" variant="outline" onClick={showFailures}><XCircle className="size-4 mr-2" /> Ver falhas</Button></div>}
       <Tabs value={tab} onValueChange={setTab} className="space-y-5">
-        <TabsList className="max-w-full h-auto flex-wrap"><TabsTrigger value="live">Agora</TabsTrigger><TabsTrigger value="history">Histórico de envios</TabsTrigger><TabsTrigger value="rounds">Rodadas</TabsTrigger><TabsTrigger value="metrics">Métricas</TabsTrigger></TabsList>
+        <TabsList className="max-w-full h-auto flex-wrap"><TabsTrigger value="live">Agora</TabsTrigger><TabsTrigger value="history">Histórico de envios</TabsTrigger><TabsTrigger value="paused">Inscrições pausadas</TabsTrigger><TabsTrigger value="rounds">Rodadas</TabsTrigger><TabsTrigger value="metrics">Métricas</TabsTrigger></TabsList>
         <TabsContent value="live" className="space-y-5">
           <div><h2 className="font-semibold mb-3">Sequências e andamento de hoje</h2><div className="grid gap-3 lg:grid-cols-2">{sequences.map(s => {
             const rounds = occurrences.filter(o => o.sequence_id === s.id && o.scheduled_date === today);
@@ -149,6 +156,10 @@ function SequencesDashboard() {
           <div className="flex justify-between gap-2 items-center text-xs text-muted-foreground"><span>{filteredLogs.length} registros · Página {currentPage} de {totalPages}</span><div className="flex gap-1"><Button variant="outline" size="icon" aria-label="Página anterior" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}><ChevronLeft className="size-4" /></Button><Button variant="outline" size="icon" aria-label="Próxima página" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}><ChevronRight className="size-4" /></Button></div></div>
         </TabsContent>
         <TabsContent value="rounds"><RoundsTable rounds={periodOccurrences} data={data} /></TabsContent>
+        <TabsContent value="paused" className="space-y-4">
+          <div className="flex flex-wrap justify-between items-start gap-3"><div><h2 className="font-semibold">{pauseFilter === "inbound_reply" ? "Pausados por resposta" : "Inscrições pausadas"}</h2><p className="text-xs text-muted-foreground mt-1">Situação atual das inscrições. Pausados por resposta fazem parte do total de pausados; um contato pode ter inscrições em mais de uma sequência.</p></div><Select value={pauseFilter} onValueChange={setPauseFilter}><SelectTrigger className="w-56" aria-label="Motivo da pausa"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas as pausas</SelectItem><SelectItem value="inbound_reply">Contato respondeu</SelectItem></SelectContent></Select></div>
+          <SequencePausedList key={`${sequenceId}-${pauseFilter}`} enrollments={pausedEnrollments(enrollments, pauseFilter)} sequences={sequences} />
+        </TabsContent>
         <TabsContent value="metrics" className="space-y-6"><section><h2 className="font-semibold mb-4">Envios por dia</h2><div className="h-72">{chart.length ? <ResponsiveContainer width="100%" height="100%"><AreaChart data={chart}><CartesianGrid stroke="var(--border)" strokeDasharray="3 3" /><XAxis dataKey="date" tickFormatter={v => String(v).split("-").reverse().slice(0,2).join("/")} stroke="var(--muted-foreground)" fontSize={11} /><YAxis allowDecimals={false} stroke="var(--muted-foreground)" fontSize={11} /><Tooltip contentStyle={{ background: "var(--popover)", borderColor: "var(--border)", color: "var(--popover-foreground)" }} /><Area dataKey="sucesso" name="Aceitos pela API" stroke="var(--success)" fill="var(--success)" fillOpacity={0.12} /><Area dataKey="falhas" name="Falhas" stroke="var(--destructive)" fill="var(--destructive)" fillOpacity={0.08} /></AreaChart></ResponsiveContainer> : <Empty text="Nenhum envio no período." />}</div></section><section className="border-t pt-4"><h2 className="font-semibold mb-3">Resultados por sequência</h2><div className="divide-y">{sequences.map(s => { const list = logs.filter(l => l.contact_sequences?.sequence_id === s.id); const success = list.filter(l => l.status === "sent").length; return <div key={s.id} className="py-3 flex flex-wrap justify-between gap-2 text-sm"><strong>{s.name}</strong><span>{success} bem-sucedidos · {list.filter(l => l.status === "failed").length} falhas · {list.length ? Math.round(success / list.length * 100) : 0}% de sucesso</span></div>; })}</div></section></TabsContent>
       </Tabs>
     </>}

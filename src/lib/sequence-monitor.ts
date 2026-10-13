@@ -7,7 +7,7 @@ export type MonitorSequence = {
 export type MonitorContact = { name: string; phone: string; is_ignored: boolean };
 export type MonitorEnrollment = {
   id: string; sequence_id: string; contact_id: string; current_step: number; status: string;
-  next_send_at: string | null; pause_reason: string | null; started_at: string;
+  next_send_at: string | null; pause_reason: string | null; paused_at?: string | null; started_at: string;
   crm_contacts: MonitorContact | null;
 };
 export type MonitorLog = {
@@ -64,3 +64,6 @@ export const pauseLabels: Record<string, string> = {
   inbound_reply: "Contato respondeu", invalid_whatsapp_number: "Número inválido no WhatsApp",
   blacklisted: "Contato excluído dos envios", manual: "Pausa manual", stage_changed: "Mudança de etapa",
 };
+export function pausedEnrollments(enrollments: MonitorEnrollment[], reason = "all") {
+  return enrollments.filter(e => e.status === "paused" && (reason === "all" || e.pause_reason === reason));
+}
