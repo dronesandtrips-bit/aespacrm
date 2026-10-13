@@ -58,7 +58,7 @@ export function logsCsv(logs: MonitorLog[]): string {
   return "\uFEFF" + rows.map(row => row.map(csvCell).join(";")).join("\r\n");
 }
 export function canProceed(enrollment: MonitorEnrollment | undefined, sequence: MonitorSequence | undefined) {
-  return Boolean(enrollment && sequence?.is_active && !enrollment.crm_contacts?.is_ignored && ["active", "completed"].includes(enrollment.status));
+  return Boolean(enrollment?.crm_contacts && sequence?.is_active && !enrollment.crm_contacts.is_ignored && ["active", "completed"].includes(enrollment.status));
 }
 export const pauseLabels: Record<string, string> = {
   inbound_reply: "Contato respondeu", invalid_whatsapp_number: "Número inválido no WhatsApp",
