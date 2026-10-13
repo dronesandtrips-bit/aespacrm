@@ -1,8 +1,17 @@
 import { describe, expect, it } from "bun:test";
-import { canProceed, csvCell, dateBounds, logsCsv, spDay, type MonitorLog } from "../src/lib/sequence-monitor";
+import { canProceed, csvCell, dateBounds, logsCsv, pausedEnrollments, spDay, type MonitorEnrollment, type MonitorLog } from "../src/lib/sequence-monitor";
 import { readAllPages } from "../src/hooks/use-sequence-monitor";
 
 describe("Sequence monitoring (read-only)", () => {
+  it("lists only paused enrollments and keeps reply pauses as a subset", () => {
+    const rows = [
+      { id: "manual", status: "paused", pause_reason: "manual" },
+      { id: "reply", status: "paused", pause_reason: "inbound_reply" },
+      { id: "active", status: "active", pause_reason: "inbound_reply" },
+    ] as MonitorEnrollment[];
+    expect(pausedEnrollments(rows).map(e => e.id)).toEqual(["manual", "reply"]);
+    expect(pausedEnrollments(rows, "inbound_reply").map(e => e.id)).toEqual(["reply"]);
+  });
   it("uses São Paulo calendar dates, including UTC midnight", () => {
     expect(spDay("2026-10-13T02:00:00Z")).toBe("2026-10-12");
     expect(dateBounds("2026-10-13", "2026-10-13")).toEqual({ since: "2026-10-13T03:00:00.000Z", until: "2026-10-14T03:00:00.000Z" });

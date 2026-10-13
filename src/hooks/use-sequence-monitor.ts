@@ -43,7 +43,7 @@ export function useSequenceMonitor(userId: string | undefined, start: string, en
             .select("id,name,is_active,window_start_hour,window_end_hour,window_days,client_interval_seconds,recurrence_enabled,recurrence_activated_at,next_client_at")
             .eq("user_id", userId).order("id").range(from, to)),
           readAllPages<MonitorSnapshot["enrollments"][number]>((from, to) => db.from("crm_contact_sequences")
-            .select("id,sequence_id,contact_id,current_step,status,next_send_at,pause_reason,started_at,crm_contacts(name,phone,is_ignored)")
+            .select("id,sequence_id,contact_id,current_step,status,next_send_at,pause_reason,paused_at,started_at,crm_contacts(name,phone,is_ignored)")
             .eq("user_id", userId).order("id").range(from, to)),
           readAllPages<MonitorSnapshot["logs"][number]>((from, to) => {
             let query = db.from("crm_sequence_send_log")

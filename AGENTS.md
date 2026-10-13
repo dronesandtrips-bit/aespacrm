@@ -7,3 +7,4 @@ Enable recurrence only after the database migration, published endpoints and off
 Materialize only the current local-date recurring round, allowing activation within its open window with timestamps no earlier than activation; this permits first-day sends without historical replay or changing the enrollment cutoff.
 Bundle the weekly installation SQL as raw text for browser-generated downloads; this avoids relying on a static SQL URL that hosting may block.
 Sequence monitoring is read-only through the existing authenticated aespacrm client, with paginated reads and periodic refresh; it must never call dispatch/due RPCs, alter claims, or infer delivery from API acceptance.
+Dashboard metric drill-downs reuse the monitored snapshot and shared paused-enrollment filter; this keeps list totals consistent without adding dispatch or database mutations.
