@@ -54,10 +54,8 @@ const items = [
   { to: "/detector", label: "Detector", icon: Bot },
   { to: "/explorar", label: "Explorar", icon: Search },
   { to: "/contatos", label: "Contatos", icon: Users },
-  { to: "/disparos", label: "Disparos", icon: Send },
+  { to: "/disparos", label: "Campanhas & Sequências", icon: Send, campaign: true },
   { to: "/bling", label: "Bling", icon: ShoppingBag },
-  { to: "/sequencias", label: "Sequências", icon: GitBranch },
-  { to: "/sequencias-dashboard", label: "Painel Sequências", icon: BarChart3 },
   { to: "/templates", label: "Templates", icon: FileText },
   { to: "/historico-ia", label: "Histórico IA", icon: Sparkles },
   { to: "/logs", label: "Logs", icon: Activity },
@@ -175,7 +173,10 @@ export function AppSidebar({ inSheet = false, onNavigate, focusMode = false }: P
             const highlight = "highlight" in item && item.highlight;
             const pipeline = "pipeline" in item && item.pipeline;
             const active =
-              location.pathname === to || location.pathname.startsWith(to + "/");
+              location.pathname === to ||
+              location.pathname.startsWith(to + "/") ||
+              ("campaign" in item && item.campaign &&
+                ["/sequencias", "/sequencias-dashboard"].includes(location.pathname));
             const link = (
               <Link
                 key={to}
