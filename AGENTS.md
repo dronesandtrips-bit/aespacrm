@@ -6,3 +6,4 @@ Recurring sequences use independent date-based crm_sequence_occurrences and occu
 Enable recurrence only after the database migration, published endpoints and official runner payloads are verified; a separate activation script prevents mixed-version sends and historical replay.
 Materialize only the current local-date recurring round, allowing activation within its open window with timestamps no earlier than activation; this permits first-day sends without historical replay or changing the enrollment cutoff.
 Bundle the weekly installation SQL as raw text for browser-generated downloads; this avoids relying on a static SQL URL that hosting may block.
+Sequence monitoring is read-only through the existing authenticated aespacrm client, with paginated reads and periodic refresh; it must never call dispatch/due RPCs, alter claims, or infer delivery from API acceptance.
