@@ -32,3 +32,4 @@
 - [x] Excluir somente os 635 contatos individuais sem telefone da lista auditada, preservando CSV com campos e vínculos de categoria; 635 exclusões confirmadas, nenhum grupo ou cliente em sequência afetado.
 - [x] Obter a chave da API pública do n8n em formulário seguro com permissões workflow:read e workflow:update; acesso de leitura ao runner oficial confirmado.
 - [x] Aplicar SUPABASE_MIGRATION_SEQUENCE_DISPATCH_GUARD.sql no banco dedicado; tabela, coluna e duas funções confirmadas por consultas inofensivas.
+- [ ] Chat sem mensagens novas (07/11): conexão `zapcrm` reconecta a cada ~50 min e só repete mensagens antigas (até 14:26 SP); nada novo do celular/clientes chega desde então. Aguardando autorização do usuário para reiniciar a conexão `zapcrm` (sem tocar em `roboaespa`).
