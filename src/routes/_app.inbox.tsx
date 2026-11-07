@@ -721,6 +721,46 @@ function InboxPage() {
     };
   }, [loading, refreshInbox, refreshIncremental]);
 
+  // Recuperação automática: busca na conexão do WhatsApp (somente leitura)
+  // mensagens cujo aviso se perdeu em quedas/reconexões e as traz para o chat.
+  useEffect(() => {
+    if (loading) return;
+    let stopped = false;
+    let running = false;
+    const run = async () => {
+      if (running || stopped || document.visibilityState !== "visible") return;
+      running = true;
+      try {
+        const res = await fetchWithAuthRetry("/api/public/evolution/catch-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hours: 6 }),
+        });
+        const j = await res.json().catch(() => null);
+        if (stopped || !res.ok || !j?.ok || !j.imported) return;
+        await refreshInbox();
+        const current = activeIdRef.current;
+        if (current && Array.isArray(j.contactIds) && j.contactIds.includes(current)) {
+          const list = await messagesDb.list(current);
+          if (!stopped && activeIdRef.current === current) setMessages(list);
+        }
+      } catch (e) {
+        console.warn("Falha na recuperação automática de mensagens", e);
+      } finally {
+        running = false;
+      }
+    };
+    void run();
+    const timer = window.setInterval(() => void run(), 60_000);
+    const onVisible = () => { if (document.visibilityState === "visible") void run(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [loading, refreshInbox]);
+
 
 
   // Carrega sequências pausadas por resposta do lead (badge no Inbox)
