@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { dedupeByMessageId, recoverableRecords, resolveChatJid } from "../src/lib/evolution-catchup";
+import { buildLidMap, dedupeByMessageId, recoverableRecords, resolveChatJid, unresolvedLids } from "../src/lib/evolution-catchup";
 
 describe("resolveChatJid", () => {
   test("mensagem do celular para o próprio número (@lid) usa o número real", () => {
@@ -16,6 +16,22 @@ describe("resolveChatJid", () => {
   });
   test("status/broadcast é ignorado", () => {
     expect(resolveChatJid({ remoteJid: "status@broadcast" })).toBe("");
+  });
+});
+
+describe("número aprendido para conversas @lid", () => {
+  test("mensagem @lid sem número usa o número de outra mensagem da mesma conversa", () => {
+    const records = [
+      { key: { id: "A", remoteJid: "124064542814283@lid", remoteJidAlt: "555491495959@s.whatsapp.net" } },
+      { key: { id: "B", remoteJid: "124064542814283@lid" } },
+    ];
+    const map = buildLidMap(records);
+    expect(resolveChatJid(records[1].key, map)).toBe("555491495959@s.whatsapp.net");
+    expect(unresolvedLids(records, map)).toEqual([]);
+  });
+  test("conversa @lid desconhecida continua pendente", () => {
+    const records = [{ key: { id: "C", remoteJid: "205918432186493@lid" } }];
+    expect(unresolvedLids(records, buildLidMap(records))).toEqual(["205918432186493@lid"]);
   });
 });
 
