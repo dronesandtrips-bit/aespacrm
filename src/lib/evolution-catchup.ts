@@ -22,7 +22,10 @@ const isGroup = (jid: string) => /@g\.us$/i.test(jid);
  * informa o número real em `remoteJidAlt` (ou `senderPn`).
  * Devolve "" quando não é uma conversa individual ou de grupo.
  */
-export function resolveChatJid(key: EvolutionKey | null | undefined): string {
+export function resolveChatJid(
+  key: EvolutionKey | null | undefined,
+  lidMap?: Map<string, string>,
+): string {
   const primary = String(key?.remoteJid ?? "").trim();
   if (isIndividual(primary) || isGroup(primary)) return primary;
   if (/@lid$/i.test(primary)) {
@@ -30,8 +33,38 @@ export function resolveChatJid(key: EvolutionKey | null | undefined): string {
       const a = String(alt ?? "").trim();
       if (isIndividual(a)) return a;
     }
+    // Mensagens recuperadas após reconexão às vezes vêm sem o número real;
+    // usa o número aprendido de outras mensagens da mesma conversa.
+    const known = lidMap?.get(primary.toLowerCase());
+    if (known && isIndividual(known)) return known;
   }
   return "";
+}
+
+/** Aprende "@lid → número real" a partir das mensagens que trazem os dois. */
+export function buildLidMap(records: Array<{ key?: EvolutionKey }>, into = new Map<string, string>()) {
+  for (const r of records) {
+    const lid = String(r?.key?.remoteJid ?? "").trim().toLowerCase();
+    if (!/@lid$/.test(lid) || into.has(lid)) continue;
+    for (const alt of [r?.key?.remoteJidAlt, r?.key?.senderPn]) {
+      const a = String(alt ?? "").trim();
+      if (isIndividual(a)) {
+        into.set(lid, a);
+        break;
+      }
+    }
+  }
+  return into;
+}
+
+/** "@lid" que ainda não sabemos a qual número pertencem. */
+export function unresolvedLids(records: Array<{ key?: EvolutionKey }>, lidMap: Map<string, string>): string[] {
+  const out = new Set<string>();
+  for (const r of records) {
+    const lid = String(r?.key?.remoteJid ?? "").trim().toLowerCase();
+    if (/@lid$/.test(lid) && !resolveChatJid(r.key, lidMap)) out.add(lid);
+  }
+  return [...out];
 }
 
 export function isGroupChatJid(jid: string): boolean {
@@ -55,9 +88,10 @@ export function dedupeByMessageId<T extends { key?: EvolutionKey }>(records: T[]
 export function recoverableRecords<T extends { key?: EvolutionKey; messageTimestamp?: number | string }>(
   records: T[],
   sinceSec: number,
+  lidMap?: Map<string, string>,
 ): T[] {
   return dedupeByMessageId(records).filter((r) => {
     const ts = Number(r?.messageTimestamp);
-    return Number.isFinite(ts) && ts >= sinceSec && resolveChatJid(r.key) !== "";
+    return Number.isFinite(ts) && ts >= sinceSec && resolveChatJid(r.key, lidMap) !== "";
   });
 }
