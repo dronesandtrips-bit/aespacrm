@@ -216,7 +216,13 @@ export const Route = createFileRoute("/api/public/evolution/catch-up")({
             }
           }
 
-          return jsonResponse({ ok: true, checked: records.length, imported, contactIds: [...contactIds] });
+          return jsonResponse({
+            ok: true,
+            scanned: raw.length,
+            checked: records.length,
+            imported,
+            contactIds: [...contactIds],
+          });
         } catch (err: any) {
           console.error("[catch-up] unhandled", err?.message ?? err);
           return jsonResponse({ ok: false, error: "internal", detail: err?.message ?? String(err) }, 500);
