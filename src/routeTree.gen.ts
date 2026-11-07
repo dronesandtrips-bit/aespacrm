@@ -64,6 +64,7 @@ import { Route as ApiPublicContactsBlacklistToggleRouteImport } from './routes/a
 import { Route as ApiPublicContactsCleanupRouteImport } from './routes/api.public.contacts.cleanup'
 import { Route as ApiPublicEvolutionBulkDispatchRouteImport } from './routes/api.public.evolution.bulk-dispatch'
 import { Route as ApiPublicEvolutionBulkTickRouteImport } from './routes/api.public.evolution.bulk-tick'
+import { Route as ApiPublicEvolutionCatchUpRouteImport } from './routes/api.public.evolution.catch-up'
 import { Route as ApiPublicEvolutionCheckNumberRouteImport } from './routes/api.public.evolution.check-number'
 import { Route as ApiPublicEvolutionConfigureWebhookRouteImport } from './routes/api.public.evolution.configure-webhook'
 import { Route as ApiPublicEvolutionCreateRouteImport } from './routes/api.public.evolution.create'
@@ -393,6 +394,12 @@ const ApiPublicEvolutionBulkTickRoute =
     path: '/api/public/evolution/bulk-tick',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicEvolutionCatchUpRoute =
+  ApiPublicEvolutionCatchUpRouteImport.update({
+    id: '/api/public/evolution/catch-up',
+    path: '/api/public/evolution/catch-up',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEvolutionCheckNumberRoute =
   ApiPublicEvolutionCheckNumberRouteImport.update({
     id: '/api/public/evolution/check-number',
@@ -653,6 +660,7 @@ export interface FileRoutesByFullPath {
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/bulk-tick': typeof ApiPublicEvolutionBulkTickRoute
+  '/api/public/evolution/catch-up': typeof ApiPublicEvolutionCatchUpRoute
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -745,6 +753,7 @@ export interface FileRoutesByTo {
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/bulk-tick': typeof ApiPublicEvolutionBulkTickRoute
+  '/api/public/evolution/catch-up': typeof ApiPublicEvolutionCatchUpRoute
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -839,6 +848,7 @@ export interface FileRoutesById {
   '/api/public/contacts/cleanup': typeof ApiPublicContactsCleanupRoute
   '/api/public/evolution/bulk-dispatch': typeof ApiPublicEvolutionBulkDispatchRoute
   '/api/public/evolution/bulk-tick': typeof ApiPublicEvolutionBulkTickRoute
+  '/api/public/evolution/catch-up': typeof ApiPublicEvolutionCatchUpRoute
   '/api/public/evolution/check-number': typeof ApiPublicEvolutionCheckNumberRoute
   '/api/public/evolution/configure-webhook': typeof ApiPublicEvolutionConfigureWebhookRoute
   '/api/public/evolution/create': typeof ApiPublicEvolutionCreateRoute
@@ -933,6 +943,7 @@ export interface FileRouteTypes {
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/bulk-tick'
+    | '/api/public/evolution/catch-up'
     | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -1025,6 +1036,7 @@ export interface FileRouteTypes {
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/bulk-tick'
+    | '/api/public/evolution/catch-up'
     | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -1118,6 +1130,7 @@ export interface FileRouteTypes {
     | '/api/public/contacts/cleanup'
     | '/api/public/evolution/bulk-dispatch'
     | '/api/public/evolution/bulk-tick'
+    | '/api/public/evolution/catch-up'
     | '/api/public/evolution/check-number'
     | '/api/public/evolution/configure-webhook'
     | '/api/public/evolution/create'
@@ -1194,6 +1207,7 @@ export interface RootRouteChildren {
   ApiPublicContactsCleanupRoute: typeof ApiPublicContactsCleanupRoute
   ApiPublicEvolutionBulkDispatchRoute: typeof ApiPublicEvolutionBulkDispatchRoute
   ApiPublicEvolutionBulkTickRoute: typeof ApiPublicEvolutionBulkTickRoute
+  ApiPublicEvolutionCatchUpRoute: typeof ApiPublicEvolutionCatchUpRoute
   ApiPublicEvolutionCheckNumberRoute: typeof ApiPublicEvolutionCheckNumberRoute
   ApiPublicEvolutionConfigureWebhookRoute: typeof ApiPublicEvolutionConfigureWebhookRoute
   ApiPublicEvolutionCreateRoute: typeof ApiPublicEvolutionCreateRoute
@@ -1619,6 +1633,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionBulkTickRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution/catch-up': {
+      id: '/api/public/evolution/catch-up'
+      path: '/api/public/evolution/catch-up'
+      fullPath: '/api/public/evolution/catch-up'
+      preLoaderRoute: typeof ApiPublicEvolutionCatchUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/check-number': {
       id: '/api/public/evolution/check-number'
       path: '/api/public/evolution/check-number'
@@ -1956,6 +1977,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicContactsCleanupRoute: ApiPublicContactsCleanupRoute,
   ApiPublicEvolutionBulkDispatchRoute: ApiPublicEvolutionBulkDispatchRoute,
   ApiPublicEvolutionBulkTickRoute: ApiPublicEvolutionBulkTickRoute,
+  ApiPublicEvolutionCatchUpRoute: ApiPublicEvolutionCatchUpRoute,
   ApiPublicEvolutionCheckNumberRoute: ApiPublicEvolutionCheckNumberRoute,
   ApiPublicEvolutionConfigureWebhookRoute:
     ApiPublicEvolutionConfigureWebhookRoute,

@@ -18,6 +18,7 @@ import { isStrictValidPhone, phoneMatchVariants } from "@/lib/phone-validation";
 import { cacheAvatarFromUrl } from "@/lib/avatar-cache.server";
 import { maybeAutoBookFromBotMessage } from "@/lib/auto-book-from-bot.server";
 import { maybeConfirmAttendance } from "@/lib/attendance-confirm.server";
+import { resolveChatJid } from "@/lib/evolution-catchup";
 
 
 const INSTANCE = "zapcrm";
@@ -429,7 +430,9 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
           if (event === "messages.upsert") {
             const arr = Array.isArray(payload?.data) ? payload.data : [payload?.data].filter(Boolean);
             for (const msg of arr) {
-              const remoteJid: string = msg?.key?.remoteJid ?? "";
+              // Mensagens do celular podem vir como "@lid"; usa o número real
+              // informado pela Evolution (remoteJidAlt/senderPn) quando houver.
+              const remoteJid: string = resolveChatJid(msg?.key) || (msg?.key?.remoteJid ?? "");
               if (!isAcceptedJid(remoteJid)) continue;
 
               const isGroup = isGroupJid(remoteJid);
