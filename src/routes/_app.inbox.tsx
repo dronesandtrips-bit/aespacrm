@@ -2241,16 +2241,6 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(function M
   { messages, onReply, onForward, onOpenImage },
   ref,
 ) {
-  const hasLaterInboundReply = useMemo(() => {
-    const flags = new Array<boolean>(messages.length).fill(false);
-    let seenInbound = false;
-    for (let index = messages.length - 1; index >= 0; index -= 1) {
-      flags[index] = seenInbound;
-      if (!messages[index]?.fromMe) seenInbound = true;
-    }
-    return flags;
-  }, [messages]);
-
   return (
     <div ref={ref} className="flex-1 overflow-auto p-5 space-y-2">
       {messages.length === 0 ? (
@@ -2258,11 +2248,10 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(function M
           Nenhuma mensagem ainda. Envie a primeira!
         </div>
       ) : (
-        messages.map((message, index) => (
+        messages.map((message) => (
           <MessageRow
             key={message.id}
             message={message}
-            hasLaterInboundReply={hasLaterInboundReply[index] ?? false}
             onReply={onReply}
             onForward={onForward}
             onOpenImage={onOpenImage}
@@ -2275,7 +2264,6 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(function M
 
 type MessageRowProps = {
   message: ChatMessage;
-  hasLaterInboundReply: boolean;
   onReply: (message: ChatMessage) => void;
   onForward: (messageId: string) => void;
   onOpenImage: (messageId: string, src: string, alt: string) => void;
@@ -2283,7 +2271,6 @@ type MessageRowProps = {
 
 const MessageRow = memo(function MessageRow({
   message: m,
-  hasLaterInboundReply,
   onReply,
   onForward,
   onOpenImage,
