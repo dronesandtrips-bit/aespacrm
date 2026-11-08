@@ -21,6 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { LazyEmojiPicker } from "@/components/LazyEmojiPicker";
 import { ContactDialog, EnrollDialog } from "@/components/contact-dialogs";
 import { contactEnrichmentWebhook } from "@/lib/contact-enrichment";
+import { chatSendError, chatSendState } from "@/lib/chat-send-state";
 
 
 export const Route = createFileRoute("/_app/inbox")({
@@ -52,14 +53,6 @@ type ReplyPause = {
   pausedAt: string;
 };
 type PauseMap = Record<string, ReplyPause | undefined>;
-
-function isDeliveredStatus(status: string) {
-  return ["2", "3", "4", "5", "server_ack", "delivery_ack", "delivered", "read", "read_ack", "played", "played_ack"].includes(status);
-}
-
-function isReadStatus(status: string) {
-  return ["4", "5", "read", "read_ack", "played", "played_ack"].includes(status);
-}
 
 async function getFreshAccessToken(forceRefresh = false) {
   const c = await getSupabaseClient();
@@ -1161,9 +1154,10 @@ function InboxPage() {
         if (activeIdRef.current === targetContactId) setDraft("");
       }
       if (activeIdRef.current === targetContactId) setReplyTo(null);
-      toast.success(isImage ? "Imagem enviada" : "Documento enviado");
+      if (data.pending) toast.info("Anexo aguardando confirmação do WhatsApp");
+      else toast.success(isImage ? "Imagem aceita pelo WhatsApp" : "Documento aceito pelo WhatsApp");
     } catch (err: any) {
-      toast.error(`Erro ao enviar anexo: ${err.message ?? err}`);
+      toast.error(`Erro ao enviar anexo: ${chatSendError(err.message ?? err)}`);
     } finally {
       setAttaching(false);
     }
@@ -1255,7 +1249,7 @@ function InboxPage() {
         setReplyTo(null);
       }
     } catch (e: any) {
-      toast.error(`Erro ao enviar: ${e.message ?? e}`);
+      toast.error(`Erro ao enviar: ${chatSendError(e.message ?? e)}`);
     } finally {
       window.clearTimeout(slowWarn);
       toast.dismiss("send-slow");
@@ -2247,16 +2241,6 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(function M
   { messages, onReply, onForward, onOpenImage },
   ref,
 ) {
-  const hasLaterInboundReply = useMemo(() => {
-    const flags = new Array<boolean>(messages.length).fill(false);
-    let seenInbound = false;
-    for (let index = messages.length - 1; index >= 0; index -= 1) {
-      flags[index] = seenInbound;
-      if (!messages[index]?.fromMe) seenInbound = true;
-    }
-    return flags;
-  }, [messages]);
-
   return (
     <div ref={ref} className="flex-1 overflow-auto p-5 space-y-2">
       {messages.length === 0 ? (
@@ -2264,11 +2248,10 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(function M
           Nenhuma mensagem ainda. Envie a primeira!
         </div>
       ) : (
-        messages.map((message, index) => (
+        messages.map((message) => (
           <MessageRow
             key={message.id}
             message={message}
-            hasLaterInboundReply={hasLaterInboundReply[index] ?? false}
             onReply={onReply}
             onForward={onForward}
             onOpenImage={onOpenImage}
@@ -2281,7 +2264,6 @@ const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(function M
 
 type MessageRowProps = {
   message: ChatMessage;
-  hasLaterInboundReply: boolean;
   onReply: (message: ChatMessage) => void;
   onForward: (messageId: string) => void;
   onOpenImage: (messageId: string, src: string, alt: string) => void;
@@ -2289,14 +2271,13 @@ type MessageRowProps = {
 
 const MessageRow = memo(function MessageRow({
   message: m,
-  hasLaterInboundReply,
   onReply,
   onForward,
   onOpenImage,
 }: MessageRowProps) {
-  const status = (m.status ?? "").toLowerCase();
-  const delivered = isDeliveredStatus(status) || (m.fromMe && hasLaterInboundReply);
-  const read = isReadStatus(status) || (m.fromMe && hasLaterInboundReply);
+  const state = chatSendState(m.status);
+  const delivered = state === "delivered" || state === "read";
+  const read = state === "read";
   const canForward =
     !!m.messageId &&
     (m.type === "text" || !m.type || m.type === "image" || m.type === "sticker" || m.type === "audio");
@@ -2336,7 +2317,15 @@ const MessageRow = memo(function MessageRow({
             })}
           </span>
           {m.fromMe && (
-            read ? (
+            state === "failed" ? (
+              <span className="flex items-center gap-1 text-destructive" title="Envio falhou; não há confirmação de entrega">
+                <AlertTriangle className="size-3.5" /> Falhou
+              </span>
+            ) : state === "pending" ? (
+              <span className="flex items-center gap-1 text-muted-foreground" title="Aguardando confirmação do WhatsApp">
+                <Loader2 className="size-3.5" /> Pendente
+              </span>
+            ) : read ? (
               <CheckCheck className="size-3.5" style={{ color: "#53bdeb" }} />
             ) : delivered ? (
               <CheckCheck className="size-3.5" style={{ color: "#9aa6b2" }} />
