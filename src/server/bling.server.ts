@@ -291,6 +291,24 @@ export function extractNameFromText(text: string | null | undefined): string {
 }
 
 
+/**
+ * Separa nome e WhatsApp digitados juntos no campo "Cliente" da proposta
+ * (ex.: "João Silva (54) 99149-5959" → { nome: "João Silva", phone: "5554991495959" }).
+ */
+export function splitClienteField(value: string | null | undefined): { nome: string; phone: string; phoneRaw: string | null } {
+  const raw = String(value ?? "").trim();
+  if (!raw) return { nome: "", phone: "", phoneRaw: null };
+  const phone = extractBrPhoneFromText(raw);
+  if (!phone) return { nome: raw, phone: "", phoneRaw: null };
+  const nome = raw
+    .replace(/(?:\+?55)?[\s().\-/_]*\(?\d[\d\s().\-/_]{7,}/g, " ")
+    .replace(/\s*[-–|:,;\/]+\s*$/g, "")
+    .replace(/^\s*[-–|:,;\/]+\s*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return { nome: nome || raw, phone, phoneRaw: raw };
+}
+
 /** Payload cru de uma proposta — usado pelo diagnóstico da tela do Bling. */
 export async function getProposalRaw(userId: string, id: string): Promise<any> {
   const token = await getAccessToken(userId);
@@ -345,6 +363,7 @@ export async function listProposals(
     if (!items.length) break;
     for (const it of items) {
       const contato = it?.contato ?? {};
+      const cli = splitClienteField(contato?.nome ?? null);
       out.push({
         id: String(it?.id ?? ""),
         numero: it?.numero != null ? String(it.numero) : null,
@@ -352,10 +371,10 @@ export async function listProposals(
         total: typeof it?.total === "number" ? it.total : Number(it?.total ?? 0) || null,
         situacao: it?.situacao?.valor != null ? String(it.situacao.valor) : (it?.situacao ?? null),
         contatoId: contato?.id != null ? String(contato.id) : null,
-        nome: String(contato?.nome ?? it?.contato?.nome ?? "Sem nome"),
-        phone: "",
-        phoneRaw: null,
-        phoneFonte: null,
+        nome: cli.nome || "Sem nome",
+        phone: cli.phone,
+        phoneRaw: cli.phoneRaw,
+        phoneFonte: cli.phone ? "texto" : null,
         email: null,
       });
       if (out.length >= limite) break;
@@ -381,7 +400,15 @@ export async function listProposals(
         // Nome: contato da proposta (mesmo sem cadastro completo)
         const nomeDet =
           d?.contato?.nome ?? d?.cliente?.nome ?? d?.nomeContato ?? d?.nome ?? null;
-        if ((!p.nome || p.nome === "Sem nome") && nomeDet) p.nome = String(nomeDet);
+        if (nomeDet) {
+          const cliDet = splitClienteField(String(nomeDet));
+          if ((!p.nome || p.nome === "Sem nome") && cliDet.nome) p.nome = cliDet.nome;
+          if (!p.phone && cliDet.phone) {
+            p.phone = cliDet.phone;
+            p.phoneRaw = cliDet.phoneRaw;
+            p.phoneFonte = "texto";
+          }
+        }
         if (!p.nome || p.nome === "Sem nome") {
           const nomeTxt = extractNameFromText(
             [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacaoInterna, d?.observacao, d?.prazoEntrega, d?.aosCuidadosDe]
