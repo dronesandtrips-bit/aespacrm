@@ -4,6 +4,7 @@
 // Aditivo: não altera nenhum fluxo existente.
 import { getSupabaseAdmin } from "@/integrations/supabase/server";
 import { getSecret, setSecret, listProposals, type BlingProposal } from "@/server/bling.server";
+import { buildOptoutUrlFor } from "@/server/optout.server";
 
 const INSTANCE = "zapcrm";
 const CONFIG_SECRET = "BLING_AUTO_CONFIG";
@@ -23,7 +24,30 @@ export type BlingAutoConfig = {
   since: string;
   /** Minutos de espera entre detectar a proposta e enviar a mensagem. */
   delayMin: number;
+  /** Lembretes após o 1º envio: horas desde o 1º envio + texto. */
+  followups: Array<{ hours: number; text: string }>;
 };
+
+export const DEFAULT_FOLLOWUPS: BlingAutoConfig["followups"] = [
+  {
+    hours: 72,
+    text:
+      "Olá {nome}! Passando para saber se conseguiu analisar a proposta *{numero}* ({valor}). Posso ajudar em algo?\n***Essa é uma mensagem automática***",
+  },
+  {
+    hours: 120,
+    text:
+      "Olá {nome}! Último lembrete sobre a proposta *{numero}* ({valor}). Se quiser seguir, é só responder aqui. 😉\n***Essa é uma mensagem automática***",
+  },
+];
+
+/** Garante o link de descadastro no final da mensagem. */
+export function withOptout(text: string, url: string): string {
+  if (!url) return text;
+  if (text.includes("{link_descadastro}") || text.includes("{{link_descadastro}}"))
+    return text.replaceAll("{{link_descadastro}}", url).replaceAll("{link_descadastro}", url);
+  return `${text}\n\n_Não quer mais receber mensagens automáticas? Descadastre-se:_ ${url}`;
+}
 
 export const DEFAULT_AUTO_CONFIG: BlingAutoConfig = {
   enabled: false,
@@ -35,7 +59,8 @@ export const DEFAULT_AUTO_CONFIG: BlingAutoConfig = {
   mediaUrl: "",
   mediaType: "",
   since: new Date().toISOString().slice(0, 10),
-  delayMin: 60,
+  delayMin: 1440,
+  followups: DEFAULT_FOLLOWUPS,
 };
 
 export async function getAutoConfig(userId: string): Promise<BlingAutoConfig> {
@@ -61,9 +86,18 @@ export async function saveAutoConfig(
     maxPerRun: Math.min(Math.max(Number(patch.maxPerRun ?? current.maxPerRun) || 10, 1), 50),
     situacoes: Array.isArray(patch.situacoes) ? patch.situacoes : current.situacoes,
     delayMin: Math.min(
-      Math.max(Number(patch.delayMin ?? current.delayMin ?? 60), 0),
+      Math.max(Number(patch.delayMin ?? current.delayMin ?? 1440), 0),
       7 * 24 * 60,
     ),
+    followups: Array.isArray(patch.followups)
+      ? patch.followups
+          .map((f: any) => ({
+            hours: Math.min(Math.max(Number(f?.hours) || 0, 1), 30 * 24),
+            text: String(f?.text ?? ""),
+          }))
+          .filter((f) => f.text.trim())
+          .slice(0, 5)
+      : current.followups,
   };
   await setSecret(userId, CONFIG_SECRET, JSON.stringify(next));
   return next;
