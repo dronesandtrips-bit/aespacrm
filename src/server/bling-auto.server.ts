@@ -4,6 +4,7 @@
 // Aditivo: não altera nenhum fluxo existente.
 import { getSupabaseAdmin } from "@/integrations/supabase/server";
 import { getSecret, setSecret, listProposals, type BlingProposal } from "@/server/bling.server";
+import { buildOptoutUrlFor } from "@/server/optout.server";
 
 const INSTANCE = "zapcrm";
 const CONFIG_SECRET = "BLING_AUTO_CONFIG";
@@ -23,7 +24,30 @@ export type BlingAutoConfig = {
   since: string;
   /** Minutos de espera entre detectar a proposta e enviar a mensagem. */
   delayMin: number;
+  /** Lembretes após o 1º envio: horas desde o 1º envio + texto. */
+  followups: Array<{ hours: number; text: string }>;
 };
+
+export const DEFAULT_FOLLOWUPS: BlingAutoConfig["followups"] = [
+  {
+    hours: 72,
+    text:
+      "Olá {nome}! Passando para saber se conseguiu analisar a proposta *{numero}* ({valor}). Posso ajudar em algo?\n***Essa é uma mensagem automática***",
+  },
+  {
+    hours: 120,
+    text:
+      "Olá {nome}! Último lembrete sobre a proposta *{numero}* ({valor}). Se quiser seguir, é só responder aqui. 😉\n***Essa é uma mensagem automática***",
+  },
+];
+
+/** Garante o link de descadastro no final da mensagem. */
+export function withOptout(text: string, url: string): string {
+  if (!url) return text;
+  if (text.includes("{link_descadastro}") || text.includes("{{link_descadastro}}"))
+    return text.replaceAll("{{link_descadastro}}", url).replaceAll("{link_descadastro}", url);
+  return `${text}\n\n_Não quer mais receber mensagens automáticas? Descadastre-se:_ ${url}`;
+}
 
 export const DEFAULT_AUTO_CONFIG: BlingAutoConfig = {
   enabled: false,
@@ -35,7 +59,8 @@ export const DEFAULT_AUTO_CONFIG: BlingAutoConfig = {
   mediaUrl: "",
   mediaType: "",
   since: new Date().toISOString().slice(0, 10),
-  delayMin: 60,
+  delayMin: 1440,
+  followups: DEFAULT_FOLLOWUPS,
 };
 
 export async function getAutoConfig(userId: string): Promise<BlingAutoConfig> {
@@ -61,9 +86,18 @@ export async function saveAutoConfig(
     maxPerRun: Math.min(Math.max(Number(patch.maxPerRun ?? current.maxPerRun) || 10, 1), 50),
     situacoes: Array.isArray(patch.situacoes) ? patch.situacoes : current.situacoes,
     delayMin: Math.min(
-      Math.max(Number(patch.delayMin ?? current.delayMin ?? 60), 0),
+      Math.max(Number(patch.delayMin ?? current.delayMin ?? 1440), 0),
       7 * 24 * 60,
     ),
+    followups: Array.isArray(patch.followups)
+      ? patch.followups
+          .map((f: any) => ({
+            hours: Math.min(Math.max(Number(f?.hours) || 0, 1), 30 * 24),
+            text: String(f?.text ?? ""),
+          }))
+          .filter((f) => f.text.trim())
+          .slice(0, 5)
+      : current.followups,
   };
   await setSecret(userId, CONFIG_SECRET, JSON.stringify(next));
   return next;
@@ -354,9 +388,36 @@ export async function runBlingAutoTick(
           continue;
         }
 
-        await sendWhatsapp(userId, contact.id, p.phone, cfg, renderTemplate(cfg.text, p));
+        const optUrl = await buildOptoutUrlFor(userId, p.phone.replace(/\D/g, "")).catch(() => "");
+        await sendWhatsapp(
+          userId,
+          contact.id,
+          p.phone,
+          cfg,
+          withOptout(renderTemplate(cfg.text, p), optUrl),
+        );
         out.sent++;
         out.detail.push({ proposal: p.numero ?? p.id, status: "enviado", info: p.phone });
+
+        // Agenda os lembretes (contados a partir deste 1º envio).
+        const sentAt = Date.now();
+        const fups = (cfg.followups ?? []).map((f, i) => ({
+          user_id: userId,
+          proposal_id: `${p.id}#${i + 2}`,
+          contact_id: contact.id,
+          phone: p.phone,
+          status: "followup",
+          detail: JSON.stringify({
+            due: new Date(sentAt + f.hours * 3_600_000).toISOString(),
+            sentAt: new Date(sentAt).toISOString(),
+            idx: i,
+            nome: p.nome,
+            numero: p.numero,
+            total: p.total,
+            data: p.data,
+          }),
+        }));
+        if (fups.length) await sb.from("crm_bling_auto_log").insert(fups);
       } catch (e: any) {
         const msg = e?.message ?? String(e);
         out.errors++;
@@ -366,6 +427,104 @@ export async function runBlingAutoTick(
           .update({ status: "error", detail: msg.slice(0, 400) })
           .eq("user_id", userId)
           .eq("proposal_id", p.id);
+      }
+    }
+
+    // --- Fase 3: lembretes (72h, 5 dias...) — só se o cliente não respondeu ---
+    const { data: fRows } = await sb
+      .from("crm_bling_auto_log")
+      .select("proposal_id, contact_id, phone, detail")
+      .eq("user_id", userId)
+      .eq("status", "followup")
+      .order("created_at", { ascending: true })
+      .limit(200);
+    let fSent = 0;
+    for (const row of fRows ?? []) {
+      if (fSent >= cfg.maxPerRun) break;
+      let info: any = {};
+      try {
+        info = JSON.parse(row.detail ?? "{}");
+      } catch {}
+      if (!info.due || new Date(info.due).getTime() > Date.now()) continue;
+      const markSkip = async (why: string) => {
+        await sb
+          .from("crm_bling_auto_log")
+          .update({ status: "skipped", detail: why })
+          .eq("user_id", userId)
+          .eq("proposal_id", row.proposal_id)
+          .eq("status", "followup");
+        out.skipped++;
+        out.detail.push({ proposal: row.proposal_id, status: why });
+      };
+      try {
+        const phone = String(row.phone ?? "");
+        const norm = phone.replace(/\D/g, "");
+        if (!row.contact_id || !norm) {
+          await markSkip("lembrete sem contato");
+          continue;
+        }
+        const { data: ign } = await sb
+          .from("crm_ignored_phones")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("phone_norm", norm)
+          .maybeSingle();
+        if (ign || (await isBlacklisted(sb, userId, phone))) {
+          await markSkip("lembrete cancelado: descadastrado");
+          continue;
+        }
+        const { data: reply } = await sb
+          .from("crm_messages")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("contact_id", row.contact_id)
+          .eq("from_me", false)
+          .gt("at", info.sentAt ?? info.due)
+          .limit(1);
+        if (reply && reply.length) {
+          await markSkip("lembrete cancelado: cliente respondeu");
+          continue;
+        }
+        const fu = (cfg.followups ?? [])[Number(info.idx) || 0];
+        if (!fu?.text?.trim()) {
+          await markSkip("lembrete removido da configuração");
+          continue;
+        }
+        const { data: claimed } = await sb
+          .from("crm_bling_auto_log")
+          .update({ status: "sent", detail: null })
+          .eq("user_id", userId)
+          .eq("proposal_id", row.proposal_id)
+          .eq("status", "followup")
+          .select("proposal_id")
+          .maybeSingle();
+        if (!claimed) continue;
+        const fake = {
+          nome: info.nome,
+          numero: info.numero,
+          total: info.total ?? null,
+          data: info.data,
+        } as BlingProposal;
+        const optUrl = await buildOptoutUrlFor(userId, norm).catch(() => "");
+        await sendWhatsapp(
+          userId,
+          row.contact_id,
+          phone,
+          { ...cfg, mediaUrl: "", mediaType: "" },
+          withOptout(renderTemplate(fu.text, fake), optUrl),
+        );
+        fSent++;
+        out.sent++;
+        out.detail.push({ proposal: row.proposal_id, status: "lembrete enviado", info: phone });
+      } catch (e: any) {
+        const msg = e?.message ?? String(e);
+        out.errors++;
+        out.detail.push({ proposal: row.proposal_id, status: "erro", info: msg });
+        await sb
+          .from("crm_bling_auto_log")
+          .update({ status: "error", detail: msg.slice(0, 400) })
+          .eq("user_id", userId)
+          .eq("proposal_id", row.proposal_id);
       }
     }
   } catch (e: any) {

@@ -57,6 +57,7 @@ export const Route = createFileRoute("/api/public/bling/auto-config")({
               ? body.mediaType
               : undefined,
             since: typeof body?.since === "string" ? body.since.slice(0, 10) : undefined,
+            followups: Array.isArray(body?.followups) ? body.followups : undefined,
             delayMin: Number.isFinite(Number(body?.delayMin)) ? Number(body.delayMin) : undefined,
           } as any);
           return jsonResponse({ ok: true, config, log: await history(auth.userId) });

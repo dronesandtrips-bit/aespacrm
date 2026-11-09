@@ -29,6 +29,7 @@ type AutoConfig = {
   mediaType: "image" | "video" | "document" | "";
   since: string;
   delayMin: number;
+  followups?: Array<{ hours: number; text: string }>;
 };
 
 type LogRow = {
@@ -190,14 +191,42 @@ export function BlingAutoCard() {
                 type="number"
                 min={0}
                 max={10080}
-                value={cfg.delayMin ?? 60}
+                value={cfg.delayMin ?? 1440}
                 onChange={(e) => setCfg({ ...cfg, delayMin: Number(e.target.value) })}
               />
               <p className="text-[11px] text-muted-foreground">
-                A proposta é detectada e fica agendada; a mensagem sai depois desse tempo (padrão 60
-                min). O botão "Executar agora" ignora a espera.
+                A proposta é detectada e fica agendada; a mensagem sai depois desse tempo (1440 min =
+                24 horas). O botão "Executar agora" ignora a espera. O link de descadastro é
+                adicionado automaticamente no final de todas as mensagens.
               </p>
             </div>
+
+            {(cfg.followups ?? []).map((f, i) => (
+              <div key={i} className="space-y-1.5">
+                <Label className="text-xs">
+                  Lembrete {i + 1} — horas após o 1º envio (cancelado se o cliente responder)
+                </Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={f.hours}
+                  onChange={(e) => {
+                    const next = [...(cfg.followups ?? [])];
+                    next[i] = { ...f, hours: Number(e.target.value) };
+                    setCfg({ ...cfg, followups: next });
+                  }}
+                />
+                <Textarea
+                  rows={3}
+                  value={f.text}
+                  onChange={(e) => {
+                    const next = [...(cfg.followups ?? [])];
+                    next[i] = { ...f, text: e.target.value };
+                    setCfg({ ...cfg, followups: next });
+                  }}
+                />
+              </div>
+            ))}
 
             <div className="space-y-1.5">
               <Label className="text-xs">Mensagem enviada</Label>
