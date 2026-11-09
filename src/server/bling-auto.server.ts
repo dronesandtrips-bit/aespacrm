@@ -388,9 +388,36 @@ export async function runBlingAutoTick(
           continue;
         }
 
-        await sendWhatsapp(userId, contact.id, p.phone, cfg, renderTemplate(cfg.text, p));
+        const optUrl = await buildOptoutUrlFor(userId, p.phone.replace(/\D/g, "")).catch(() => "");
+        await sendWhatsapp(
+          userId,
+          contact.id,
+          p.phone,
+          cfg,
+          withOptout(renderTemplate(cfg.text, p), optUrl),
+        );
         out.sent++;
         out.detail.push({ proposal: p.numero ?? p.id, status: "enviado", info: p.phone });
+
+        // Agenda os lembretes (contados a partir deste 1º envio).
+        const sentAt = Date.now();
+        const fups = (cfg.followups ?? []).map((f, i) => ({
+          user_id: userId,
+          proposal_id: `${p.id}#${i + 2}`,
+          contact_id: contact.id,
+          phone: p.phone,
+          status: "followup",
+          detail: JSON.stringify({
+            due: new Date(sentAt + f.hours * 3_600_000).toISOString(),
+            sentAt: new Date(sentAt).toISOString(),
+            idx: i,
+            nome: p.nome,
+            numero: p.numero,
+            total: p.total,
+            data: p.data,
+          }),
+        }));
+        if (fups.length) await sb.from("crm_bling_auto_log").insert(fups);
       } catch (e: any) {
         const msg = e?.message ?? String(e);
         out.errors++;
