@@ -55,7 +55,7 @@ export const DEFAULT_AUTO_CONFIG: BlingAutoConfig = {
   maxPerRun: 10,
   situacoes: [],
   text:
-    "Olá {nome}! 👋\n\nSua proposta comercial *{numero}* já está pronta: *{valor}*.\n\nQualquer dúvida é só responder por aqui que eu te ajudo. 😉",
+    "Olá {nome}. Você recebeu nosso projeto *{numero}* que foi cuidadosamente elaborado para atender sua solicitação. Caso tenha alguma dúvida ou se existe algo que possamos fazer para ajustar para que fique dentro do que você espera, contate-nos ainda hoje, ok?!",
   mediaUrl: "",
   mediaType: "",
   since: new Date().toISOString().slice(0, 10),
