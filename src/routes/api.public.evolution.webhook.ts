@@ -13,6 +13,7 @@
 // da instância é determinado pela secret EVOLUTION_OWNER_USER_ID.
 
 import { createFileRoute } from "@tanstack/react-router";
+import { forwardToRobo } from "@/server/robo-forward.server";
 import { getSupabaseAdmin, jsonResponse } from "@/integrations/supabase/server";
 import { isStrictValidPhone, phoneMatchVariants } from "@/lib/phone-validation";
 import { cacheAvatarFromUrl } from "@/lib/avatar-cache.server";
@@ -404,8 +405,10 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
         }
 
         let payload: any;
+        let rawBody = "";
         try {
-          payload = await request.json();
+          rawBody = await request.text();
+          payload = JSON.parse(rawBody);
         } catch (e: any) {
           return jsonResponse({ ok: false, error: "invalid json" }, 400);
         }
@@ -419,6 +422,9 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
         }
 
         const sb = getSupabaseAdmin();
+
+        // Fase 2: repassa o aviso ao Robô em paralelo (desligado por padrão).
+        const roboForward = forwardToRobo({ sb, userId: ownerUserId, event, rawBody, apikey: got }).catch(() => {});
 
         // Log bruto (best effort)
         sb.from("crm_webhook_events")
@@ -611,9 +617,11 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
             .eq("event", event)
             .order("received_at", { ascending: false })
             .limit(1);
+          await roboForward;
           return jsonResponse({ ok: false, error: err?.message ?? String(err) }, 500);
         }
 
+        await roboForward;
         return jsonResponse({ ok: true, event });
       },
     },
