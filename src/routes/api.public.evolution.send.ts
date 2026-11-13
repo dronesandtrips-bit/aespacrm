@@ -3,7 +3,8 @@
 // Body: { number: "5511999999999", text: "olá" }
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { checkApiKey, requireUserJwt } from "@/integrations/supabase/server";
+import { checkApiKey, requireUserJwt, getSupabaseAdmin } from "@/integrations/supabase/server";
+import { forwardToRobo } from "@/server/robo-forward.server";
 
 const INSTANCE = "zapcrm";
 
@@ -23,11 +24,13 @@ export const Route = createFileRoute("/api/public/evolution/send")({
     handlers: {
       POST: async ({ request }) => {
         // Auth: aceita Bearer JWT (frontend) OU x-api-key (n8n)
+        let callerUserId: string | null = null;
         if (!checkApiKey(request)) {
           const auth = await requireUserJwt(request);
           if ("error" in auth) {
             return Response.json({ ok: false, error: auth.error }, { status: auth.status });
           }
+          callerUserId = auth.userId;
         }
 
         const apiUrl = process.env.EVOLUTION_API_URL?.trim().replace(/\/+$/, "");
@@ -74,6 +77,29 @@ export const Route = createFileRoute("/api/public/evolution/send")({
             { ok: false, status: res.status, error: data },
             { status: 502 },
           );
+        }
+
+        // Conexão única: a Evolution não emite messages.upsert para envios via API,
+        // então o Robô nunca via o /off ou /on do botão Shield. Repassamos um
+        // aviso sintético (só aviso — nada é reenviado no WhatsApp).
+        const cmd = parsed.text.trim().toLowerCase();
+        if (callerUserId && (cmd === "/off" || cmd === "/on")) {
+          const synthetic = {
+            event: "messages.upsert",
+            instance: INSTANCE,
+            data: {
+              key: { remoteJid: `${number}@s.whatsapp.net`, fromMe: true, id: data?.key?.id ?? `shield-${Date.now()}` },
+              message: { conversation: cmd },
+              messageTimestamp: Math.floor(Date.now() / 1000),
+            },
+          };
+          await forwardToRobo({
+            sb: getSupabaseAdmin(),
+            userId: callerUserId,
+            event: "messages.upsert",
+            rawBody: JSON.stringify(synthetic),
+            apikey: apiKey,
+          }).catch(() => {});
         }
 
         return Response.json({
