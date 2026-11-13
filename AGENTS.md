@@ -12,3 +12,4 @@ Single-contact enrichment resolves its production webhook through a shared helpe
 Inbox delivery indicators use shared provider-status classification; never infer delivery/read from later replies or show failed/unknown states as acknowledged sends, because those signals do not prove recipient delivery.
 
 Forward zapcrm webhook events to the Robo webhook only via src/server/robo-forward.server.ts, gated by crm_app_secrets.ROBO_FORWARD_ENABLED (default off); the single shared WhatsApp connection must feed both systems without the CRM ever sending on the Robo's behalf.
+Connection health runs from the every-minute bulk-tick cron (self-gated to ~5 min) via src/server/evolution-watchdog.server.ts with pure rules in src/lib/evolution-watchdog.ts and state in crm_app_secrets; it may only restart/alert on the zapcrm instance and never resend customer messages, because Evolution can stay "open" while WhatsApp stops delivering inbound messages.
