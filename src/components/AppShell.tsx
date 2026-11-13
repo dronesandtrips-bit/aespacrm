@@ -6,6 +6,7 @@ import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useGlobalMessagePing } from "@/hooks/use-global-message-ping";
+import { ConnectionHealthBanner } from "@/components/ConnectionHealthBanner";
 
 export function AppShell() {
   const { user, loading } = useAuth();
@@ -38,6 +39,7 @@ export function AppShell() {
       </Sheet>
       <div className="flex-1 flex flex-col min-w-0">
         {!focusMode && <AppHeader onMenuClick={() => setMobileOpen(true)} />}
+        <ConnectionHealthBanner />
         <main className={focusMode ? "flex-1 overflow-hidden" : "flex-1 p-4 sm:p-6 overflow-auto"}>
           {!focusMode && <CampaignTabs />}
           <Outlet />
