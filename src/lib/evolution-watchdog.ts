@@ -84,7 +84,7 @@ export function decideWatchdog({ now, connection, disconnectionReasonCode, lastI
     // 401 = sessão encerrada no celular: só um novo QR Code resolve.
     if (connection === "close" && disconnectionReasonCode === 401) {
       const next: WatchdogState = { ...base, status: "logged_out", incidentSince };
-      return { action: prev.alertedAt && prev.incidentSince ? "none" : "alert", next: { ...next, alertedAt: prev.alertedAt ?? nowIso } };
+      return { action: prev.alertedAt ? "none" : "alert", next: { ...next, alertedAt: prev.alertedAt ?? nowIso } };
     }
     if (minutesSince(prev.lastRestartAt, now) >= RESTART_COOLDOWN_MINUTES / 2) {
       return { action: "restart", next: { ...base, status: "disconnected", incidentSince, lastRestartAt: nowIso, restarts: prev.restarts + 1 } };
