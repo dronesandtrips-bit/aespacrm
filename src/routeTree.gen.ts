@@ -72,6 +72,7 @@ import { Route as ApiPublicEvolutionForwardMediaRouteImport } from './routes/api
 import { Route as ApiPublicEvolutionForwardMessageRouteImport } from './routes/api.public.evolution.forward-message'
 import { Route as ApiPublicEvolutionMediaRouteImport } from './routes/api.public.evolution.media'
 import { Route as ApiPublicEvolutionQrRouteImport } from './routes/api.public.evolution.qr'
+import { Route as ApiPublicEvolutionResetSessionRouteImport } from './routes/api.public.evolution.reset-session'
 import { Route as ApiPublicEvolutionSendRouteImport } from './routes/api.public.evolution.send'
 import { Route as ApiPublicEvolutionSendAndLogRouteImport } from './routes/api.public.evolution.send-and-log'
 import { Route as ApiPublicEvolutionSendMediaRouteImport } from './routes/api.public.evolution.send-media'
@@ -83,6 +84,7 @@ import { Route as ApiPublicEvolutionSyncContactsRouteImport } from './routes/api
 import { Route as ApiPublicEvolutionSyncGroupsRouteImport } from './routes/api.public.evolution.sync-groups'
 import { Route as ApiPublicEvolutionSyncMessagesRouteImport } from './routes/api.public.evolution.sync-messages'
 import { Route as ApiPublicEvolutionTestRouteImport } from './routes/api.public.evolution.test'
+import { Route as ApiPublicEvolutionWatchdogRouteImport } from './routes/api.public.evolution.watchdog'
 import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api.public.evolution.webhook'
 import { Route as ApiPublicOptoutConfirmRouteImport } from './routes/api.public.optout.confirm'
 import { Route as ApiPublicOptoutInfoRouteImport } from './routes/api.public.optout.info'
@@ -440,6 +442,12 @@ const ApiPublicEvolutionQrRoute = ApiPublicEvolutionQrRouteImport.update({
   path: '/api/public/evolution/qr',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEvolutionResetSessionRoute =
+  ApiPublicEvolutionResetSessionRouteImport.update({
+    id: '/api/public/evolution/reset-session',
+    path: '/api/public/evolution/reset-session',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEvolutionSendRoute = ApiPublicEvolutionSendRouteImport.update({
   id: '/api/public/evolution/send',
   path: '/api/public/evolution/send',
@@ -504,6 +512,12 @@ const ApiPublicEvolutionTestRoute = ApiPublicEvolutionTestRouteImport.update({
   path: '/api/public/evolution/test',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEvolutionWatchdogRoute =
+  ApiPublicEvolutionWatchdogRouteImport.update({
+    id: '/api/public/evolution/watchdog',
+    path: '/api/public/evolution/watchdog',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEvolutionWebhookRoute =
   ApiPublicEvolutionWebhookRouteImport.update({
     id: '/api/public/evolution/webhook',
@@ -668,6 +682,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution/forward-message': typeof ApiPublicEvolutionForwardMessageRoute
   '/api/public/evolution/media': typeof ApiPublicEvolutionMediaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
+  '/api/public/evolution/reset-session': typeof ApiPublicEvolutionResetSessionRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
@@ -679,6 +694,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
+  '/api/public/evolution/watchdog': typeof ApiPublicEvolutionWatchdogRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/optout/confirm': typeof ApiPublicOptoutConfirmRoute
   '/api/public/optout/info': typeof ApiPublicOptoutInfoRoute
@@ -761,6 +777,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution/forward-message': typeof ApiPublicEvolutionForwardMessageRoute
   '/api/public/evolution/media': typeof ApiPublicEvolutionMediaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
+  '/api/public/evolution/reset-session': typeof ApiPublicEvolutionResetSessionRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
@@ -772,6 +789,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
+  '/api/public/evolution/watchdog': typeof ApiPublicEvolutionWatchdogRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/optout/confirm': typeof ApiPublicOptoutConfirmRoute
   '/api/public/optout/info': typeof ApiPublicOptoutInfoRoute
@@ -856,6 +874,7 @@ export interface FileRoutesById {
   '/api/public/evolution/forward-message': typeof ApiPublicEvolutionForwardMessageRoute
   '/api/public/evolution/media': typeof ApiPublicEvolutionMediaRoute
   '/api/public/evolution/qr': typeof ApiPublicEvolutionQrRoute
+  '/api/public/evolution/reset-session': typeof ApiPublicEvolutionResetSessionRoute
   '/api/public/evolution/send': typeof ApiPublicEvolutionSendRoute
   '/api/public/evolution/send-and-log': typeof ApiPublicEvolutionSendAndLogRoute
   '/api/public/evolution/send-media': typeof ApiPublicEvolutionSendMediaRoute
@@ -867,6 +886,7 @@ export interface FileRoutesById {
   '/api/public/evolution/sync-groups': typeof ApiPublicEvolutionSyncGroupsRoute
   '/api/public/evolution/sync-messages': typeof ApiPublicEvolutionSyncMessagesRoute
   '/api/public/evolution/test': typeof ApiPublicEvolutionTestRoute
+  '/api/public/evolution/watchdog': typeof ApiPublicEvolutionWatchdogRoute
   '/api/public/evolution/webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/optout/confirm': typeof ApiPublicOptoutConfirmRoute
   '/api/public/optout/info': typeof ApiPublicOptoutInfoRoute
@@ -951,6 +971,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/forward-message'
     | '/api/public/evolution/media'
     | '/api/public/evolution/qr'
+    | '/api/public/evolution/reset-session'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
@@ -962,6 +983,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/sync-groups'
     | '/api/public/evolution/sync-messages'
     | '/api/public/evolution/test'
+    | '/api/public/evolution/watchdog'
     | '/api/public/evolution/webhook'
     | '/api/public/optout/confirm'
     | '/api/public/optout/info'
@@ -1044,6 +1066,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/forward-message'
     | '/api/public/evolution/media'
     | '/api/public/evolution/qr'
+    | '/api/public/evolution/reset-session'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
@@ -1055,6 +1078,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/sync-groups'
     | '/api/public/evolution/sync-messages'
     | '/api/public/evolution/test'
+    | '/api/public/evolution/watchdog'
     | '/api/public/evolution/webhook'
     | '/api/public/optout/confirm'
     | '/api/public/optout/info'
@@ -1138,6 +1162,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/forward-message'
     | '/api/public/evolution/media'
     | '/api/public/evolution/qr'
+    | '/api/public/evolution/reset-session'
     | '/api/public/evolution/send'
     | '/api/public/evolution/send-and-log'
     | '/api/public/evolution/send-media'
@@ -1149,6 +1174,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/sync-groups'
     | '/api/public/evolution/sync-messages'
     | '/api/public/evolution/test'
+    | '/api/public/evolution/watchdog'
     | '/api/public/evolution/webhook'
     | '/api/public/optout/confirm'
     | '/api/public/optout/info'
@@ -1215,6 +1241,7 @@ export interface RootRouteChildren {
   ApiPublicEvolutionForwardMessageRoute: typeof ApiPublicEvolutionForwardMessageRoute
   ApiPublicEvolutionMediaRoute: typeof ApiPublicEvolutionMediaRoute
   ApiPublicEvolutionQrRoute: typeof ApiPublicEvolutionQrRoute
+  ApiPublicEvolutionResetSessionRoute: typeof ApiPublicEvolutionResetSessionRoute
   ApiPublicEvolutionSendRoute: typeof ApiPublicEvolutionSendRoute
   ApiPublicEvolutionSendAndLogRoute: typeof ApiPublicEvolutionSendAndLogRoute
   ApiPublicEvolutionSendMediaRoute: typeof ApiPublicEvolutionSendMediaRoute
@@ -1226,6 +1253,7 @@ export interface RootRouteChildren {
   ApiPublicEvolutionSyncGroupsRoute: typeof ApiPublicEvolutionSyncGroupsRoute
   ApiPublicEvolutionSyncMessagesRoute: typeof ApiPublicEvolutionSyncMessagesRoute
   ApiPublicEvolutionTestRoute: typeof ApiPublicEvolutionTestRoute
+  ApiPublicEvolutionWatchdogRoute: typeof ApiPublicEvolutionWatchdogRoute
   ApiPublicEvolutionWebhookRoute: typeof ApiPublicEvolutionWebhookRoute
   ApiPublicOptoutConfirmRoute: typeof ApiPublicOptoutConfirmRoute
   ApiPublicOptoutInfoRoute: typeof ApiPublicOptoutInfoRoute
@@ -1689,6 +1717,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEvolutionQrRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution/reset-session': {
+      id: '/api/public/evolution/reset-session'
+      path: '/api/public/evolution/reset-session'
+      fullPath: '/api/public/evolution/reset-session'
+      preLoaderRoute: typeof ApiPublicEvolutionResetSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/send': {
       id: '/api/public/evolution/send'
       path: '/api/public/evolution/send'
@@ -1764,6 +1799,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/evolution/test'
       fullPath: '/api/public/evolution/test'
       preLoaderRoute: typeof ApiPublicEvolutionTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/evolution/watchdog': {
+      id: '/api/public/evolution/watchdog'
+      path: '/api/public/evolution/watchdog'
+      fullPath: '/api/public/evolution/watchdog'
+      preLoaderRoute: typeof ApiPublicEvolutionWatchdogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/evolution/webhook': {
@@ -1986,6 +2028,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEvolutionForwardMessageRoute: ApiPublicEvolutionForwardMessageRoute,
   ApiPublicEvolutionMediaRoute: ApiPublicEvolutionMediaRoute,
   ApiPublicEvolutionQrRoute: ApiPublicEvolutionQrRoute,
+  ApiPublicEvolutionResetSessionRoute: ApiPublicEvolutionResetSessionRoute,
   ApiPublicEvolutionSendRoute: ApiPublicEvolutionSendRoute,
   ApiPublicEvolutionSendAndLogRoute: ApiPublicEvolutionSendAndLogRoute,
   ApiPublicEvolutionSendMediaRoute: ApiPublicEvolutionSendMediaRoute,
@@ -1998,6 +2041,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEvolutionSyncGroupsRoute: ApiPublicEvolutionSyncGroupsRoute,
   ApiPublicEvolutionSyncMessagesRoute: ApiPublicEvolutionSyncMessagesRoute,
   ApiPublicEvolutionTestRoute: ApiPublicEvolutionTestRoute,
+  ApiPublicEvolutionWatchdogRoute: ApiPublicEvolutionWatchdogRoute,
   ApiPublicEvolutionWebhookRoute: ApiPublicEvolutionWebhookRoute,
   ApiPublicOptoutConfirmRoute: ApiPublicOptoutConfirmRoute,
   ApiPublicOptoutInfoRoute: ApiPublicOptoutInfoRoute,
