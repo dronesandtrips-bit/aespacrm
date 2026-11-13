@@ -16,6 +16,7 @@ import {
   jsonResponse,
 } from "@/integrations/supabase/server";
 import { runBulkDispatch, getEvolutionEnv } from "@/server/bulk-dispatch.server";
+import { runWatchdog } from "@/server/evolution-watchdog.server";
 
 export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
   server: {
@@ -30,6 +31,18 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
         }
 
         const sb = getSupabaseAdmin();
+
+        // Sentinela da conexão (roda de fato a cada ~5 min; isolada em try/catch
+        // para nunca afetar os disparos em massa).
+        const ownerUserId = process.env.EVOLUTION_OWNER_USER_ID?.trim();
+        if (ownerUserId) {
+          try {
+            await runWatchdog({ sb, apiUrl: apiUrl.replace(/\/+$/, ""), apiKey, ownerUserId });
+          } catch (e) {
+            console.warn("[watchdog] falhou", e);
+          }
+        }
+
         const nowIso = new Date().toISOString();
         const orphanCutoffIso = new Date(Date.now() - 45_000).toISOString();
 
