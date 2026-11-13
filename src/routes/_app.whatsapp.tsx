@@ -53,6 +53,45 @@ type QrResp = {
   error?: string;
 };
 
+function ResetSessionButton({
+  fetchWithAuth,
+  onDone,
+}: {
+  fetchWithAuth: (url: string, init?: RequestInit) => Promise<Response | null>;
+  onDone: () => Promise<void> | void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    if (!window.confirm(
+      "Reconectar do zero?\n\nA conexão atual será encerrada e um novo QR Code aparecerá aqui. Tenha o celular em mãos para ler o QR na hora (WhatsApp → Aparelhos conectados → Conectar aparelho).\n\nEnquanto não ler o QR, o CRM, as sequências e o Robô ficam sem enviar e receber.",
+    )) return;
+    setBusy(true);
+    try {
+      const r = await fetchWithAuth("/api/public/evolution/reset-session", { method: "POST" });
+      const j = r ? await r.json().catch(() => null) : null;
+      if (!r || !j?.ok) {
+        toast.error(j?.error ?? "Não foi possível reconectar");
+        return;
+      }
+      toast.success("Conexão encerrada. Leia o novo QR Code com o celular.");
+      await onDone();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+        Aparece "Conectado", mas as mensagens não chegam ao CRM? Reconecte do zero com um novo QR Code.
+      </p>
+      <Button variant="outline" onClick={run} disabled={busy} className="gap-2 border-destructive/50 text-destructive">
+        {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+        Reconectar do zero
+      </Button>
+    </div>
+  );
+}
+
 function WhatsAppPage() {
   const [status, setStatus] = useState<StatusResp | null>(null);
   const [qr, setQr] = useState<QrResp | null>(null);
@@ -196,6 +235,8 @@ function WhatsAppPage() {
                 <div><b className="text-foreground">{status.counts.chats?.toLocaleString() ?? "—"}</b> conversas</div>
               </div>
             ) : null}
+            <Separator className="my-4" />
+            <ResetSessionButton fetchWithAuth={fetchWithAuth} onDone={fetchStatus} />
             <Separator className="my-4" />
             <SyncContactsButton />
             <Separator className="my-4" />
