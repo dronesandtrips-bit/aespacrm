@@ -3,8 +3,12 @@
 // mensagens recebidas. Sem efeitos colaterais aqui — só decide o que fazer.
 
 export const WATCHDOG_STATE_KEY = "EVOLUTION_WATCHDOG_STATE";
-/** Sem nenhuma mensagem recebida por este tempo (no horário ativo) = suspeita. */
+/** Sem nenhum sinal do WhatsApp por este tempo (dias úteis, 8h–18h59) = suspeita. */
 export const SILENCE_MINUTES = 45;
+/** Fora do expediente (noite até 22h, sábado e domingo) o movimento é bem menor. */
+export const OFF_PEAK_SILENCE_MINUTES = 180;
+/** Fim do expediente (dias úteis) para o limite curto. */
+export const BUSINESS_TO_HOUR = 19;
 /** Intervalo mínimo entre reinícios automáticos. */
 export const RESTART_COOLDOWN_MINUTES = 20;
 /** Reinícios automáticos antes de pedir um novo QR Code. */
@@ -21,6 +25,8 @@ export type WatchdogState = {
   status: WatchdogStatus;
   lastCheckAt: string | null;
   lastInboundAt: string | null;
+  /** Último sinal vindo do WhatsApp (mensagem, confirmação de entrega/leitura, envio pelo celular). */
+  lastSignalAt: string | null;
   incidentSince: string | null;
   lastRestartAt: string | null;
   restarts: number;
@@ -31,6 +37,7 @@ export const EMPTY_STATE: WatchdogState = {
   status: "ok",
   lastCheckAt: null,
   lastInboundAt: null,
+  lastSignalAt: null,
   incidentSince: null,
   lastRestartAt: null,
   restarts: 0,
@@ -57,6 +64,38 @@ export function isActiveHour(now: Date): boolean {
   return h >= ACTIVE_FROM_HOUR && h < ACTIVE_TO_HOUR;
 }
 
+function saoPauloWeekday(now: Date): number {
+  const d = new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", weekday: "short" }).format(now);
+  return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(d);
+}
+
+/** Quanto silêncio é aceitável agora: curto no expediente, longo à noite e no fim de semana. */
+export function silenceLimitMinutes(now: Date): number {
+  const wd = saoPauloWeekday(now);
+  const h = saoPauloHour(now);
+  const business = wd >= 1 && wd <= 5 && h >= ACTIVE_FROM_HOUR && h < BUSINESS_TO_HOUR;
+  return business ? SILENCE_MINUTES : OFF_PEAK_SILENCE_MINUTES;
+}
+
+const latestIso = (...xs: (string | null | undefined)[]) =>
+  xs.filter((x): x is string => !!x && !Number.isNaN(Date.parse(x)))
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0] ?? null;
+
+/** Status de mensagem que só chegam se o WhatsApp está entregando eventos ao servidor. */
+const SIGNAL_STATUSES = new Set(["delivery_ack", "read", "played"]);
+
+/**
+ * Eventos brutos que provam que o WhatsApp está entregando ao CRM.
+ * Ignora "connection.update" (gerado pelo próprio servidor) e "SERVER_ACK"
+ * (só confirma que um envio saiu, não que o recebimento funciona).
+ */
+export function isLivenessEvent(event: string, status?: unknown): boolean {
+  const e = String(event || "").toLowerCase();
+  if (e === "messages.upsert") return true;
+  if (e === "messages.update") return SIGNAL_STATUSES.has(String(status ?? "").toLowerCase());
+  return false;
+}
+
 export function isCheckDue(prev: WatchdogState, now: Date): boolean {
   if (!prev.lastCheckAt) return true;
   return now.getTime() - Date.parse(prev.lastCheckAt) >= (CHECK_EVERY_MINUTES * 60_000 - 15_000);
@@ -70,14 +109,17 @@ export type WatchdogInput = {
   connection: string; // open | connecting | close | unknown
   disconnectionReasonCode?: number | null;
   lastInboundAt: string | null;
+  /** Último evento do WhatsApp que prova que a conexão entrega (ver isLivenessEvent). */
+  lastSignalAt?: string | null;
   prev: WatchdogState;
 };
 
 export type WatchdogDecision = { action: "none" | "restart" | "alert"; next: WatchdogState };
 
-export function decideWatchdog({ now, connection, disconnectionReasonCode, lastInboundAt, prev }: WatchdogInput): WatchdogDecision {
+export function decideWatchdog({ now, connection, disconnectionReasonCode, lastInboundAt, lastSignalAt, prev }: WatchdogInput): WatchdogDecision {
   const nowIso = now.toISOString();
-  const base: WatchdogState = { ...prev, lastCheckAt: nowIso, lastInboundAt };
+  const signal = latestIso(lastInboundAt, lastSignalAt);
+  const base: WatchdogState = { ...prev, lastCheckAt: nowIso, lastInboundAt, lastSignalAt: signal };
   const incidentSince = prev.incidentSince ?? nowIso;
 
   if (connection !== "open") {
@@ -92,8 +134,8 @@ export function decideWatchdog({ now, connection, disconnectionReasonCode, lastI
     return { action: "none", next: { ...base, status: "disconnected", incidentSince } };
   }
 
-  const silence = minutesSince(lastInboundAt, now);
-  if (silence < SILENCE_MINUTES) {
+  const silence = minutesSince(signal, now);
+  if (silence < silenceLimitMinutes(now)) {
     return { action: "none", next: { ...base, status: "ok", incidentSince: null, lastRestartAt: prev.lastRestartAt, restarts: 0, alertedAt: null } };
   }
   if (!isActiveHour(now)) {
