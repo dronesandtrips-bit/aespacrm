@@ -158,6 +158,27 @@ function WhatsAppPage() {
     }
   }, [fetchStatus, fetchWithAuth]);
 
+  // Sentinela: último sinal real do WhatsApp (evita "Conectado" enganoso)
+  const [health, setHealth] = useState<{ status: string; lastSignalAt?: string | null; lastInboundAt?: string | null } | null>(null);
+  useEffect(() => {
+    let stopped = false;
+    const load = async () => {
+      try {
+        const r = await fetchWithAuth("/api/public/evolution/watchdog");
+        const j = r ? await r.json().catch(() => null) : null;
+        if (!stopped && j?.ok) setHealth(j.state);
+      } catch { /* só informativo */ }
+    };
+    void load();
+    const t = window.setInterval(load, 60_000);
+    return () => { stopped = true; window.clearInterval(t); };
+  }, [fetchWithAuth]);
+  const silent = health?.status === "stuck" || health?.status === "restarting";
+  const lastSignal = health?.lastSignalAt ?? health?.lastInboundAt ?? null;
+  const lastSignalLabel = lastSignal
+    ? new Date(lastSignal).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+    : null;
+
   // Status polling: 5s
   useEffect(() => {
     fetchStatus();
@@ -190,6 +211,10 @@ function WhatsAppPage() {
             <Badge variant="outline" className="gap-1">
               <Loader2 className="size-3 animate-spin" /> Verificando
             </Badge>
+          ) : connected && silent ? (
+            <Badge variant="outline" className="border-warning text-warning gap-1">
+              <AlertCircle className="size-3" /> Conectado, sem sinal
+            </Badge>
           ) : connected ? (
             <Badge className="bg-success text-primary-foreground gap-1">
               <CheckCircle2 className="size-3" /> Conectado
@@ -206,6 +231,7 @@ function WhatsAppPage() {
         </div>
         <p className="text-xs text-muted-foreground mb-6">
           Instância: <span className="font-mono">zapcrm</span>
+          {lastSignalLabel ? <span className="ml-2">· Último sinal do WhatsApp: {lastSignalLabel}</span> : null}
           {error ? <span className="ml-2 text-destructive">· {error}</span> : null}
         </p>
 

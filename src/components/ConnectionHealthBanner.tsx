@@ -19,9 +19,17 @@ export function ConnectionHealthBanner() {
     const load = async () => {
       try {
         const c = await getSupabaseClient();
-        const token = c ? (await c.auth.getSession()).data.session?.access_token : null;
+        if (!c) return;
+        const call = (token: string) => fetch("/api/public/evolution/watchdog", { headers: { Authorization: `Bearer ${token}` } });
+        let token = (await c.auth.getSession()).data.session?.access_token;
         if (!token) return;
-        const r = await fetch("/api/public/evolution/watchdog", { headers: { Authorization: `Bearer ${token}` } });
+        let r = await call(token);
+        if (r.status === 401) {
+          // Sessão vencida: renova e tenta de novo, para a faixa não sumir por engano.
+          token = (await c.auth.refreshSession()).data.session?.access_token;
+          if (!token) return;
+          r = await call(token);
+        }
         const j = await r.json().catch(() => null);
         if (!stopped && j?.ok) setState(j.state);
       } catch {
