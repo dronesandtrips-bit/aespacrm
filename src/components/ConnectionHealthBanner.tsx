@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
 
-type State = { status: string; lastInboundAt: string | null };
+type State = { status: string; lastInboundAt: string | null; lastSignalAt?: string | null };
 
 function fmt(iso: string | null) {
   if (!iso) return "—";
@@ -38,7 +38,7 @@ export function ConnectionHealthBanner() {
     return (
       <div className="flex items-center gap-2 px-4 py-2 text-xs bg-warning/15 text-foreground border-b border-warning/40">
         <Loader2 className="size-3.5 animate-spin text-warning" />
-        Nenhuma mensagem recebida desde {fmt(state.lastInboundAt)}. Reiniciando a conexão do WhatsApp automaticamente…
+        Nenhum sinal do WhatsApp desde {fmt(state.lastSignalAt ?? state.lastInboundAt)}. Reiniciando a conexão automaticamente…
       </div>
     );
   }
@@ -49,7 +49,7 @@ export function ConnectionHealthBanner() {
         <span>
           {state.status === "logged_out"
             ? "O WhatsApp foi desconectado no celular. As mensagens não estão chegando ao CRM."
-            : `A conexão do WhatsApp parou de receber mensagens (última: ${fmt(state.lastInboundAt)}).`}
+            : `O WhatsApp aparece conectado, mas nenhum sinal chega ao CRM desde ${fmt(state.lastSignalAt ?? state.lastInboundAt)}.`}
         </span>
         <Link to="/whatsapp" className="underline font-semibold">Reconectar agora</Link>
       </div>

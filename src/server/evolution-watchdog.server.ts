@@ -8,6 +8,7 @@ import {
   WATCHDOG_STATE_KEY,
   decideWatchdog,
   isCheckDue,
+  isLivenessEvent,
   parseState,
   type WatchdogState,
 } from "@/lib/evolution-watchdog";
@@ -49,6 +50,28 @@ function fmtSp(iso: string | null) {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 }
 
+/**
+ * Último evento bruto do WhatsApp que prova que a conexão está entregando:
+ * mensagens (inclusive as enviadas pelo celular) e confirmações de
+ * entrega/leitura. Leitura apenas; nunca altera eventos.
+ */
+async function readLastSignalAt(sb: any, ownerUserId: string): Promise<string | null> {
+  const { data, error } = await sb
+    .from("crm_webhook_events")
+    .select("received_at,event,payload")
+    .eq("user_id", ownerUserId)
+    .in("event", ["messages.upsert", "messages.update"])
+    .order("received_at", { ascending: false })
+    .limit(40);
+  if (error) throw new Error(`last signal: ${error.message}`);
+  for (const r of data ?? []) {
+    const d = Array.isArray(r?.payload?.data) ? r.payload.data[0] : r?.payload?.data;
+    const status = d?.status ?? d?.update?.status;
+    if (isLivenessEvent(r.event, status)) return r.received_at ?? null;
+  }
+  return null;
+}
+
 export async function runWatchdog(opts: {
   sb: any;
   apiUrl: string;
@@ -81,11 +104,14 @@ export async function runWatchdog(opts: {
     .maybeSingle();
   if (lastErr) throw new Error(`last inbound: ${lastErr.message}`);
 
+  const lastSignalAt = await readLastSignalAt(sb, ownerUserId);
+
   const decision = decideWatchdog({
     now,
     connection: String(row.connectionStatus ?? "unknown"),
     disconnectionReasonCode: typeof row.disconnectionReasonCode === "number" ? row.disconnectionReasonCode : null,
     lastInboundAt: last?.at ?? null,
+    lastSignalAt,
     prev,
   });
 
@@ -100,7 +126,7 @@ export async function runWatchdog(opts: {
     const number = String(row.ownerJid ?? "").split("@")[0];
     const reason = decision.next.status === "logged_out"
       ? "a conexão do WhatsApp foi desconectada no celular."
-      : `a conexão do WhatsApp parou de receber mensagens (última recebida: ${fmtSp(decision.next.lastInboundAt)}). Já tentei reiniciar 2 vezes, sem sucesso.`;
+      : `o WhatsApp aparece conectado, mas nenhum sinal chega ao CRM desde ${fmtSp(decision.next.lastSignalAt ?? decision.next.lastInboundAt)}. Já tentei reiniciar 2 vezes, sem sucesso.`;
     if (/^\d{10,15}$/.test(number)) {
       const r = await evo(apiUrl, apiKey, `/message/sendText/${INSTANCE}`, {
         method: "POST",
