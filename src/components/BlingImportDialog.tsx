@@ -232,7 +232,7 @@ export function BlingImportDialog({
                   placeholder="WhatsApp (55DDD…)"
                   title={
                     it.phoneFonte === "texto"
-                      ? "Número extraído do texto da proposta (Introdução/Observações) — confira antes de importar"
+                      ? "Número extraído do campo Cliente da proposta"
                       : undefined
                   }
                   value={phones[it.id] ?? ""}
@@ -240,7 +240,7 @@ export function BlingImportDialog({
                 />
                 {it.phoneFonte === "texto" && (
                   <Badge variant="outline" className="shrink-0 text-[10px]">
-                    via texto
+                    via Cliente
                   </Badge>
                 )}
               </div>
@@ -249,9 +249,8 @@ export function BlingImportDialog({
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Contatos importados recebem automaticamente a categoria <strong>BLING</strong>. Quando o cadastro do cliente
-          não tem telefone, o CRM procura um número nos campos <strong>Introdução</strong> e{" "}
-          <strong>Observações</strong> da proposta (marcado como “via texto”) — confira esses antes de importar.
+          Contatos importados recebem automaticamente a categoria <strong>BLING</strong>.
+          Nome e telefone são extraídos somente do campo <strong>Cliente</strong> da proposta.
           Números em branco podem ser preenchidos manualmente.
         </p>
 
