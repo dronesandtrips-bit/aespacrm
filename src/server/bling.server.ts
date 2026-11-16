@@ -291,22 +291,30 @@ export function extractNameFromText(text: string | null | undefined): string {
 }
 
 
-/**
- * Separa nome e WhatsApp digitados juntos no campo "Cliente" da proposta
- * (ex.: "João Silva (54) 99149-5959" → { nome: "João Silva", phone: "5554991495959" }).
- */
+/** Extrai somente os dois últimos itens do campo Cliente da proposta. */
 export function splitClienteField(value: string | null | undefined): { nome: string; phone: string; phoneRaw: string | null } {
-  const raw = String(value ?? "").trim();
-  if (!raw) return { nome: "", phone: "", phoneRaw: null };
-  const phone = extractBrPhoneFromText(raw);
-  if (!phone) return { nome: raw, phone: "", phoneRaw: null };
-  const nome = raw
-    .replace(/(?:\+?55)?[\s().\-/_]*\(?\d[\d\s().\-/_]{7,}/g, " ")
-    .replace(/\s*[-–|:,;\/]+\s*$/g, "")
-    .replace(/^\s*[-–|:,;\/]+\s*/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  return { nome: nome || raw, phone, phoneRaw: raw };
+  const parts = String(value ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return { nome: "", phone: "", phoneRaw: null };
+  const raw = parts[parts.length - 1];
+  const nome = parts[parts.length - 2];
+  if (!raw || !nome || !/^[\p{L}][\p{L}.'’–-]*$/u.test(nome) || !/^\+?\d[\d()./-]*$/.test(raw)) {
+    return { nome: "", phone: "", phoneRaw: null };
+  }
+  const phone = normalizeBrPhone(raw);
+  return { nome, phone, phoneRaw: phone ? raw : null };
+}
+
+/** Resolve o Cliente referenciado pela proposta, sem consultar textos ou telefones alheios ao campo. */
+export async function resolveProposalCliente(
+  proposal: { contato?: { id?: string | number; nome?: string }; cliente?: { id?: string | number; nome?: string } },
+  readContact: (id: string) => Promise<{ nome?: string }>,
+) {
+  const contato = proposal.contato ?? proposal.cliente;
+  const field = contato?.nome;
+  if (field != null) return splitClienteField(field);
+  if (contato?.id == null) return splitClienteField(null);
+  const detail = await readContact(String(contato.id));
+  return splitClienteField(detail.nome);
 }
 
 /** Payload cru de uma proposta — usado pelo diagnóstico da tela do Bling. */
@@ -382,145 +390,41 @@ export async function listProposals(
     if (items.length < 100) break;
   }
 
-  // Fallback: propostas sem telefone (ou sem nome) no cadastro do contato —
-  // abre a proposta e varre TODOS os campos de texto do payload em busca de
-  // um WhatsApp e de um nome de cliente.
-  const semFone = out
-    .filter((p) => p.id && (!p.phone || !p.nome || p.nome === "Sem nome"))
-    .slice(0, 40);
-  const detQueue = [...semFone];
-  const detWorkers = Array.from({ length: Math.min(3, detQueue.length) }, async () => {
-    while (detQueue.length && !outOfTime()) {
-      const p = detQueue.shift();
-      if (!p) break;
-      try {
-        const res: any = await blingGet(token, `/propostas-comerciais/${p.id}`);
-        const d = res?.data ?? {};
-
-        // Nome: contato da proposta (mesmo sem cadastro completo)
-        const nomeDet =
-          d?.contato?.nome ?? d?.cliente?.nome ?? d?.nomeContato ?? d?.nome ?? null;
-        if (nomeDet) {
-          const cliDet = splitClienteField(String(nomeDet));
-          if ((!p.nome || p.nome === "Sem nome") && cliDet.nome) p.nome = cliDet.nome;
-          if (!p.phone && cliDet.phone) {
-            p.phone = cliDet.phone;
-            p.phoneRaw = cliDet.phoneRaw;
-            p.phoneFonte = "texto";
-          }
-        }
-        if (!p.nome || p.nome === "Sem nome") {
-          const nomeTxt = extractNameFromText(
-            [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacaoInterna, d?.observacao, d?.prazoEntrega, d?.aosCuidadosDe]
-              .filter(Boolean)
-              .join("\n"),
-          );
-          if (nomeTxt) p.nome = nomeTxt;
-        }
-
-        if (!p.phone) {
-          // 1) campos estruturados de telefone em qualquer nível do payload
-          const phoneKeys = ["celular", "telefone", "fone", "whatsapp"];
-          const collected: string[] = [];
-          const walk = (node: any, depth = 0) => {
-            if (!node || depth > 12) return;
-            if (Array.isArray(node)) return node.forEach((n) => walk(n, depth + 1));
-            if (typeof node !== "object") return;
-            for (const [k, v] of Object.entries(node)) {
-              if (typeof v === "string" && phoneKeys.some((pk) => k.toLowerCase().includes(pk))) {
-                collected.push(v);
-              } else if (v && typeof v === "object") {
-                walk(v, depth + 1);
-              }
-            }
-          };
-          walk(d);
-          for (const c of collected) {
-            const norm = normalizeBrPhone(c);
-            if (norm) {
-              p.phone = norm;
-              p.phoneRaw = c;
-              p.phoneFonte = "cadastro";
-              break;
-            }
-          }
-        }
-
-        if (!p.phone) {
-          // 2) varredura de texto livre em todo o payload (Introdução, Observações,
-          //    descrições de itens, campos personalizados etc.)
-          const texts: string[] = [];
-          const walkText = (node: any, depth = 0) => {
-            if (!node || depth > 12) return;
-            if (typeof node === "string") return void texts.push(node);
-            if (Array.isArray(node)) return node.forEach((n) => walkText(n, depth + 1));
-            if (typeof node === "object") Object.values(node).forEach((v) => walkText(v, depth + 1));
-          };
-          // prioriza os campos de texto "editoriais" da proposta
-          const prio = [d?.introducao, d?.observacoes, d?.observacoesInternas, d?.observacaoInterna, d?.observacao, d?.prazoEntrega, d?.aosCuidadosDe]
-            .filter(Boolean)
-            .join("\n");
-          walkText(d);
-          const phone =
-            extractBrPhoneFromText(prio) || extractBrPhoneFromText(texts.join("\n"));
-          if (phone) {
-            p.phone = phone;
-            p.phoneRaw = phone;
-            p.phoneFonte = "texto";
-          }
-        }
-      } catch {
-        // ignora — proposta segue sem telefone
-      }
+  // O Bling pode retornar apenas contato.id; consulta o nome desse mesmo Cliente.
+  // Nunca usar Introdução, observações ou campos separados de telefone como reserva.
+  const details = new Map<string, Promise<{ nome?: string }>>();
+  const readContact = (id: string) => {
+    let pending = details.get(id);
+    if (!pending) {
+      pending = blingGet(token, `/contatos/${id}`).then((res) => res?.data ?? {});
+      details.set(id, pending);
     }
-  });
-  await Promise.all(detWorkers);
-  // Resolve telefone/e-mail dos contatos (cache por contatoId, concorrência 4)
-  const ids = Array.from(
-    new Set(
-      out
-        .filter((p) => !p.phone || !p.nome || p.nome === "Sem nome")
-        .slice(0, 40)
-        .map((p) => p.contatoId)
-        .filter(Boolean),
-    ),
-  ) as string[];
-  const details = new Map<string, { phone: string; raw: string | null; email: string | null; nome?: string }>();
-  const queue = [...ids];
+    return pending;
+  };
+  const queue = out.filter((p) => !p.phone).slice(0, 40);
   const workers = Array.from({ length: Math.min(3, queue.length) }, async () => {
     while (queue.length && !outOfTime()) {
-      const id = queue.shift();
-      if (!id) break;
+      const p = queue.shift();
+      if (!p) break;
       try {
-        const res: any = await blingGet(token, `/contatos/${id}`);
-        const d = res?.data ?? {};
-        const raw = d?.celular || d?.telefone || null;
-        details.set(id, {
-          phone: normalizeBrPhone(raw),
-          raw: raw ? String(raw) : null,
-          email: d?.email ? String(d.email) : null,
-          nome: d?.nome ? String(d.nome) : undefined,
-        });
+        let proposal: { contato?: { id?: string | number; nome?: string }; cliente?: { id?: string | number; nome?: string } };
+        if (p.contatoId) {
+          proposal = { contato: { id: p.contatoId } };
+        } else {
+          const res = await blingGet(token, `/propostas-comerciais/${p.id}`);
+          proposal = res?.data ?? {};
+        }
+        const cli = await resolveProposalCliente(proposal, readContact);
+        p.nome = cli.nome || "Sem nome";
+        p.phone = cli.phone;
+        p.phoneRaw = cli.phoneRaw;
+        p.phoneFonte = cli.phone ? "texto" : null;
       } catch {
-        details.set(id, { phone: "", raw: null, email: null });
+        // Falha de leitura mantém destinatário vazio, sem aproveitar outros campos.
       }
     }
   });
   await Promise.all(workers);
-
-  for (const p of out) {
-    const d = p.contatoId ? details.get(p.contatoId) : null;
-    if (d) {
-      if (!p.phone && d.phone) {
-        p.phone = d.phone;
-        p.phoneRaw = d.raw;
-        p.phoneFonte = "cadastro";
-      }
-      if (!p.email && d.email) p.email = d.email;
-      if ((!p.nome || p.nome === "Sem nome") && d.nome) p.nome = d.nome;
-    }
-  }
-
 
   return out;
 }
