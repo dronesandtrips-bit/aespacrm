@@ -36,4 +36,4 @@
 - [x] Aplicar SUPABASE_MIGRATION_SEQUENCE_DISPATCH_GUARD.sql no banco dedicado; tabela, coluna e duas funções confirmadas por consultas inofensivas.
 - [ ] Chat sem mensagens novas (07/11): conexão `zapcrm` reconecta a cada ~50 min e só repete mensagens antigas (até 14:26 SP); nada novo do celular/clientes chega desde então. Reiniciada 6x com autorização: atraso recuperado até 19:03 SP de 06/11, depois parou de avançar. Próximo passo do usuário: abrir o WhatsApp no celular; se continuar, reconectar o QR Code do `zapcrm`.
 
-- [ ] Restringir destinatário Bling aos dois últimos itens do campo Cliente e testar leitura do contato referenciado; não reenviar propostas nem alterar a fila existente nesta tarefa.
+- [x] Restringir destinatário Bling aos dois últimos itens do campo Cliente, inclusive /contatos/{id}, sem Introdução/observações/telefones separados; 9 testes passaram. Nenhum reenvio ou alteração da fila existente; conferência autenticada indisponível no banco externo.
