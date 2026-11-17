@@ -29,9 +29,14 @@ export async function closureEvents(sb: any, userId: string): Promise<ClosureEve
   }
 }
 export async function syncClosures(sb: any, userId: string, events: any[]) {
+  const existing = new Map((await closureEvents(sb, userId)).map(e => [e.eventId, e]));
   for (const event of events) {
     if (!event.id) continue;
     const name = `${AGENDA_EVENT_PREFIX}${event.id}`;
+    const cached = existing.get(event.id);
+    const newStart = event.start?.dateTime ?? event.start?.date;
+    const newEnd = event.end?.dateTime ?? event.end?.date;
+    if (cached && event.status !== "cancelled" && cached.start === newStart && cached.end === newEnd && cached.title === (event.summary ?? "(sem título)")) continue;
     const prev = await read(sb, userId, name);
     if (event.status === "cancelled") {
       if (prev) await cas(sb, userId, name, prev, { ...JSON.parse(prev), status: "canceled", updatedAt: new Date().toISOString() });
@@ -44,7 +49,7 @@ export async function syncClosures(sb: any, userId: string, events: any[]) {
     const moved = old && (old.start !== start || old.end !== end);
     const next: ClosureEvent = { eventId: event.id, code: !old || moved ? crypto.randomUUID().replace(/-/g, "").slice(0, 8) : old.code,
       title: event.summary ?? "(sem título)", start, end, allDay: Boolean(event.start?.date),
-      status: moved ? "open" : old?.status ?? "open", updatedAt: new Date().toISOString() };
+      status: moved ? "open" : old?.status ?? (/^\(concluído\)/i.test(event.summary ?? "") ? "completed" : /^\(não compareceu\)/i.test(event.summary ?? "") ? "no_show" : "open"), updatedAt: new Date().toISOString() };
     if (!prev) await insertOnce(sb, userId, name, next);
     else if (moved || old?.title !== next.title) await cas(sb, userId, name, prev, next);
   }

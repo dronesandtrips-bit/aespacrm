@@ -10,11 +10,13 @@ export const Route = createFileRoute("/api/public/calendar/closure")({ server: {
     try {
       const sb = getSupabaseAdmin();
       const { closureEvents } = await import("@/server/agenda-closure.server");
-      const { data, error } = await sb.from("crm_app_secrets").select("name,value").eq("user_id", auth.userId)
-        .or(`name.eq.${AGENDA_CONFIG_KEY},name.like.${AGENDA_DIGEST_PREFIX}%`).order("name", { ascending: false }).limit(10);
-      if (error) throw new Error(error.message);
-      const config = data?.find((r: any) => r.name === AGENDA_CONFIG_KEY);
-      const last = data?.find((r: any) => r.name.startsWith(AGENDA_DIGEST_PREFIX));
+      const [configResult, lastResult] = await Promise.all([
+        sb.from("crm_app_secrets").select("value").eq("user_id", auth.userId).eq("name", AGENDA_CONFIG_KEY).maybeSingle(),
+        sb.from("crm_app_secrets").select("value").eq("user_id", auth.userId).like("name", `${AGENDA_DIGEST_PREFIX}%`).order("name", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (configResult.error || lastResult.error) throw new Error(configResult.error?.message ?? lastResult.error?.message);
+      const config = configResult.data;
+      const last = lastResult.data;
       return Response.json({ ok: true, enabled: config ? JSON.parse(config.value).enabled : false, events: await closureEvents(sb, auth.userId),
         lastDigest: last ? JSON.parse(last.value) : null }, { headers: { "Cache-Control": "no-store" } });
     } catch (error) { return Response.json({ ok: false, error: String(error) }, { status: 500 }); }

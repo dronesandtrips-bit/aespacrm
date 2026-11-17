@@ -6,9 +6,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { checkApiKey, requireUserJwt, getSupabaseAdmin } from "@/integrations/supabase/server";
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
-const CALENDAR_ID = "primary";
-
 export const Route = createFileRoute("/api/public/calendar/events")({
   server: {
     handlers: {
