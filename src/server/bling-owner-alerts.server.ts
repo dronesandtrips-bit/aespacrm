@@ -61,7 +61,9 @@ export async function runBlingOwnerAlerts(opts: { sb: any; userId: string; apiUr
   const { data: rows, error } = await query;
   if (error) throw new Error(error.message);
   let notices = 0;
+  let lastVisited = "";
   for (const row of rows ?? []) {
+    lastVisited = row.name;
     const track: ProposalTracking = JSON.parse(row.value);
     const { data: replies, error: replyError } = await sb.from("crm_messages").select("at").eq("user_id", userId).eq("contact_id", track.contactId)
       .eq("from_me", false).gt("at", track.sentAt).order("at", { ascending: true }).limit(1);
@@ -71,8 +73,9 @@ export async function runBlingOwnerAlerts(opts: { sb: any; userId: string; apiUr
       try { const state = await sendOwnerProposalNotice({ ...opts, track, kind, now }); if (state !== "already_reserved") notices++; }
       catch (error) { console.error("[bling-owner-notice]", track.proposalId, error); }
     }
+    if (notices >= 2) break;
   }
-  const { error: cursorError } = await sb.from("crm_app_secrets").upsert({ user_id: userId, name: cursorKey, value: JSON.stringify({ after: rows?.length === 20 ? rows[rows.length - 1].name : "" }), updated_at: now.toISOString() }, { onConflict: "user_id,name" });
+  const { error: cursorError } = await sb.from("crm_app_secrets").upsert({ user_id: userId, name: cursorKey, value: JSON.stringify({ after: notices >= 2 || rows?.length === 20 ? lastVisited : "" }), updated_at: now.toISOString() }, { onConflict: "user_id,name" });
   if (cursorError) throw new Error(cursorError.message);
   return { ran: true, checked: rows?.length ?? 0, notices };
 }
