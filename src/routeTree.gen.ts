@@ -52,6 +52,7 @@ import { Route as ApiPublicBlingProposalRawRouteImport } from './routes/api.publ
 import { Route as ApiPublicBlingProposalsRouteImport } from './routes/api.public.bling.proposals'
 import { Route as ApiPublicCalendarAutoBookRouteImport } from './routes/api.public.calendar.auto-book'
 import { Route as ApiPublicCalendarAvailabilityRouteImport } from './routes/api.public.calendar.availability'
+import { Route as ApiPublicCalendarClosureRouteImport } from './routes/api.public.calendar.closure'
 import { Route as ApiPublicCalendarConfirmBookingRouteImport } from './routes/api.public.calendar.confirm-booking'
 import { Route as ApiPublicCalendarCreateEventRouteImport } from './routes/api.public.calendar.create-event'
 import { Route as ApiPublicCalendarDeleteEventRouteImport } from './routes/api.public.calendar.delete-event'
@@ -324,6 +325,12 @@ const ApiPublicCalendarAvailabilityRoute =
   ApiPublicCalendarAvailabilityRouteImport.update({
     id: '/api/public/calendar/availability',
     path: '/api/public/calendar/availability',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicCalendarClosureRoute =
+  ApiPublicCalendarClosureRouteImport.update({
+    id: '/api/public/calendar/closure',
+    path: '/api/public/calendar/closure',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicCalendarConfirmBookingRoute =
@@ -662,6 +669,7 @@ export interface FileRoutesByFullPath {
   '/api/public/bling/proposals': typeof ApiPublicBlingProposalsRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
+  '/api/public/calendar/closure': typeof ApiPublicCalendarClosureRoute
   '/api/public/calendar/confirm-booking': typeof ApiPublicCalendarConfirmBookingRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
   '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
@@ -757,6 +765,7 @@ export interface FileRoutesByTo {
   '/api/public/bling/proposals': typeof ApiPublicBlingProposalsRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
+  '/api/public/calendar/closure': typeof ApiPublicCalendarClosureRoute
   '/api/public/calendar/confirm-booking': typeof ApiPublicCalendarConfirmBookingRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
   '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
@@ -854,6 +863,7 @@ export interface FileRoutesById {
   '/api/public/bling/proposals': typeof ApiPublicBlingProposalsRoute
   '/api/public/calendar/auto-book': typeof ApiPublicCalendarAutoBookRoute
   '/api/public/calendar/availability': typeof ApiPublicCalendarAvailabilityRoute
+  '/api/public/calendar/closure': typeof ApiPublicCalendarClosureRoute
   '/api/public/calendar/confirm-booking': typeof ApiPublicCalendarConfirmBookingRoute
   '/api/public/calendar/create-event': typeof ApiPublicCalendarCreateEventRoute
   '/api/public/calendar/delete-event': typeof ApiPublicCalendarDeleteEventRoute
@@ -951,6 +961,7 @@ export interface FileRouteTypes {
     | '/api/public/bling/proposals'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
+    | '/api/public/calendar/closure'
     | '/api/public/calendar/confirm-booking'
     | '/api/public/calendar/create-event'
     | '/api/public/calendar/delete-event'
@@ -1046,6 +1057,7 @@ export interface FileRouteTypes {
     | '/api/public/bling/proposals'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
+    | '/api/public/calendar/closure'
     | '/api/public/calendar/confirm-booking'
     | '/api/public/calendar/create-event'
     | '/api/public/calendar/delete-event'
@@ -1142,6 +1154,7 @@ export interface FileRouteTypes {
     | '/api/public/bling/proposals'
     | '/api/public/calendar/auto-book'
     | '/api/public/calendar/availability'
+    | '/api/public/calendar/closure'
     | '/api/public/calendar/confirm-booking'
     | '/api/public/calendar/create-event'
     | '/api/public/calendar/delete-event'
@@ -1221,6 +1234,7 @@ export interface RootRouteChildren {
   ApiPublicBlingProposalsRoute: typeof ApiPublicBlingProposalsRoute
   ApiPublicCalendarAutoBookRoute: typeof ApiPublicCalendarAutoBookRoute
   ApiPublicCalendarAvailabilityRoute: typeof ApiPublicCalendarAvailabilityRoute
+  ApiPublicCalendarClosureRoute: typeof ApiPublicCalendarClosureRoute
   ApiPublicCalendarConfirmBookingRoute: typeof ApiPublicCalendarConfirmBookingRoute
   ApiPublicCalendarCreateEventRoute: typeof ApiPublicCalendarCreateEventRoute
   ApiPublicCalendarDeleteEventRoute: typeof ApiPublicCalendarDeleteEventRoute
@@ -1575,6 +1589,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/calendar/availability'
       fullPath: '/api/public/calendar/availability'
       preLoaderRoute: typeof ApiPublicCalendarAvailabilityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/calendar/closure': {
+      id: '/api/public/calendar/closure'
+      path: '/api/public/calendar/closure'
+      fullPath: '/api/public/calendar/closure'
+      preLoaderRoute: typeof ApiPublicCalendarClosureRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/calendar/confirm-booking': {
@@ -2007,6 +2028,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBlingProposalsRoute: ApiPublicBlingProposalsRoute,
   ApiPublicCalendarAutoBookRoute: ApiPublicCalendarAutoBookRoute,
   ApiPublicCalendarAvailabilityRoute: ApiPublicCalendarAvailabilityRoute,
+  ApiPublicCalendarClosureRoute: ApiPublicCalendarClosureRoute,
   ApiPublicCalendarConfirmBookingRoute: ApiPublicCalendarConfirmBookingRoute,
   ApiPublicCalendarCreateEventRoute: ApiPublicCalendarCreateEventRoute,
   ApiPublicCalendarDeleteEventRoute: ApiPublicCalendarDeleteEventRoute,

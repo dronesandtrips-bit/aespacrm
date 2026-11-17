@@ -487,6 +487,14 @@ export const Route = createFileRoute("/api/public/evolution/webhook")({
               if (!contactId) continue;
 
               const parsed = detectMessageType(msg);
+              // Respostas de fechamento só no chat do próprio dono, com código explícito.
+              if (!isGroup && parsed.type === "text" && /^AGENDA\s/i.test(parsed.body ?? "")) {
+                try {
+                  const { handleClosureReply } = await import("@/server/agenda-closure.server");
+                  await handleClosureReply({ sb, userId: ownerUserId, phone: normalizePhone(remoteJid), text: parsed.body,
+                    apiUrl: process.env.EVOLUTION_API_URL?.trim() ?? "", apiKey });
+                } catch (error) { console.error("[agenda-closure-reply]", error); }
+              }
               // Em grupos, prefixa o autor para dar contexto na inbox quando não é fromMe
               const bodyForGroup =
                 isGroup && !fromMe && pushName
