@@ -32,6 +32,17 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
 
         const sb = getSupabaseAdmin();
 
+        // Aditivo: resumo de fechamento, uma única reserva durável por dia.
+        const agendaOwner = process.env.EVOLUTION_OWNER_USER_ID?.trim();
+        if (agendaOwner) {
+          try {
+            const { runAgendaDigest } = await import("@/server/agenda-closure.server");
+            await runAgendaDigest({ sb, userId: agendaOwner, apiUrl, apiKey });
+          } catch (error) {
+            console.error("[agenda-digest]", error);
+          }
+        }
+
         // Sentinela da conexão (roda de fato a cada ~5 min; isolada em try/catch
         // para nunca afetar os disparos em massa).
         const ownerUserId = process.env.EVOLUTION_OWNER_USER_ID?.trim();

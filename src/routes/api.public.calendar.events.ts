@@ -32,45 +32,22 @@ export const Route = createFileRoute("/api/public/calendar/events")({
         }
 
         const url = new URL(request.url);
-        const days = Math.min(Math.max(Number(url.searchParams.get("days") ?? 60), 1), 365);
-        const past = Math.min(Math.max(Number(url.searchParams.get("past") ?? 7), 0), 365);
-        const timeMin = new Date(Date.now() - past * 86_400_000).toISOString();
-        const timeMax = new Date(Date.now() + days * 86_400_000).toISOString();
-
-        const qs = new URLSearchParams({
-          timeMin,
-          timeMax,
-          singleEvents: "true",
-          orderBy: "startTime",
-          maxResults: "100",
-        });
-
-        const res = await fetch(
-          `${GATEWAY_URL}/calendars/${encodeURIComponent(CALENDAR_ID)}/events?${qs}`,
-          {
-            headers: {
-              Authorization: `Bearer ${lovableKey}`,
-              "X-Connection-Api-Key": connKey,
-            },
-          },
-        );
-        const text = await res.text();
-        if (!res.ok) {
-          console.error(`Google Calendar list falhou [${res.status}]: ${text}`);
-          return Response.json(
-            { ok: false, error: `Google Calendar [${res.status}]: ${text.slice(0, 400)}` },
-            { status: res.status },
-          );
-        }
-
-        let data: any = null;
+        const { CalendarRangeSchema, listCalendarEvents } = await import("@/server/calendar-events.server");
+        const range = CalendarRangeSchema.safeParse(Object.fromEntries(url.searchParams));
+        if (!range.success) return Response.json({ ok: false, error: "Período inválido (até 365 dias)" }, { status: 400 });
+        let items: any[];
         try {
-          data = JSON.parse(text);
-        } catch {
-          /* ignore */
+          items = await listCalendarEvents(range.data.days, range.data.past);
+          const owner = process.env.EVOLUTION_OWNER_USER_ID?.trim();
+          if (owner && (!userId || userId === owner)) {
+            const { syncClosures } = await import("@/server/agenda-closure.server");
+            await syncClosures(getSupabaseAdmin(), owner, items);
+          }
+        } catch (error) {
+          return Response.json({ ok: false, error: String(error) }, { status: 500 });
         }
 
-        const events = (data?.items ?? [])
+        const events = items
           .filter((e: any) => e?.status !== "cancelled")
           .map((e: any) => ({
             id: e.id as string,
@@ -126,7 +103,7 @@ export const Route = createFileRoute("/api/public/calendar/events")({
           }
         }
 
-        return Response.json({ ok: true, events });
+        return Response.json({ ok: true, events }, { headers: { "Cache-Control": "no-store" } });
       },
     },
   },

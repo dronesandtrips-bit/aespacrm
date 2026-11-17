@@ -41,6 +41,8 @@ import {
 import { authFetch } from "@/lib/auth-fetch";
 import { AgendaWeekView } from "@/components/AgendaWeekView";
 import { contactsDb, type Contact } from "@/lib/db";
+import { unresolved, closureDate, type ClosureEvent, type ClosureStatus } from "@/lib/agenda-closure";
+import { Switch } from "@/components/ui/switch";
 
 
 const DEFAULT_OWNER_PHONE = "5554991495959";
@@ -102,7 +104,12 @@ function AgendaPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<CalEvent | null>(null);
   const [creating, setCreating] = useState(false);
-  const [view, setView] = useState<"lista" | "semana">("semana");
+  const [view, setView] = useState<"lista" | "semana" | "pendentes">("semana");
+  const [closures, setClosures] = useState<ClosureEvent[]>([]);
+  const [digestEnabled, setDigestEnabled] = useState(false);
+  const [closureError, setClosureError] = useState("");
+  const [closureBusy, setClosureBusy] = useState<string | null>(null);
+  const [lastDigest, setLastDigest] = useState<{ state: string; error?: string } | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null);
 
 
@@ -126,10 +133,18 @@ function AgendaPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await authFetch("/api/public/calendar/events?days=120&past=7");
+      const res = await authFetch("/api/public/calendar/events?days=120&past=90");
       const json = await res.json().catch(() => ({}) as any);
       if (!res.ok || json?.ok === false) throw new Error(json?.error ?? res.statusText);
       setEvents(json.events ?? []);
+      const closureRes = await authFetch("/api/public/calendar/closure");
+      const closureJson = await closureRes.json();
+      if (closureRes.ok && closureJson.ok) {
+        setClosures(closureJson.events ?? []);
+        setDigestEnabled(Boolean(closureJson.enabled));
+        setLastDigest(closureJson.lastDigest ?? null);
+        setClosureError("");
+      } else setClosureError(closureJson.error ?? "Não foi possível carregar o fechamento.");
     } catch (e: any) {
       toast.error(`Falha ao carregar agenda: ${e?.message ?? String(e)}`);
     } finally {
@@ -139,7 +154,35 @@ function AgendaPage() {
 
   useEffect(() => {
     void load();
+    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 60_000);
+    return () => window.clearInterval(timer);
   }, [load]);
+
+  const changeClosure = async (eventId: string, status: ClosureStatus) => {
+    setClosureBusy(eventId);
+    try {
+      const res = await authFetch("/api/public/calendar/closure", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "status", eventId, status }) });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error);
+      toast.success(status === "completed" ? "Compromisso concluído" : status === "no_show" ? "Não comparecimento registrado" : "Remarcação pendente");
+      if (json.calendarWarning) toast.warning("Desfecho salvo no CRM; não foi possível atualizar o título no Google Agenda.");
+      await load();
+    } catch (error) { toast.error(String(error)); }
+    finally { setClosureBusy(null); }
+  };
+  const configureDigest = async (enabled: boolean) => {
+    setClosureBusy("config");
+    try {
+      const res = await authFetch("/api/public/calendar/closure", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "configure", enabled }) });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error);
+      setDigestEnabled(enabled);
+      toast.success(enabled ? "Resumo diário ativado para 18h" : "Resumo diário desativado");
+    } catch (error) { toast.error(String(error)); }
+    finally { setClosureBusy(null); }
+  };
+  const pendingClosures = closures.filter(e => unresolved(e, new Date()));
 
   useEffect(() => {
     contactsDb
@@ -431,7 +474,7 @@ function AgendaPage() {
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => window.open(e.htmlLink!, "_blank", "noopener,noreferrer")}
+            onClick={() => { if (e.htmlLink) window.open(e.htmlLink, "_blank", "noopener,noreferrer"); }}
           >
             <ExternalLink className="size-4" />
           </Button>
@@ -475,17 +518,17 @@ function AgendaPage() {
           Agenda
         </h1>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-          <div className="col-span-2 grid grid-cols-2 overflow-hidden rounded-md border border-border sm:flex">
-            {(["semana", "lista"] as const).map((v) => (
-              <button
+          <div className="col-span-2 grid grid-cols-3 overflow-hidden rounded-md border border-border sm:flex">
+            {(["semana", "lista", "pendentes"] as const).map((v) => (
+              <Button
                 key={v}
+                size="sm"
+                variant={view === v ? "default" : "ghost"}
                 onClick={() => setView(v)}
-                className={`px-3 py-2 text-xs font-medium capitalize sm:py-1.5 ${
-                  view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                }`}
+                className="min-w-0 text-xs capitalize"
               >
-                {v}
-              </button>
+                {v === "pendentes" ? `Pendentes (${pendingClosures.length})` : v}
+              </Button>
             ))}
           </div>
           <Button className="min-w-0" variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
@@ -514,8 +557,34 @@ function AgendaPage() {
 
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border py-3">
+        <Label htmlFor="agenda-digest">Resumo no meu WhatsApp · 18h (Brasília)</Label>
+        <Switch id="agenda-digest" checked={digestEnabled} disabled={Boolean(closureError) || closureBusy === "config"} onCheckedChange={enabled => void configureDigest(enabled)} />
+      </div>
+      {closureError && <p className="text-sm text-destructive">{closureError}</p>}
+      {lastDigest?.state === "unresolved" && <p className="text-sm text-destructive">O último resumo não teve envio confirmado. Não será reenviado automaticamente; seus compromissos continuam pendentes.</p>}
       {loading ? (
         <Card className="p-6 text-sm text-muted-foreground">Carregando compromissos…</Card>
+      ) : view === "pendentes" ? (
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold">Pendentes de fechamento</h2>
+          {!pendingClosures.length && !closureError && <p className="text-sm text-muted-foreground">Nenhum compromisso pendente de fechamento.</p>}
+          {pendingClosures.map(e => (
+            <div key={e.eventId} className="flex flex-col gap-3 border-b border-border py-3">
+              <div className="min-w-0"><p className="break-words font-medium">{e.title}</p>
+                <p className="text-sm text-muted-foreground">{closureDate(e.start, e.allDay)} · {e.code.toUpperCase()}{e.status === "reschedule" ? " · Remarcação pendente" : ""}</p></div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" disabled={closureBusy === e.eventId} onClick={() => void changeClosure(e.eventId, "completed")}><CheckCircle2 className="size-4" />Concluir</Button>
+                <Button size="sm" variant="outline" disabled={closureBusy === e.eventId} onClick={() => {
+                  const full = events.find(x => x.id === e.eventId);
+                  void changeClosure(e.eventId, "reschedule");
+                  if (full) openEdit(full);
+                }}><Pencil className="size-4" />Reagendar</Button>
+                <Button size="sm" variant="outline" disabled={closureBusy === e.eventId} onClick={() => void changeClosure(e.eventId, "no_show")}>Não compareceu</Button>
+              </div>
+            </div>
+          ))}
+        </section>
       ) : view === "semana" ? (
         <AgendaWeekView
           events={events}
@@ -543,7 +612,7 @@ function AgendaPage() {
 
           {grouped.past.length > 0 && (
             <Card className="space-y-2 p-4">
-              <div className="text-sm font-medium text-muted-foreground">Últimos 7 dias</div>
+              <div className="text-sm font-medium text-muted-foreground">Últimos 90 dias</div>
               {grouped.past.map(renderRow)}
             </Card>
           )}
@@ -721,6 +790,7 @@ function AgendaPage() {
           </div>
 
           <DialogFooter className="sticky bottom-0 -mx-4 gap-2 border-t border-border bg-background px-4 pb-[max(0rem,env(safe-area-inset-bottom))] pt-3 sm:static sm:mx-0 sm:flex-wrap sm:gap-2 sm:px-0 sm:pb-0">
+            {editing && editing.end && new Date(editing.end).getTime() <= Date.now() && <Button variant="outline" disabled={Boolean(closureBusy)} onClick={() => { if (editing) void changeClosure(editing.id, "completed"); }}><CheckCircle2 className="size-4" />Concluir</Button>}
             <Button
               variant="ghost"
               onClick={() => {
