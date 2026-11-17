@@ -18,8 +18,8 @@ export function AppShell() {
   const focusMode = location.pathname === "/inbox" || location.pathname.startsWith("/inbox/");
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/login" });
-  }, [loading, user, navigate]);
+    if (!loading && !user && location.pathname !== "/login") navigate({ to: "/login", search: location.pathname === "/agenda" && new URLSearchParams(location.searchStr).get("view") === "pendentes" ? { agenda: true } : {} });
+  }, [loading, user, navigate, location.pathname, location.searchStr]);
 
   if (loading || !user) {
     return (

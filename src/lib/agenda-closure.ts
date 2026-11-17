@@ -1,6 +1,10 @@
 export const AGENDA_CONFIG_KEY = "AGENDA_CLOSURE_CONFIG";
 export const AGENDA_EVENT_PREFIX = "AGENDA_CLOSURE_EVENT_";
 export const AGENDA_DIGEST_PREFIX = "AGENDA_CLOSURE_DIGEST_";
+export const AGENDA_PENDING_URL = "https://crm.aespa.com.br/agenda?view=pendentes";
+export function agendaEntryView(value: unknown): "semana" | "lista" | "pendentes" {
+  return value === "pendentes" || value === "lista" ? value : "semana";
+}
 export type ClosureStatus = "open" | "completed" | "reschedule" | "no_show" | "canceled";
 export type ClosureEvent = {
   eventId: string; code: string; title: string; start: string; end: string;
