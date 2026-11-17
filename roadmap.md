@@ -37,3 +37,4 @@
 - [ ] Chat sem mensagens novas (07/11): conexão `zapcrm` reconecta a cada ~50 min e só repete mensagens antigas (até 14:26 SP); nada novo do celular/clientes chega desde então. Reiniciada 6x com autorização: atraso recuperado até 19:03 SP de 06/11, depois parou de avançar. Próximo passo do usuário: abrir o WhatsApp no celular; se continuar, reconectar o QR Code do `zapcrm`.
 
 - [x] Restringir destinatário Bling aos dois últimos itens do campo Cliente, inclusive /contatos/{id}, sem Introdução/observações/telefones separados; 9 testes passaram. Nenhum reenvio ou alteração da fila existente; conferência autenticada indisponível no banco externo.
+- [ ] Recuperar histórico da Agenda e criar fechamento de compromissos com resumo diário às 18h (SP), somente ao proprietário, respostas pelo WhatsApp e ações na Agenda; preservar lembretes anteriores e não reenviar resultados ambíguos.
