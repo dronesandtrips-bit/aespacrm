@@ -41,13 +41,14 @@ import {
 import { authFetch } from "@/lib/auth-fetch";
 import { AgendaWeekView } from "@/components/AgendaWeekView";
 import { contactsDb, type Contact } from "@/lib/db";
-import { unresolved, closureDate, type ClosureEvent, type ClosureStatus } from "@/lib/agenda-closure";
+import { unresolved, closureDate, agendaEntryView, type ClosureEvent, type ClosureStatus } from "@/lib/agenda-closure";
 import { Switch } from "@/components/ui/switch";
 
 
 const DEFAULT_OWNER_PHONE = "5554991495959";
 
 export const Route = createFileRoute("/_app/agenda")({
+  validateSearch: (search: Record<string, unknown>) => ({ view: agendaEntryView(search.view) }),
   component: AgendaPage,
   head: () => ({
     meta: [
@@ -100,11 +101,13 @@ function durationOf(e: CalEvent): string {
 }
 
 function AgendaPage() {
+  const search = Route.useSearch();
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<CalEvent | null>(null);
   const [creating, setCreating] = useState(false);
-  const [view, setView] = useState<"lista" | "semana" | "pendentes">("semana");
+  const [view, setView] = useState<"lista" | "semana" | "pendentes">(search.view);
+  useEffect(() => { setView(search.view); }, [search.view]);
   const [closures, setClosures] = useState<ClosureEvent[]>([]);
   const [digestEnabled, setDigestEnabled] = useState(false);
   const [closureError, setClosureError] = useState("");

@@ -1,4 +1,4 @@
-import { AGENDA_CONFIG_KEY, AGENDA_EVENT_PREFIX, AGENDA_DIGEST_PREFIX, digestDue, parseClosureReply, unresolved, closureDate, type ClosureEvent, type ClosureStatus } from "@/lib/agenda-closure";
+import { AGENDA_CONFIG_KEY, AGENDA_EVENT_PREFIX, AGENDA_DIGEST_PREFIX, AGENDA_PENDING_URL, digestDue, parseClosureReply, unresolved, closureDate, type ClosureEvent, type ClosureStatus } from "@/lib/agenda-closure";
 import { listCalendarEvents, calendarRequest } from "@/server/calendar-events.server";
 
 async function read(sb: any, userId: string, name: string) {
@@ -123,8 +123,9 @@ export async function runAgendaDigest(opts: { sb: any; userId: string; apiUrl: s
   const shown = pending.slice(0, 25);
   const text = shown.length ? ["📋 *ZapCRM — pendentes de fechamento*", `Jones, há ${pending.length} compromisso(s) em aberto:`, "",
     ...shown.map(e => `• ${e.code.toUpperCase()} — ${e.title} — ${closureDate(e.start, e.allDay)}${e.status === "reschedule" ? " (remarcação pendente)" : ""}`), "",
-    "Responda com o código: AGENDA CODIGO CONCLUIDO, AGENDA CODIGO REMARCAR ou AGENDA CODIGO FALTA.",
-    "Os pendentes continuam no próximo resumo até registrar o desfecho.", "https://crm.aespa.com.br/agenda", pending.length > 25 ? "Os demais compromissos estão na Agenda." : ""].filter(Boolean).join("\n") : "";
+    "Toque no link para resolver suas pendências:", AGENDA_PENDING_URL,
+    "Em cada compromisso, escolha Concluir, Reagendar ou Não compareceu.",
+    "Os pendentes continuam no próximo resumo até registrar o desfecho.", pending.length > 25 ? "Os demais compromissos estão na Agenda." : ""].filter(Boolean).join("\n") : "";
   const checkpoint = { state: text ? "reserved" : "empty", phone, eventIds: shown.map(e => e.eventId), reservedAt: now.toISOString() };
   if (!(await insertOnce(sb, userId, name, checkpoint))) return { ran: false, reason: "race" };
   if (!text) return { ran: true, pending: 0 };

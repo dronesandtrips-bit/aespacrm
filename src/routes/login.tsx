@@ -9,19 +9,32 @@ import { MessageCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>) => ({ agenda: search.agenda === true || search.agenda === "true" }),
   component: LoginPage,
+  head: () => ({ meta: [
+    { title: "Entrar | ZapCRM" },
+    { name: "description", content: "Entre na sua conta ZapCRM para acessar conversas e compromissos." },
+    { property: "og:title", content: "Entrar | ZapCRM" },
+    { property: "og:description", content: "Acesso seguro à sua conta ZapCRM e às pendências da Agenda." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
+  const { agenda } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user) navigate({ to: "/dashboard" });
-  }, [user, navigate]);
+    if (user) {
+      if (agenda) navigate({ to: "/agenda", search: { view: "pendentes" } });
+      else navigate({ to: "/dashboard" });
+    }
+  }, [user, navigate, agenda]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +42,8 @@ function LoginPage() {
     try {
       await login(email, password);
       toast.success("Login realizado com sucesso");
-      navigate({ to: "/dashboard" });
+      if (agenda) navigate({ to: "/agenda", search: { view: "pendentes" } });
+      else navigate({ to: "/dashboard" });
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error("[login] error:", err);

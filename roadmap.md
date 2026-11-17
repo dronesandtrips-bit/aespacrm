@@ -41,3 +41,4 @@
 - [ ] Colocar o resumo diário no endereço oficial e confirmar primeira entrega/resposta real: depende de publicação; conferência da tela autenticada indisponível no banco externo. Nenhum WhatsApp real foi enviado nesta tarefa.
 - [x] Adicionar avisos pessoais de primeira resposta a propostas e de cinco dias sem retorno, sem alterar os envios aos clientes; 25 testes passaram, ativação pessoal salva e relida no banco dedicado, sem replay histórico ou mensagens reais de teste.
 - [ ] Publicar avisos pessoais de propostas e confirmar primeira entrega real; depende de publicação e de resposta/proposta elegível após ativação. Sem sessão autenticada disponível no banco externo.
+- [ ] Abrir Pendentes diretamente pelo resumo, preservando destino após login e os botões existentes; verificar navegação e testes sem alterar compromissos.
