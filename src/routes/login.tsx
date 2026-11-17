@@ -9,7 +9,7 @@ import { MessageCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (search: Record<string, unknown>) => ({ agenda: search.agenda === true || search.agenda === "true" }),
+  validateSearch: (search: Record<string, unknown>): { agenda?: boolean } => (search.agenda === true || search.agenda === "true" ? { agenda: true } : {}),
   component: LoginPage,
   head: () => ({ meta: [
     { title: "Entrar | ZapCRM" },

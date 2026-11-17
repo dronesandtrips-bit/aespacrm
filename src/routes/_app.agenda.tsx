@@ -48,7 +48,7 @@ import { Switch } from "@/components/ui/switch";
 const DEFAULT_OWNER_PHONE = "5554991495959";
 
 export const Route = createFileRoute("/_app/agenda")({
-  validateSearch: (search: Record<string, unknown>) => ({ view: agendaEntryView(search.view) }),
+  validateSearch: (search: Record<string, unknown>): { view?: "semana" | "lista" | "pendentes" } => (search.view ? { view: agendaEntryView(search.view) } : {}),
   component: AgendaPage,
   head: () => ({
     meta: [
@@ -106,8 +106,8 @@ function AgendaPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<CalEvent | null>(null);
   const [creating, setCreating] = useState(false);
-  const [view, setView] = useState<"lista" | "semana" | "pendentes">(search.view);
-  useEffect(() => { setView(search.view); }, [search.view]);
+  const [view, setView] = useState<"lista" | "semana" | "pendentes">(agendaEntryView(search.view));
+  useEffect(() => { setView(agendaEntryView(search.view)); }, [search.view]);
   const [closures, setClosures] = useState<ClosureEvent[]>([]);
   const [digestEnabled, setDigestEnabled] = useState(false);
   const [closureError, setClosureError] = useState("");
