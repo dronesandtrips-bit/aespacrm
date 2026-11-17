@@ -9,10 +9,10 @@ export function alertKind(track: ProposalTracking, replyAt: string | null, activ
   if (replyAt && Date.parse(replyAt) > Date.parse(track.sentAt)) {
     return Date.parse(replyAt) >= Date.parse(activatedAt) ? "reply" : null;
   }
-  return now.getTime() >= Date.parse(track.sentAt) + STAGNANT_HOURS * 3_600_000 ? "stagnant" : null;
+  return Date.parse(track.sentAt) >= Date.parse(activatedAt) && now.getTime() >= Date.parse(track.sentAt) + STAGNANT_HOURS * 3_600_000 ? "stagnant" : null;
 }
 export function proposalAlertText(track: ProposalTracking, kind: "reply" | "stagnant") {
-  const link = `https://crm.aespa.com.br/inbox?contactId=${encodeURIComponent(track.contactId)}`;
+  const link = "https://crm.aespa.com.br/inbox";
   return kind === "reply"
     ? `💬 *ZapCRM — resposta de cliente*\n${track.nome} respondeu após o lembrete da proposta ${track.numero}.\nConfira a conversa para saber se a resposta se refere à proposta:\n${link}`
     : `📌 *ZapCRM — proposta sem retorno*\nA proposta ${track.numero}, de ${track.nome}, completou 5 dias desde o primeiro lembrete sem resposta registrada no CRM.\nQue tal entrar em contato pessoalmente?\n${link}`;

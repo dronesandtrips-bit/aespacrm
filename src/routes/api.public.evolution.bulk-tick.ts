@@ -32,6 +32,15 @@ export const Route = createFileRoute("/api/public/evolution/bulk-tick")({
 
         const sb = getSupabaseAdmin();
 
+        // Owner-only proposal notices; independent from all customer dispatches.
+        const blingOwner = process.env.EVOLUTION_OWNER_USER_ID?.trim();
+        if (blingOwner) {
+          try {
+            const { runBlingOwnerAlerts } = await import("@/server/bling-owner-alerts.server");
+            await runBlingOwnerAlerts({ sb, userId: blingOwner, apiUrl, apiKey });
+          } catch (error) { console.error("[bling-owner-alerts]", error); }
+        }
+
         // Aditivo: resumo de fechamento, uma única reserva durável por dia.
         const agendaOwner = process.env.EVOLUTION_OWNER_USER_ID?.trim();
         if (agendaOwner) {

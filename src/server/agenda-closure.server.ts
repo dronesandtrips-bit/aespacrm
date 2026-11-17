@@ -76,7 +76,7 @@ export async function setClosure(sb: any, userId: string, eventId: string, statu
   catch (error) { calendarWarning = error instanceof Error ? error.message : String(error); }
   return { event: next, calendarWarning };
 }
-async function ownerPhone(apiUrl: string, apiKey: string): Promise<string> {
+export async function ownerPhone(apiUrl: string, apiKey: string): Promise<string> {
   const res = await fetch(`${apiUrl}/instance/fetchInstances?instanceName=zapcrm`, { headers: { apikey: apiKey }, signal: AbortSignal.timeout(10_000) });
   const text = await res.text();
   if (!res.ok) throw new Error(`Evolution [${res.status}]: ${text}`);

@@ -5,6 +5,7 @@
 import { getSupabaseAdmin } from "@/integrations/supabase/server";
 import { getSecret, setSecret, listProposals, type BlingProposal } from "@/server/bling.server";
 import { buildOptoutUrlFor } from "@/server/optout.server";
+import { trackProposalForOwner } from "@/server/bling-owner-alerts.server";
 
 const INSTANCE = "zapcrm";
 const CONFIG_SECRET = "BLING_AUTO_CONFIG";
@@ -401,6 +402,10 @@ export async function runBlingAutoTick(
 
         // Agenda os lembretes (contados a partir deste 1º envio).
         const sentAt = Date.now();
+        // Personal monitoring is isolated: failures must not alter client scheduling.
+        try {
+          await trackProposalForOwner(sb, userId, { proposalId: p.id, numero: p.numero ?? p.id, nome: p.nome, contactId: contact.id, sentAt: new Date(sentAt).toISOString() });
+        } catch (error) { console.error("[bling-owner-track]", error); }
         const fups = (cfg.followups ?? []).map((f, i) => ({
           user_id: userId,
           proposal_id: `${p.id}#${i + 2}`,
