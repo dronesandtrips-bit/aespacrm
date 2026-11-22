@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { getSupabaseClient } from "@/integrations/supabase/client";
+import { watchdogRecoveryAction, type WatchdogStatus } from "@/lib/evolution-watchdog";
 
-type State = { status: string; lastInboundAt: string | null; lastSignalAt?: string | null };
+type State = { status: WatchdogStatus; lastInboundAt: string | null; lastSignalAt?: string | null };
 
 function fmt(iso: string | null) {
   if (!iso) return "—";
@@ -57,9 +58,9 @@ export function ConnectionHealthBanner() {
         <span>
           {state.status === "logged_out"
             ? "O WhatsApp foi desconectado no celular. As mensagens não estão chegando ao CRM."
-            : `O WhatsApp aparece conectado, mas nenhum sinal chega ao CRM desde ${fmt(state.lastSignalAt ?? state.lastInboundAt)}.`}
+            : `Conexão ativa na Evolution; último sinal no CRM em ${fmt(state.lastSignalAt ?? state.lastInboundAt)}. Silêncio não comprova desconexão; confira o recebimento antes de reconectar.`}
         </span>
-        <Link to="/whatsapp" className="underline font-semibold">Reconectar agora</Link>
+        <Link to="/whatsapp" className="underline font-semibold">{watchdogRecoveryAction(state.status) === "reconnect" ? "Reconectar agora" : "Verificar conexão"}</Link>
       </div>
     );
   }

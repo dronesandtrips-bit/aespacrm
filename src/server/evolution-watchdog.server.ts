@@ -10,6 +10,7 @@ import {
   isCheckDue,
   isLivenessEvent,
   parseState,
+  watchdogRecoveryAction,
   type WatchdogState,
 } from "@/lib/evolution-watchdog";
 
@@ -124,15 +125,19 @@ export async function runWatchdog(opts: {
     actionResult = { status: r.status };
   } else if (decision.action === "alert") {
     const number = String(row.ownerJid ?? "").split("@")[0];
-    const reason = decision.next.status === "logged_out"
+    const recovery = watchdogRecoveryAction(decision.next.status);
+    const reason = recovery === "reconnect"
       ? "a conexão do WhatsApp foi desconectada no celular."
-      : `o WhatsApp aparece conectado, mas nenhum sinal chega ao CRM desde ${fmtSp(decision.next.lastSignalAt ?? decision.next.lastInboundAt)}. Já tentei reiniciar 2 vezes, sem sucesso.`;
+      : `a Evolution informa conexão ativa, mas o último sinal registrado no CRM foi em ${fmtSp(decision.next.lastSignalAt ?? decision.next.lastInboundAt)}. Foram feitas ${decision.next.restarts} tentativas de reinício. Esse silêncio pode ser apenas falta de movimento; não comprova desconexão.`;
+    const guidance = recovery === "reconnect"
+      ? "Clique em *Reconectar do zero* para ler um novo QR Code."
+      : "Confira o *Último sinal do WhatsApp* e envie uma mensagem de outro celular para esse número. Se ela aparecer no CRM, a conexão está funcionando. Se não aparecer, investigue a conexão antes de usar *Reconectar do zero*.";
     if (/^\d{10,15}$/.test(number)) {
       const r = await evo(apiUrl, apiKey, `/message/sendText/${INSTANCE}`, {
         method: "POST",
         body: JSON.stringify({
           number,
-          text: `⚠️ *Aviso do ZapCRM*: ${reason}\n\nPara resolver, abra https://crm.aespa.com.br/whatsapp e clique em *Reconectar do zero* para ler um novo QR Code.\n_Mensagem automática, enviada uma vez por ocorrência._`,
+          text: `⚠️ *Aviso do ZapCRM*: ${reason}\n\nAbra https://crm.aespa.com.br/whatsapp\n${guidance}\n_Aviso referente à verificação de ${fmtSp(now.toISOString())}. Se houve novo sinal depois, esta ocorrência já foi encerrada. Mensagem automática, enviada uma vez por ocorrência._`,
         }),
       });
       actionResult = { status: r.status };

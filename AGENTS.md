@@ -19,3 +19,4 @@ Calendar closure uses owner-scoped crm_app_secrets entries with per-event compar
 Proposal owner alerts use immutable first-send tracking and unique per-proposal/kind reservations in crm_app_secrets, processed by bounded round-robin in bulk-tick; resolve only zapcrm's owner, never retry uncertain sends or mutate client automation, and exclude pre-activation historical alerts.
 Agenda digest links open the validated pending view and preserve that destination through login; link visits never mutate appointments, which remain behind existing authenticated action buttons.
 Agenda refreshes keep the loaded calendar mounted, serialize requests, and suppress background-only error toasts; this preserves week navigation and scroll without changing calendar or reminder logic.
+Watchdog recovery guidance uses a shared status policy: confirmed logout offers QR reconnection, while silence requires reception verification; inactivity alone does not establish session loss.

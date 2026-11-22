@@ -21,6 +21,13 @@ export const CHECK_EVERY_MINUTES = 5;
 
 export type WatchdogStatus = "ok" | "quiet" | "restarting" | "stuck" | "disconnected" | "logged_out";
 
+/** Silêncio não comprova perda da sessão; novo QR só para logout confirmado. */
+export function watchdogRecoveryAction(status: WatchdogStatus): "reconnect" | "verify" | "none" {
+  if (status === "logged_out") return "reconnect";
+  if (status === "stuck" || status === "disconnected" || status === "restarting") return "verify";
+  return "none";
+}
+
 export type WatchdogState = {
   status: WatchdogStatus;
   lastCheckAt: string | null;

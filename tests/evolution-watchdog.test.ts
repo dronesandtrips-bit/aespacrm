@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EMPTY_STATE, decideWatchdog, isLivenessEvent } from "../src/lib/evolution-watchdog";
+import { EMPTY_STATE, decideWatchdog, isLivenessEvent, watchdogRecoveryAction } from "../src/lib/evolution-watchdog";
 
 // 15:00 em São Paulo (horário ativo) = 18:00 UTC
 const NOW = new Date("2026-11-12T18:00:00Z");
@@ -47,6 +47,27 @@ describe("sentinela da conexão", () => {
 });
 
 describe("sentinela: sinais de vida e horários", () => {
+  it("silêncio com conexão aberta exige verificação, não novo QR", () => {
+    const sunday = new Date("2026-11-22T11:49:00Z");
+    const d = decideWatchdog({ now: sunday, connection: "open", lastInboundAt: "2026-11-22T00:06:19Z", lastSignalAt: "2026-11-22T00:18:57Z", prev: { ...EMPTY_STATE, restarts: 2, lastRestartAt: "2026-11-22T11:29:00Z" } });
+    expect(d.action).toBe("alert");
+    expect(watchdogRecoveryAction(d.next.status)).toBe("verify");
+  });
+
+  it("logout 401 mantém orientação de reconexão", () => {
+    const d = decideWatchdog({ now: NOW, connection: "close", disconnectionReasonCode: 401, lastInboundAt: minAgo(10), prev: { ...EMPTY_STATE } });
+    expect(watchdogRecoveryAction(d.next.status)).toBe("reconnect");
+  });
+
+  it("sinal recebido às 15h18 encerra o alerta antigo sem reinício ou reenvio", () => {
+    const d = decideWatchdog({ now: new Date("2026-11-22T18:20:00Z"), connection: "open", lastInboundAt: "2026-11-22T18:18:45Z", prev: { ...EMPTY_STATE, status: "stuck", restarts: 2, alertedAt: "2026-11-22T11:49:00Z", incidentSince: "2026-11-22T11:04:00Z" } });
+    expect(d.action).toBe("none");
+    expect(d.next.status).toBe("ok");
+    expect(d.next.alertedAt).toBeNull();
+    expect(d.next.restarts).toBe(0);
+    expect(watchdogRecoveryAction(d.next.status)).toBe("none");
+  });
+
   it("mensagem enviada pelo celular ou confirmação de entrega conta como sinal (sem alarme falso)", () => {
     const prev = { ...EMPTY_STATE, status: "stuck" as const, restarts: 2, alertedAt: minAgo(60) };
     const d = decideWatchdog({ now: NOW, connection: "open", lastInboundAt: minAgo(150), lastSignalAt: minAgo(10), prev });
