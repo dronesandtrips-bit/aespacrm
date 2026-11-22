@@ -2,7 +2,7 @@
 // editar (título, data/hora, duração, local, descrição) ou cancelar.
 // Aditivo: não altera o fluxo de agendamento pelo WhatsWeb.
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -104,6 +104,8 @@ function AgendaPage() {
   const search = Route.useSearch();
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const loadInFlight = useRef(false);
   const [editing, setEditing] = useState<CalEvent | null>(null);
   const [creating, setCreating] = useState(false);
   const [view, setView] = useState<"lista" | "semana" | "pendentes">(agendaEntryView(search.view));
@@ -133,8 +135,10 @@ function AgendaPage() {
   const [ownerPhone, setOwnerPhone] = useState(DEFAULT_OWNER_PHONE);
   const [reminderMinutes, setReminderMinutes] = useState("1440");
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (background = false) => {
+    if (loadInFlight.current) return;
+    loadInFlight.current = true;
+    if (!background) setRefreshing(true);
     try {
       const res = await authFetch("/api/public/calendar/events?days=120&past=90");
       const json = await res.json().catch(() => ({}) as any);
@@ -149,15 +153,17 @@ function AgendaPage() {
         setClosureError("");
       } else setClosureError(closureJson.error ?? "Não foi possível carregar o fechamento.");
     } catch (e: any) {
-      toast.error(`Falha ao carregar agenda: ${e?.message ?? String(e)}`);
+      if (!background) toast.error(`Falha ao carregar agenda: ${e?.message ?? String(e)}`);
     } finally {
+      loadInFlight.current = false;
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => { if (!document.hidden) void load(); }, 60_000);
+    const timer = window.setInterval(() => { if (!document.hidden) void load(true); }, 60_000);
     return () => window.clearInterval(timer);
   }, [load]);
 
@@ -534,8 +540,8 @@ function AgendaPage() {
               </Button>
             ))}
           </div>
-          <Button className="min-w-0" variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-            {loading ? (
+          <Button className="min-w-0" variant="outline" size="sm" onClick={() => void load()} disabled={loading || refreshing}>
+            {loading || refreshing ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
               <RefreshCw className="size-4" />
