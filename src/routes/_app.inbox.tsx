@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScheduleEventDialog } from "@/components/ScheduleEventDialog";
-import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, BellOff, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Kanban, Reply, Copy, MapPin, User, CalendarPlus } from "lucide-react";
+import { Search, Send, MessageCircle, Loader2, PauseCircle, Sparkles, AlertTriangle, FileText, Image as ImageIcon, Tag, TagIcon, FolderPlus, Download, Pencil, Trash2, GitBranch, ShieldOff, ShieldCheck, Check, CheckCheck, Bot, Bell, BellOff, Filter, Users as UsersIcon, RefreshCw, Smile, Paperclip, Mic, X, Forward, ChevronDown, Kanban, Reply, Copy, MapPin, User, CalendarPlus, ArrowLeft } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { contactsDb, messagesDb, sequencesDb, categoriesDb, userSettingsDb, ignoredPhonesDb, pipelineDb, type Contact, type ChatMessage, type Category, type Sequence, type PipelineStage } from "@/lib/db";
 import { activateNotifications, isSoundEnabled, notifyIncomingMessage, setBrowserNotificationsEnabled, setSoundEnabled } from "@/lib/notification-sound";
@@ -174,6 +174,8 @@ function InboxPage() {
   const [chipFilter, setChipFilter] = useState<"all" | "unread" | "groups">("all");
   const [chipCategoryId, setChipCategoryId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string>("");
+  // Celular: mostra lista OU conversa (desktop mostra ambos).
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const draftsByContactRef = useRef<Record<string, string>>({});
@@ -1263,12 +1265,11 @@ function InboxPage() {
     <div className="h-screen whatsweb-theme">
       <Card className="overflow-hidden h-full rounded-none border-0 bg-transparent shadow-none text-[color:var(--ww-text)]">
         <div
-          className="grid grid-cols-1 h-full min-h-0 relative"
-          style={{ gridTemplateColumns: "30% 1fr 3rem" }}
+          className="grid grid-cols-1 md:grid-cols-[30%_1fr_3rem] h-full min-h-0 relative"
         >
           {/* Lista */}
           <div
-            className="flex flex-col min-h-0 h-full overflow-hidden"
+            className={`${mobileView === "chat" ? "hidden md:flex" : "flex"} flex-col min-h-0 h-full overflow-hidden`}
             style={{
               backgroundColor: "var(--ww-sidebar)",
               borderRight: "1px solid var(--ww-border)",
@@ -1525,7 +1526,7 @@ function InboxPage() {
                   return (
                     <button
                       key={contact.id}
-                      onClick={() => setActiveId(contact.id)}
+                      onClick={() => { setActiveId(contact.id); setMobileView("chat"); }}
                       className={cn(
                         "w-full text-left flex gap-3 px-3 py-3 transition-colors",
                         "hover:bg-white/5",
@@ -1635,17 +1636,26 @@ function InboxPage() {
           {/* Chat */}
           {active ? (
             <div
-              className="flex flex-col min-h-0 h-full overflow-hidden whatsweb-doodle"
+              className={`${mobileView === "list" ? "hidden md:flex" : "flex"} flex-col min-h-0 h-full overflow-hidden whatsweb-doodle`}
             >
               {/* Header do chat */}
               <div
-                className="h-16 flex items-center justify-between px-5 shrink-0"
+                className="min-h-16 flex flex-wrap md:flex-nowrap items-center justify-between gap-y-1 px-2 py-1 md:px-5 md:py-0 shrink-0"
                 style={{
                   backgroundColor: "var(--ww-sidebar)",
                   borderBottom: "1px solid var(--ww-border)",
                 }}
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1 md:flex-initial">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden size-9 shrink-0 text-[color:var(--ww-text)] hover:bg-white/5"
+                    aria-label="Voltar para conversas"
+                    onClick={() => setMobileView("list")}
+                  >
+                    <ArrowLeft className="size-5" />
+                  </Button>
                   <div
                     className="size-10 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0 overflow-hidden"
                     style={{
@@ -1683,7 +1693,7 @@ function InboxPage() {
                   {!active.isGroup && (
                     <Badge
                       variant="outline"
-                      className="ml-2 gap-1 text-[10px] border-0"
+                      className="ml-2 gap-1 text-[10px] border-0 hidden sm:inline-flex"
                       style={{
                         backgroundColor: messages.length > 0 ? "rgba(16,185,129,0.15)" : "rgba(59,130,246,0.15)",
                         color: messages.length > 0 ? "#34d399" : "#60a5fa",
@@ -1718,7 +1728,7 @@ function InboxPage() {
 
                 {/* Ações sobre o contato (espelho da aba Contatos) */}
                 <TooltipProvider delayDuration={150}>
-                  <div className="flex items-center gap-0.5">
+                  <div className="flex items-center gap-0.5 w-full md:w-auto overflow-x-auto justify-end">
                     {!active.isGroup && (
                       <>
                         <Tooltip>
@@ -2085,7 +2095,7 @@ function InboxPage() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center whatsweb-doodle">
+            <div className={`${mobileView === "list" ? "hidden md:flex" : "flex"} items-center justify-center whatsweb-doodle`}>
               <div className="text-center text-[color:var(--ww-text-muted)]">
                 <MessageCircle className="size-12 mx-auto opacity-30 mb-2" />
                 <p className="text-sm">

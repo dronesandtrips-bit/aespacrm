@@ -21,7 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarPlus, Copy, Loader2, MapPin, Send } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { CalendarDays, CalendarPlus, Copy, Loader2, MapPin, Send } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -64,6 +68,12 @@ export function ScheduleEventDialog({
 }: Props) {
   const [title, setTitle] = useState("");
   const [when, setWhen] = useState(defaultLocalDateTime());
+  const [dateOpen, setDateOpen] = useState(false);
+  const whenDate = useMemo(() => {
+    const [y, m, d] = when.slice(0, 10).split("-").map(Number);
+    return new Date(y ?? 2026, (m ?? 1) - 1, d ?? 1);
+  }, [when]);
+  const whenTime = when.slice(11, 16);
   const [duration, setDuration] = useState("60");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
@@ -266,15 +276,40 @@ export function ScheduleEventDialog({
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="evt-when">Data e hora</Label>
-                <Input
-                  id="evt-when"
-                  type="datetime-local"
-                  value={when}
-                  onChange={(e) => setWhen(e.target.value)}
-                />
+                <div className="flex gap-2">
+                  <Popover open={dateOpen} onOpenChange={setDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button id="evt-when" variant="outline" className="flex-1 justify-start font-normal px-3">
+                        <CalendarDays className="size-4" />
+                        {format(whenDate, "dd/MM/yyyy")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        locale={ptBR}
+                        selected={whenDate}
+                        defaultMonth={whenDate}
+                        onSelect={(d) => {
+                          if (!d) return;
+                          setWhen(`${format(d, "yyyy-MM-dd")}T${whenTime}`);
+                          setDateOpen(false);
+                        }}
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Input
+                    type="time"
+                    aria-label="Hora"
+                    className="w-28"
+                    value={whenTime}
+                    onChange={(e) => e.target.value && setWhen(`${when.slice(0, 10)}T${e.target.value}`)}
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="evt-duration">Duração</Label>
